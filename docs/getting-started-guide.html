@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting Started Guide</title>
+<style>
+  @page { size: A4; }
+  :root {
+    --ink: #1c2430;
+    --muted: #5b6676;
+    --line: #d9dee6;
+    --brand: #1f4e79;
+    --brand-soft: #e8f0f8;
+    --accent: #0f7b6c;
+    --accent-soft: #e6f4f1;
+    --warn: #9a5b00;
+    --warn-soft: #fdf3e2;
+    --danger: #a12828;
+    --danger-soft: #fbeaea;
+    --code-bg: #f4f6f9;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: #fff; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    font-size: 10pt;
+    line-height: 1.5;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { color: var(--brand); line-height: 1.25; break-after: avoid; }
+  h1 { font-size: 20pt; margin: 0 0 6pt; padding-bottom: 6pt; border-bottom: 2px solid var(--brand); }
+  h2 { font-size: 13.5pt; margin: 18pt 0 6pt; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; color: var(--ink); }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+  li { margin-bottom: 2.5pt; }
+  section.chapter { break-before: page; }
+  code, pre { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; font-size: 8.6pt; }
+  code { background: var(--code-bg); padding: 0.5pt 3pt; border-radius: 3px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-left: 3px solid var(--brand);
+    padding: 7pt 9pt; border-radius: 4px; white-space: pre-wrap; word-break: break-word;
+    margin: 0 0 9pt; line-height: 1.4;
+  }
+  pre code { background: none; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 3pt 0 10pt; font-size: 8.8pt; break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 4pt 5pt; text-align: left; vertical-align: top; }
+  th { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+  tbody tr:nth-child(even) td { background: #fafbfd; }
+  td code { font-size: 8pt; }
+  .small { font-size: 8.6pt; color: var(--muted); }
+  .muted { color: var(--muted); }
+
+  .callout { border-radius: 5px; padding: 7pt 10pt; margin: 6pt 0 10pt; break-inside: avoid; border-left: 4px solid; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout b.t { display: block; margin-bottom: 2pt; }
+  .info { background: var(--brand-soft); border-color: var(--brand); }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .bad { background: var(--danger-soft); border-color: var(--danger); }
+
+  /* Cover */
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .band { background: var(--brand); color: #fff; padding: 34pt 30pt 30pt; border-radius: 6px; margin-top: 40mm; }
+  .cover .band .kicker { text-transform: uppercase; letter-spacing: 2px; font-size: 9pt; opacity: 0.85; }
+  .cover .band h1 { color: #fff; border: none; font-size: 28pt; margin: 8pt 0 6pt; padding: 0; }
+  .cover .band p { font-size: 12pt; margin: 0; opacity: 0.95; }
+  .cover .meta td { border: none; padding: 2pt 10pt 2pt 0; background: none !important; font-size: 9.5pt; }
+  .cover .meta td:first-child { color: var(--muted); width: 32mm; }
+
+  /* TOC */
+  .toc ol { list-style: none; padding: 0; counter-reset: none; }
+  .toc li { display: flex; padding: 4pt 0; border-bottom: 1px dotted var(--line); }
+  .toc li span.n { width: 10mm; color: var(--brand); font-weight: 600; }
+  .toc li span.d { color: var(--muted); margin-left: auto; font-size: 8.6pt; }
+
+  /* Flow diagram: 4 x 2 grid, read left to right, top to bottom */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt 14pt; margin: 6pt 0 12pt; break-inside: avoid; }
+  .flow .step { position: relative; border: 1px solid var(--brand); border-radius: 5px; padding: 6pt 8pt; background: var(--brand-soft); font-size: 8.6pt; }
+  .flow .step b { display: block; color: var(--brand); font-size: 9.5pt; margin-bottom: 1pt; }
+  .flow .step .who { display: inline-block; margin-top: 3pt; font-size: 7.6pt; color: #fff; background: var(--accent); border-radius: 8px; padding: 0 5pt; }
+  .flow .step:not(:nth-child(4n))::after { content: "\2192"; position: absolute; right: -12pt; top: 50%; transform: translateY(-50%); color: var(--brand); font-size: 11pt; }
+
+  /* Rendered example document */
+  .doc { border: 1px solid var(--line); border-radius: 6px; padding: 10pt 12pt; margin: 6pt 0 10pt; }
+  .doc h3 { color: var(--brand); font-size: 10pt; margin: 10pt 0 3pt; }
+  .doc h3:first-child { margin-top: 0; }
+  .doc .doc-title { font-size: 12pt; font-weight: 700; color: var(--ink); margin-bottom: 4pt; }
+  .doc table { font-size: 7.8pt; }
+  .doc th, .doc td { padding: 3pt 4pt; }
+  .doc td code { font-size: 7.4pt; padding: 0 2pt; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .card { border: 1px solid var(--line); border-radius: 5px; padding: 7pt 9pt; break-inside: avoid; }
+  .card h4 { margin: 0 0 4pt; font-size: 10pt; color: var(--brand); }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding-left: 16pt; position: relative; }
+  .checklist li::before { content: "\2610"; position: absolute; left: 0; top: -1pt; font-size: 11pt; color: var(--brand); }
+  .tag { display: inline-block; font-size: 7.6pt; padding: 0 5pt; border-radius: 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); margin-left: 3pt; vertical-align: 1px; }
+  .tag.req { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+  .nobreak { break-inside: avoid; }
+
+  /* ---------- Screen / responsive (print layout above is unchanged) ---------- */
+  @media screen {
+    body { max-width: 1000px; margin: 0 auto; padding: 24px 32px 48px; font-size: 15px; }
+    code, pre { font-size: 13px; }
+    td code { font-size: 12px; }
+    table { font-size: 13.5px; }
+    .doc table { font-size: 12.5px; }
+    .doc td code { font-size: 11.5px; }
+    section.chapter { margin-top: 40px; padding-top: 8px; border-top: 1px solid var(--line); }
+    .cover { height: auto; min-height: 0; gap: 24px; }
+    .cover .band { margin-top: 0; }
+    td code, li code, p code { overflow-wrap: anywhere; }
+    /* code blocks keep their alignment and scroll instead of wrapping */
+    pre { white-space: pre; overflow-x: auto; word-break: normal; }
+  }
+
+  @media screen and (max-width: 900px) {
+    body { padding: 16px 16px 40px; }
+    /* wide tables scroll sideways inside their own box */
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cover .meta { display: table; }
+    .doc { padding: 10px; }
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    .flow .step:not(:nth-child(4n))::after { content: none; }
+    .flow .step:nth-child(odd)::after { content: "\2192"; }
+  }
+
+  @media screen and (max-width: 600px) {
+    body { font-size: 14.5px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; }
+    .cover .band { padding: 24px 18px; }
+    .cover .band h1 { font-size: 26px; }
+    .cover .band p { font-size: 15px; }
+    .cover .meta td:first-child { width: auto; white-space: nowrap; }
+    .grid2 { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; gap: 16pt; }
+    .flow .step:nth-child(n)::after { content: "\2193"; position: absolute; color: var(--brand); font-size: 11pt; right: auto; left: 50%; top: auto; bottom: -15pt; transform: translateX(-50%); }
+    .flow .step:nth-child(n):last-child::after { content: none; }
+    .toc li { display: grid; grid-template-columns: 10mm 1fr; }
+    .toc li span.d { grid-column: 2; margin-left: 0; }
+  }
+  /* ---------- additions for this guide ---------- */
+  .diagram { margin: 6pt 0 12pt; break-inside: avoid; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .diagram .box { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.2; }
+  .diagram .box.ai { fill: var(--accent-soft); stroke: var(--accent); }
+  .diagram .box.out { fill: var(--warn-soft); stroke: var(--warn); }
+  .diagram text { font-family: "Segoe UI", Arial, sans-serif; fill: var(--ink); font-size: 11px; }
+  .diagram text.t { font-weight: 700; fill: var(--brand); font-size: 12px; }
+  .diagram text.ta { font-weight: 700; fill: var(--accent); font-size: 12px; }
+  .diagram text.to { font-weight: 700; fill: var(--warn); font-size: 12px; }
+  .diagram .arrow { stroke: var(--muted); stroke-width: 1.4; fill: none; marker-end: url(#arr); }
+  .diagram .lbl { font-size: 9.5px; fill: var(--muted); }
+  .diagram figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 3pt; }
+  .num { display: inline-block; min-width: 16pt; height: 16pt; line-height: 16pt; text-align: center; border-radius: 8pt; background: var(--brand); color: #fff; font-size: 8.5pt; font-weight: 700; margin-right: 5pt; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<div class="cover">
+  <div class="band">
+    <div class="kicker">QA Automation Framework</div>
+    <h1>Getting Started Guide</h1>
+    <p>How AI-assisted test automation with Playwright and Claude works, and how to set up and use this framework from scratch.</p>
+  </div>
+  <div>
+    <table class="meta">
+      <tr><td>Audience</td><td>QA engineers and developers joining the project; team leads who want to know how it works</td></tr>
+      <tr><td>Applies to</td><td>Web applications, mobile web, native Android and iOS apps</td></tr>
+      <tr><td>Tooling</td><td>Playwright, Appium (WebdriverIO), Claude Code + Playwright MCP, Allure 3, TypeScript, Node.js</td></tr>
+      <tr><td>Companion</td><td><i>Module Testing &amp; Automation Guide</i> (QA-Automation-Guide.pdf): the process and what developers put in a module MD file</td></tr>
+      <tr><td>Version</td><td>1.0 &middot; 5 October 2026</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============================== TOC ============================== -->
+<section class="chapter toc">
+  <h1>Contents</h1>
+  <ol>
+    <li><span class="n">1</span>The big picture<span class="d">Everyone</span></li>
+    <li><span class="n">2</span>How Playwright + Claude AI automation works<span class="d">Concepts</span></li>
+    <li><span class="n">3</span>Setup from scratch<span class="d">Once per machine</span></li>
+    <li><span class="n">4</span>How the framework is built<span class="d">Architecture</span></li>
+    <li><span class="n">5</span>Walkthrough: automating a module with Claude<span class="d">Day-to-day work</span></li>
+    <li><span class="n">6</span>Working in sprints<span class="d">Per sprint</span></li>
+    <li><span class="n">7</span>Adding a new application<span class="d">Per project</span></li>
+    <li><span class="n">8</span>Writing and editing tests by hand<span class="d">Reference</span></li>
+    <li><span class="n">9</span>Native mobile tests (Appium)<span class="d">Optional</span></li>
+    <li><span class="n">10</span>Running tests locally and in CI<span class="d">Reference</span></li>
+    <li><span class="n">11</span>Reports and failure triage<span class="d">QA &amp; developers</span></li>
+    <li><span class="n">12</span>Rules of the framework<span class="d">Must read</span></li>
+    <li><span class="n">13</span>Working well with Claude<span class="d">Tips</span></li>
+    <li><span class="n">14</span>Troubleshooting<span class="d">FAQ</span></li>
+    <li><span class="n">A</span>Command cheat sheet<span class="d">Print me</span></li>
+    <li><span class="n">B</span>Glossary<span class="d">Reference</span></li>
+  </ol>
+
+  <div class="callout info">
+    <b class="t">The one-sentence version</b>
+    Requirements arrive as Markdown. Claude turns them into test cases for QA to review, then into Playwright tests
+    by opening the real application in a browser to find the elements. The tests run on web, mobile web and native
+    apps, and results land in an Allure report linked to Jira.
+  </div>
+
+  <div class="callout tip">
+    <b class="t">Fastest path for a new team member</b>
+    <ol style="margin-bottom:0">
+      <li>Read sections 1 and 2 (15 minutes) to understand the idea.</li>
+      <li>Follow section 3 to install everything and run the sample app's tests.</li>
+      <li>Read section 4 with the sample app <code>apps/saucedemo</code> open next to it.</li>
+      <li>Do the walkthrough in section 5 on a small module of your own app.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<section class="chapter">
+  <h1>1. The big picture</h1>
+
+  <h2>1.1 The problem this solves</h2>
+  <p>Hand-written UI automation is slow to build and breaks easily. Most of the effort goes into repetitive
+  work: reading the story, listing test cases, finding locators for every field, writing page objects and
+  keeping them up to date when the screen changes. This framework hands that repetitive work to an AI coding
+  assistant (Claude), inside a fixed structure, so that:</p>
+  <ul>
+    <li>every module follows the same path: <b>requirement &rarr; test cases &rarr; automated tests &rarr; report</b>;</li>
+    <li>QA engineers review and decide; Claude drafts, writes code, runs tests and fixes automation problems;</li>
+    <li>one shared framework serves every application in the company, web and mobile;</li>
+    <li>each test is traceable: Jira story &rarr; test-case ID &rarr; test &rarr; result in the report.</li>
+  </ul>
+
+  <h2>1.2 What is in the box</h2>
+  <table>
+    <thead><tr><th>Piece</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><b>Playwright</b></td><td>Drives real browsers (Chrome, Safari engine) and runs the tests. Also emulates phones for mobile web.</td></tr>
+      <tr><td><b>Appium</b> (via WebdriverIO)</td><td>Drives native Android and iOS apps on emulators or devices.</td></tr>
+      <tr><td><b>Claude Code</b></td><td>The AI assistant in VS Code. It reads the repository, writes code, runs commands and follows the project rules in <code>CLAUDE.md</code>.</td></tr>
+      <tr><td><b>Playwright MCP</b></td><td>A plug-in that lets Claude open and operate a real browser while it works, so it sees the actual page instead of guessing.</td></tr>
+      <tr><td><b>QA slash commands</b></td><td><code>/qa-testcases</code>, <code>/qa-automate</code>, <code>/qa-fix</code>, <code>/qa-update</code>: saved, repeatable instructions for each step of the process.</td></tr>
+      <tr><td><b>Shared framework</b> (<code>src/</code>)</td><td>Generic building blocks: field models, page/screen base classes, actions, assertions, login handling, API client, report enrichment.</td></tr>
+      <tr><td><b>Allure 3</b></td><td>The test report: grouped by Epic &rarr; Feature &rarr; Story, with Jira links, readable steps and a bug report for every failure.</td></tr>
+      <tr><td><b>Helper scripts</b></td><td>New app scaffolding, test-case coverage, and requirement change tracking (what changed since QA last tested).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.3 Who does what</h2>
+  <table>
+    <thead><tr><th>Role</th><th>Responsibilities</th></tr></thead>
+    <tbody>
+      <tr><td>Developer</td><td>Writes the module MD file (fields, rules, exact messages, test IDs) and adds test IDs in the code. Details: companion guide. In sprint projects where only QA uses the framework, developers send their own notes with each build and QA merges them (chapter 6).</td></tr>
+      <tr><td>QA engineer</td><td>Runs the Claude commands, reviews test cases and generated code, triages failures, raises bugs, signs off modules.</td></tr>
+      <tr><td>Claude</td><td>Drafts test cases, explores the app in a browser, writes models/pages/data/specs, runs and fixes tests. <b>Everything it produces is reviewed by QA.</b></td></tr>
+      <tr><td>Framework owners</td><td>Maintain <code>src/</code>, the commands and the conventions for every app.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section class="chapter">
+  <h1>2. How Playwright + Claude AI automation works</h1>
+  <p>This section explains the general idea, independent of our framework. Once you understand these five
+  building blocks, the rest of the guide is detail.</p>
+
+  <h2>2.1 Playwright: the test engine</h2>
+  <p><a href="https://playwright.dev">Playwright</a> is an open-source library from Microsoft that controls a
+  browser through code. A Playwright test is a TypeScript function that opens pages, interacts with them and
+  checks the result:</p>
+<pre><code>test('valid user can log in', async ({ page }) =&gt; {
+  await page.goto('https://www.saucedemo.com');
+  await page.getByTestId('username').fill('standard_user');
+  await page.getByTestId('password').fill('secret_sauce');
+  await page.getByTestId('login-button').click();
+  await expect(page).toHaveURL(/inventory/);        // web-first assertion: retries until true or timeout
+});</code></pre>
+  <p>The key ideas:</p>
+  <ul>
+    <li><b>Locators</b> describe <i>how to find</i> an element: by test ID, by accessible role and name, by label, by text. Stable locators are the single biggest factor in stable tests.</li>
+    <li><b>Auto-waiting</b>: actions wait until the element is visible, enabled and stable, so tests need no <code>sleep</code>.</li>
+    <li><b>Web-first assertions</b>: <code>expect(...)</code> retries until the condition is true or the timeout expires.</li>
+    <li><b>Projects</b>: the same tests run on several browsers and devices (desktop Chrome, Pixel 7, iPhone 15).</li>
+    <li><b>Fixtures</b>: reusable setup handed to each test (a page, a logged-in session, an API client).</li>
+    <li><b>Trace, screenshots and video</b> are recorded on failure, so you can replay exactly what happened.</li>
+  </ul>
+
+  <h2>2.2 Appium: the same idea for native apps</h2>
+  <p>Browsers can't run native Android/iOS apps, so for those we use <b>Appium</b>, a server that controls apps on an
+  emulator, simulator or real device. We talk to it with WebdriverIO, but the framework hides this: mobile tests are
+  written exactly like web tests (models, screens, <code>act</code> / <code>verify</code>), and Playwright's runner still runs them
+  and produces the same report.</p>
+
+  <h2>2.3 Claude Code: the AI that writes and runs the tests</h2>
+  <p><b>Claude Code</b> is Anthropic's AI coding assistant. In VS Code it works in a side panel and, unlike a chat bot,
+  it can <b>read and edit files in the project and run terminal commands</b> (with your permission). That makes it an agent:
+  you give it a goal ("automate these test cases"), and it reads the inputs, writes the code, runs the tests,
+  reads the failures and fixes them, in a loop, until the goal is reached.</p>
+  <p>Two project files steer its behaviour:</p>
+  <ul>
+    <li><b><code>CLAUDE.md</code></b> (repository root): the project rules, read automatically at the start of every conversation.
+      Folder layout, naming, "locators only in models", "no sleeps", how to mark a known bug. This is why
+      Claude's code looks like the rest of the framework.</li>
+    <li><b>Slash commands</b> (<code>.claude/commands/*.md</code>): saved, step-by-step instructions you start by typing
+      <code>/qa-automate &lt;file&gt;</code>. Each step of our process has one, so everybody gets the same result.</li>
+  </ul>
+
+  <h2>2.4 MCP and the Playwright MCP: letting Claude see the application</h2>
+  <p><b>MCP (Model Context Protocol)</b> is an open standard for giving an AI assistant extra tools. The
+  <b>Playwright MCP</b> server gives Claude a real browser it can drive while it works: open a URL, read the page
+  structure (an <i>accessibility snapshot</i>), click, type, run JavaScript in the page, take screenshots.</p>
+  <p>Why it matters: without it, Claude would have to <i>guess</i> locators and message texts from the requirement.
+  With it, Claude logs in to the QA environment with a test account, opens the screen, lists the real test IDs,
+  triggers each validation error to read its exact text, and only then writes the model. When a test fails,
+  it can replay the steps in the browser to tell an automation problem from an application bug.</p>
+  <p>The server is configured for this project in <code>.mcp.json</code>, and <code>.claude/settings.json</code>
+  pre-approves its tools. Native mobile apps can't be opened through it; for those, test IDs come from the module MD file
+  or Appium Inspector.</p>
+
+  <h2>2.5 How the pieces work together</h2>
+  <figure class="diagram">
+    <svg viewBox="0 0 690 300" role="img" aria-label="QA engineer instructs Claude Code, which edits repository files, runs tests in the terminal and explores the app through the Playwright MCP browser; tests run against the application and produce the Allure report">
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6676"/></marker></defs>
+      <rect class="box" x="8" y="118" width="112" height="64" rx="6"/>
+      <text class="t" x="64" y="143" text-anchor="middle">QA engineer</text>
+      <text x="64" y="160" text-anchor="middle">runs /qa-* commands,</text>
+      <text x="64" y="173" text-anchor="middle">reviews output</text>
+
+      <rect class="box ai" x="158" y="118" width="136" height="64" rx="6"/>
+      <text class="ta" x="226" y="143" text-anchor="middle">Claude Code</text>
+      <text x="226" y="160" text-anchor="middle">in VS Code, follows</text>
+      <text x="226" y="173" text-anchor="middle">CLAUDE.md rules</text>
+
+      <rect class="box" x="344" y="16" width="160" height="70" rx="6"/>
+      <text class="t" x="424" y="38" text-anchor="middle">Repository files</text>
+      <text x="424" y="55" text-anchor="middle">requirements, test cases,</text>
+      <text x="424" y="68" text-anchor="middle">models, pages, data, specs</text>
+
+      <rect class="box" x="344" y="118" width="160" height="64" rx="6"/>
+      <text class="t" x="424" y="142" text-anchor="middle">Terminal</text>
+      <text x="424" y="159" text-anchor="middle">tsc, playwright test,</text>
+      <text x="424" y="172" text-anchor="middle">coverage, req tracking</text>
+
+      <rect class="box ai" x="344" y="214" width="160" height="64" rx="6"/>
+      <text class="ta" x="424" y="238" text-anchor="middle">Playwright MCP</text>
+      <text x="424" y="255" text-anchor="middle">live browser Claude uses</text>
+      <text x="424" y="268" text-anchor="middle">to explore and debug</text>
+
+      <rect class="box" x="550" y="166" width="132" height="64" rx="6"/>
+      <text class="t" x="616" y="190" text-anchor="middle">App under test</text>
+      <text x="616" y="207" text-anchor="middle">QA environment,</text>
+      <text x="616" y="220" text-anchor="middle">web or mobile build</text>
+
+      <rect class="box out" x="550" y="56" width="132" height="64" rx="6"/>
+      <text class="to" x="616" y="80" text-anchor="middle">Allure report</text>
+      <text x="616" y="97" text-anchor="middle">results, steps, bug</text>
+      <text x="616" y="110" text-anchor="middle">reports, Jira links</text>
+
+      <path class="arrow" d="M120 150 H156"/>
+      <path class="arrow" d="M294 140 L342 62"/>
+      <path class="arrow" d="M294 150 H342"/>
+      <path class="arrow" d="M294 160 L342 238"/>
+      <path class="arrow" d="M504 158 L548 188"/>
+      <path class="arrow" d="M504 140 L548 102"/>
+      <path class="arrow" d="M504 246 L548 214"/>
+      <text class="lbl" x="312" y="100" text-anchor="end">reads / writes</text>
+      <text class="lbl" x="546" y="206" text-anchor="end">runs tests</text>
+      <text class="lbl" x="514" y="266">explores</text>
+    </svg>
+    <figcaption>Claude edits files, runs tests in the terminal and looks at the live app through the MCP browser. The tests themselves are plain Playwright code: they run without Claude, locally and in CI.</figcaption>
+  </figure>
+
+  <div class="callout warn">
+    <b class="t">Important: the AI writes the tests, it doesn't run them in production</b>
+    The generated tests are ordinary TypeScript files committed to the repository. Running them, locally or in CI,
+    needs <b>no AI at all</b>. Claude is only involved when tests are created, changed or investigated.
+  </div>
+
+  <h2>2.6 Where AI helps, and where humans must decide</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>Claude is good at</h4>
+      <ul>
+        <li>Turning a structured requirement into a complete list of positive, negative and boundary cases</li>
+        <li>Finding stable locators on a real page</li>
+        <li>Writing consistent model / page / data / spec code</li>
+        <li>Running tests, reading errors, fixing locators and waits</li>
+        <li>Spotting gaps in a requirement ("no error text given for...")</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>QA must decide</h4>
+      <ul>
+        <li>Whether the test cases are right and complete (review step)</li>
+        <li>What the <b>expected</b> result is: the requirement wins, never the current app behaviour</li>
+        <li>Whether a failure is a real bug, and raising it in Jira</li>
+        <li>Merging generated code (review it like any pull request)</li>
+        <li>Signing off a module</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout bad">
+    <b class="t">Never let a test be "fixed" by weakening the check</b>
+    If the application shows the wrong message, the test must keep expecting the right one. Confirmed bugs are marked with
+    <code>knownBug('JIRA-KEY', 'summary')</code> (section 11.3), not by changing the assertion to match the bug. The commands are
+    written to enforce this; reviewers should check it too.
+  </div>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section class="chapter">
+  <h1>3. Setup from scratch</h1>
+  <p>Do this once per machine. It takes about 20 minutes, plus the optional mobile setup.</p>
+
+  <h2>3.1 Prerequisites</h2>
+  <table>
+    <thead><tr><th>Tool</th><th>Version / note</th><th>Check</th></tr></thead>
+    <tbody>
+      <tr><td>Node.js</td><td>20 or newer (LTS recommended)</td><td><code>node -v</code></td></tr>
+      <tr><td>VS Code</td><td>Latest</td><td></td></tr>
+      <tr><td>Claude Code extension</td><td>VS Code Marketplace: <b>Claude Code</b> (publisher: Anthropic). Needs a Claude account from the team's plan.</td><td>Claude icon in the side bar</td></tr>
+      <tr><td>Git</td><td>To get the code and commit work</td><td><code>git --version</code></td></tr>
+      <tr><td>Java</td><td><b>Not</b> needed: Allure 3 runs on Node.js</td><td></td></tr>
+      <tr><td>Android Studio / Xcode, Appium</td><td>Only for native mobile tests (section 9)</td><td><code>appium -v</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.2 Install the project</h2>
+<pre><code># 1. get the code (clone the repository, or unzip the shared copy) and open the folder in VS Code
+cd "Automation Framework"
+
+# 2. install dependencies and browsers
+npm install
+npm run setup                       # downloads Chromium + WebKit for Playwright
+
+# 3. create your local settings files from the examples (never commit the real ones)
+copy .env.example .env                                  # macOS/Linux: cp
+copy apps\saucedemo\.env.example apps\saucedemo\.env</code></pre>
+
+  <p>The root <code>.env</code> chooses the app and environment:</p>
+<pre><code>APP=saucedemo                 # folder name under apps/
+TEST_ENV=qa                   # loads apps/&lt;app&gt;/.env.qa (if it exists) before apps/&lt;app&gt;/.env
+JIRA_BASE_URL=https://yourcompany.atlassian.net   # turns Jira keys in the report into links</code></pre>
+  <p>Each app's own <code>apps/&lt;app&gt;/.env</code> holds its QA URLs, test accounts per role, API token and mobile app builds.
+  Ask the QA lead for the values of real projects. They contain QA test accounts only, never production credentials.</p>
+
+  <h2>3.3 First run</h2>
+<pre><code>npx tsc --noEmit             # type check: should print nothing
+npm run test:web             # sample app tests on desktop Chrome (logs in first, then runs the specs)
+npm run report               # builds and opens the Allure report in your browser</code></pre>
+  <p>If you see green tests and a report grouped under <i>Authentication</i> and <i>Shopping</i>, the framework works.</p>
+
+  <h2>3.4 Set up Claude Code and the browser tool</h2>
+  <ol>
+    <li>Install the <b>Claude Code</b> extension in VS Code and sign in with your Claude account.</li>
+    <li>Open the project folder (the one with <code>CLAUDE.md</code>) and open the Claude panel.</li>
+    <li>The project's <code>.mcp.json</code> declares the <b>playwright</b> MCP server. When Claude asks to enable it, approve it.</li>
+    <li>Type <code>/mcp</code> in the Claude panel: <b>playwright</b> should be listed as connected.</li>
+    <li>Type <code>/</code> and check that <code>qa-testcases</code>, <code>qa-automate</code>, <code>qa-fix</code> and <code>qa-update</code> appear.</li>
+  </ol>
+  <div class="callout tip">
+    <b class="t">Playwright MCP not listed or not connecting?</b>
+    Add it for your user once, then reload VS Code and start a new Claude conversation:
+<pre><code>claude mcp add playwright --scope user -- cmd /c npx -y @playwright/mcp@latest --isolated --output-dir=.playwright-mcp</code></pre>
+    On macOS/Linux leave out <code>cmd /c</code> (the same applies to <code>.mcp.json</code>, which is written for Windows).
+    The first start downloads the package and can time out; retry once it has finished.
+  </div>
+
+  <h2>3.5 Try Claude on the sample app</h2>
+  <p>Ask Claude, in plain words, to explain or run something. Good first prompts:</p>
+  <ul>
+    <li><i>"Explain how apps/saucedemo/tests/web/login/login.spec.ts finds its test case in the report."</i></li>
+    <li><i>"Run the products tests on web-chrome and summarise the result."</i></li>
+    <li><i>"Open saucedemo.com in the browser and list the data-test IDs on the login page."</i> (uses the MCP browser)</li>
+  </ul>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section class="chapter">
+  <h1>4. How the framework is built</h1>
+
+  <h2>4.1 Folder layout</h2>
+<pre><code>src/                     SHARED FRAMEWORK: generic only, used by every app (never app-specific code)
+  config/                env.ts (only place reading process.env), app.ts (defineApp, settings), paths.ts
+  models/                field.types.ts: Field, WebLocator, MobileLocator, FormData, defineWebFields
+  web/                   BasePage, WebActions (act), WebAssertions (verify), locator resolver
+  mobile/                BaseScreen, MobileActions, MobileAssertions, Appium driver + capabilities
+  api/                   ApiClient (REST for setup / cleanup)
+  auth/                  auth.setup.ts: logs in every role from app.config.ts
+  fixtures/              core `test`: role, platform, api, cleanup, driver, report (automatic)
+  report/                Allure enrichment: test case per test, failure cause, bug report attachment
+  utils/                 step(), storyInfo() / knownBug(), cleanup, random data
+apps/&lt;app&gt;/              ONE APPLICATION (copy of this structure per project)
+  app.config.ts          platforms, web base URL, test-id attribute, login roles + login steps
+  fixtures.ts            adds this app's pages/screens to the core test; specs import from here
+  .env                   URLs, accounts, builds for this app (not committed)
+  requirements/          module MD files (+ .baseline/ = versions QA has processed)
+  test-cases/            reviewed test cases (*.testcases.md)
+  sprints/               sprint trackers + developer MDs as received (from-dev/&lt;date&gt;/)
+  models/web|mobile      field models       pages/   screens/    page and screen objects
+  data/                  typed test data    tests/web|mobile      specs
+templates/               requirement.md, testcases.md, sprint.md, dev-handover.md
+scripts/                 new-app, tc-coverage, req-track
+.claude/commands/        the /qa-* slash commands         CLAUDE.md   rules Claude follows
+docs/                    this guide and the module process guide</code></pre>
+  <p>Imports use two aliases: <code>@core/...</code> for <code>src/</code> and <code>@apps/&lt;app&gt;/...</code> for app code.</p>
+
+  <h2>4.2 How settings are resolved</h2>
+  <p><code>APP</code> picks the folder under <code>apps/</code>. Then settings are loaded, first value wins:</p>
+  <ol>
+    <li>real environment variables (CI secrets, or set on the command line)</li>
+    <li><code>apps/&lt;app&gt;/.env.&lt;TEST_ENV&gt;</code>, e.g. <code>.env.staging</code></li>
+    <li><code>apps/&lt;app&gt;/.env</code></li>
+    <li>root <code>.env</code> (shared values such as <code>JIRA_BASE_URL</code>)</li>
+  </ol>
+  <p><code>BASE_URL</code> and <code>TEST_ID_ATTRIBUTE</code> in an env file override the defaults in <code>app.config.ts</code>, so one app can be tested against QA, staging, etc.
+  In code, read settings only through <code>getEnv('NAME')</code> / <code>requireEnv('NAME')</code> from <code>@core/config/env</code>.</p>
+
+  <h2>4.3 Platforms become Playwright projects</h2>
+  <p><code>platforms</code> in the app's <code>app.config.ts</code> decides which test projects exist:</p>
+  <table>
+    <thead><tr><th>Platform</th><th>Project(s)</th><th>Runs</th><th>Tests folder</th></tr></thead>
+    <tbody>
+      <tr><td><code>web</code></td><td><code>web-chrome</code></td><td>Desktop Chrome</td><td rowspan="2"><code>tests/web</code></td></tr>
+      <tr><td><code>mobile-web</code></td><td><code>mobile-web-android</code>, <code>mobile-web-ios</code></td><td>Responsive web on Pixel 7 (Chromium) and iPhone 15 (WebKit)</td></tr>
+      <tr><td><code>android</code></td><td><code>android-app</code></td><td>Native app via Appium</td><td rowspan="2"><code>tests/mobile</code></td></tr>
+      <tr><td><code>ios</code></td><td><code>ios-app</code></td><td>Native app via Appium (macOS only)</td></tr>
+    </tbody>
+  </table>
+  <p>Web projects depend on a <code>setup</code> project that logs in every role once and saves the sessions in <code>.auth/&lt;app&gt;/&lt;role&gt;.json</code>.
+  Each test then starts already logged in, which keeps tests fast.</p>
+
+  <h2>4.4 The four layers of every module</h2>
+  <p>Each module is built from four small files. Examples are from the sample app <code>apps/saucedemo</code>.</p>
+
+  <h3><span class="num">1</span>Model: what is on the screen (the only place locators live)</h3>
+<pre><code>// apps/saucedemo/models/web/login.model.ts
+export const LoginFields = defineWebFields({
+  username: { label: 'Username', type: 'text', locator: { testId: 'username' },
+              rules: { required: true, messages: { required: 'Epic sadface: Username is required' } } },
+  password: { label: 'Password', type: 'password', locator: { testId: 'password' } },
+  loginButton: { label: 'Login button', type: 'button', locator: { testId: 'login-button' } },
+  errorMessage: { label: 'Error message', type: 'label', locator: { testId: 'error' } },
+});
+export const LoginMessages = { invalidCredentials: 'Epic sadface: Username and password do not match ...' } as const;
+export type LoginData = FormData&lt;typeof LoginFields&gt;;   // { username?: string; password?: string } (derived)</code></pre>
+  <p>The <code>label</code> is what appears in the report (<i>Fill "Username" with "standard_user"</i>). The <code>type</code> tells the
+  framework how to fill the field. The data type is derived from the model, so data and model can't drift apart.</p>
+
+  <h3><span class="num">2</span>Page (web) or screen (mobile): business actions</h3>
+<pre><code>// apps/saucedemo/pages/LoginPage.ts
+export class LoginPage extends BasePage {
+  readonly path = '/';
+  readonly fields = LoginFields;
+
+  async login(data: LoginData) {
+    await this.act.fillForm(this.fields, data);      // fills each field present in data, by its type
+    await this.act.click(this.fields.loginButton);
+  }
+  async expectError(message: string) {
+    await this.verify.text(this.fields.errorMessage, message);
+  }
+}</code></pre>
+  <p>Pages use only <code>this.act.*</code> (actions) and <code>this.verify.*</code> (assertions). Both write a readable report step for every call.
+  Each page/screen is registered once in <code>apps/&lt;app&gt;/fixtures.ts</code> so tests can ask for it by name.</p>
+
+  <h3><span class="num">3</span>Data: typed by the model</h3>
+<pre><code>// apps/saucedemo/data/web/login.data.ts
+export const validUser: LoginData = { username: getEnv('WEB_USERNAME'), password: getEnv('WEB_PASSWORD') };
+export const invalidLoginCases = [
+  { id: 'TC-LOGIN-04', title: 'Empty username shows required error',
+    data: { password: getEnv('WEB_PASSWORD') },                 // username left out = left empty
+    error: LoginFields.username.rules.messages.required },
+  // ...
+];</code></pre>
+
+  <h3><span class="num">4</span>Spec: reads like the test case</h3>
+<pre><code>// apps/saucedemo/tests/web/login/login.spec.ts
+import { test } from '@apps/saucedemo/fixtures';               // never from '@playwright/test'
+
+test.use({ role: null });                                        // login tests start logged out
+
+test.describe('Login', () =&gt; {
+  test.beforeEach(async ({ loginPage }) =&gt; {
+    await storyInfo({ epic: 'Authentication', feature: 'Login', story: 'SCRUM-101 User can log in',
+                      jira: 'SCRUM-101', severity: 'critical' });
+    await loginPage.open();
+  });
+
+  test('TC-LOGIN-01 | Valid user is taken to the Products page', { tag: ['@smoke', '@TC-LOGIN-01'] },
+    async ({ loginPage, inventoryPage }) =&gt; {
+      await loginPage.login(validUser);
+      await inventoryPage.expectLoaded();
+    });
+
+  for (const tc of invalidLoginCases) {                            // data-driven negative cases
+    test(`${tc.id} | ${tc.title}`, { tag: ['@regression', `@${tc.id}`] }, async ({ loginPage }) =&gt; {
+      await loginPage.login(tc.data);
+      await loginPage.expectError(tc.error);
+    });
+  }
+});</code></pre>
+  <p>One test per test-case ID, titled <code>&lt;ID&gt; | &lt;Title&gt;</code>. The report uses the ID in the title to find the test
+  case in the <code>*.testcases.md</code> file and show its steps and expected result next to the result.</p>
+
+  <h2>4.5 What every test gets for free (fixtures)</h2>
+  <table>
+    <thead><tr><th>Fixture / option</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>role</code></td><td>Which logged-in user the browser starts as. Default from <code>app.config.ts</code>; <code>test.use({ role: 'admin' })</code> to change, <code>null</code> for logged out.</td></tr>
+      <tr><td><code>page</code></td><td>The Playwright page, plus automatic capture of browser console errors and failed network calls for the bug report.</td></tr>
+      <tr><td><code>api</code></td><td>REST client (base URL and token from settings) for fast test-data setup and checks.</td></tr>
+      <tr><td><code>cleanup</code></td><td>Register removal of created data; runs after the test, even on failure.</td></tr>
+      <tr><td><code>driver</code>, <code>platform</code></td><td>Appium session for native app tests; skipped automatically if the app isn't configured.</td></tr>
+      <tr><td><code>report</code></td><td>Automatic: links the test case, sets severity, and on failure adds the cause and a bug report.</td></tr>
+      <tr><td>app pages / screens</td><td><code>loginPage</code>, <code>inventoryPage</code>, ... from the app's <code>fixtures.ts</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section class="chapter">
+  <h1>5. Walkthrough: automating a module with Claude</h1>
+  <p>This is the day-to-day workflow. The example automates a "registration" module of an app called <code>shop</code>;
+  replace the names with yours.</p>
+
+  <div class="flow">
+    <div class="step"><b>1. Requirement</b>Module MD file<br><span class="who">Developer</span></div>
+    <div class="step"><b>2. Test cases</b>/qa-testcases<br><span class="who">Claude</span></div>
+    <div class="step"><b>3. Review</b>Approve cases<br><span class="who">QA + Dev + PO</span></div>
+    <div class="step"><b>4. Automate</b>/qa-automate<br><span class="who">Claude</span></div>
+    <div class="step"><b>5. Code review</b>Like any PR<br><span class="who">QA</span></div>
+    <div class="step"><b>6. Triage</b>/qa-fix<br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>7. Coverage</b>coverage:tc<br><span class="who">QA</span></div>
+    <div class="step"><b>8. Sign-off</b>baseline<br><span class="who">QA</span></div>
+  </div>
+
+  <h3>Step 0: check which app you are on</h3>
+  <p><code>APP</code> in the root <code>.env</code> must be the app you work on (here <code>APP=shop</code>). Claude also derives the app
+  from the file path you give it.</p>
+
+  <h3>Step 1: put the requirement in place</h3>
+  <p>Copy <code>templates/requirement.md</code> to <code>apps/shop/requirements/web/SCRUM-123-registration.md</code> and fill it in
+  (or paste the developer's notes / Jira story). The more exact it is (field rules, exact error texts, test IDs), the better
+  the tests. The companion guide lists what a complete file contains and has a full example.</p>
+
+  <h3>Step 2: generate test cases</h3>
+<pre><code>/qa-testcases apps/shop/requirements/web/SCRUM-123-registration.md</code></pre>
+  <p>Claude reads the requirement (and may open the page in the MCP browser to confirm fields) and writes
+  <code>apps/shop/test-cases/web/registration.testcases.md</code> in the format of <code>templates/testcases.md</code>: IDs
+  <code>TC-REG-01</code>, <code>TC-REG-02</code>, ..., type, priority, tags, steps, expected result and whether to automate.
+  It covers every acceptance criterion, every required field and validation rule, boundaries, roles and UI states, and lists
+  open questions. No code is written in this step. A baseline (stage <code>cases</code>) is recorded.</p>
+
+  <h3>Step 3: review the test cases (the most important human step)</h3>
+  <p>Read every row. Fix expected results, remove noise, add what's missing, answer the open questions with the developer/PO.
+  A wrong expected result caught here never becomes a wrong test. Edit the MD file directly or ask Claude to change it.</p>
+
+  <h3>Step 4: automate</h3>
+<pre><code>/qa-automate apps/shop/test-cases/web/registration.testcases.md</code></pre>
+  <p>Claude then:</p>
+  <ol>
+    <li>opens the page in the MCP browser, logs in with the QA account of the right role, lists the real test IDs and
+      triggers validation errors to read their exact texts;</li>
+    <li>writes the <b>model</b>, <b>page</b>, <b>fixture</b> registration, <b>data</b> and <b>spec</b>, reusing what already exists;</li>
+    <li>runs <code>npx tsc --noEmit</code> and the new spec, and fixes automation problems until the tests pass;</li>
+    <li>if the app behaves differently from the test case, keeps the assertion and reports it as a suspected bug;</li>
+    <li>runs coverage, records the baseline (stage <code>automated</code>) and reports back per test-case ID.</li>
+  </ol>
+
+  <h3>Step 5: review the generated code</h3>
+  <p>Check it like a colleague's pull request: locators only in the model, one test per ID, expected texts match the test cases,
+  no sleeps, no weakened checks, data cleaned up. Then commit.</p>
+
+  <h3>Step 6: triage failures</h3>
+<pre><code>/qa-fix apps/shop/tests/web/registration          # or a tag: /qa-fix @smoke   or empty: everything</code></pre>
+  <p>Claude runs the tests, reads the failure details, reproduces each one in the browser and classifies it:
+  <b>automation issue</b> (fixed in model/page/data), <b>framework issue</b> (fixed in <code>src/</code> only if generic),
+  <b>application bug</b> (assertion kept, <code>knownBug(...)</code> added with the Jira key you give it) or <b>unclear requirement</b> (question to you).</p>
+
+  <h3>Step 7: check coverage</h3>
+<pre><code>npm run coverage:tc                 # every test-case ID: automated / MISSING / planned / manual, and the % covered</code></pre>
+
+  <h3>Step 8: sign off</h3>
+<pre><code>npm run req:baseline -- apps/shop/requirements/web/SCRUM-123-registration.md --stage signed-off --by "Your Name"</code></pre>
+  <p>Only QA records <code>signed-off</code>, after the results are accepted. Attach the Allure report to the Jira story.</p>
+
+  <h2>5.1 When the developer changes the module later</h2>
+  <p>Every requirement has a baseline: the version QA last processed. When the developer updates the MD file:</p>
+<pre><code>npm run req:status                                  # all modules: stage, automation x/y, CHANGED flag
+npm run req:diff -- apps/shop/requirements/web/SCRUM-123-registration.md
+#   ## Fields
+#     ~ CHANGED  Password: Error message: "Password is required" -&gt; "Password must be at least 8 characters"
+#     + ADDED    Remember me (Type: checkbox; ...)
+/qa-update apps/shop/requirements/web/SCRUM-123-registration.md</code></pre>
+  <p><code>/qa-update</code> changes only what is affected: new cases get the next free IDs, changed cases keep their IDs,
+  removed behaviour is retired with <code>Automate: no</code> (never deleted or renumbered). It updates the tests, runs them plus
+  the module's smoke tests, and gives you a re-test list. Sign off again when done.</p>
+  <div class="callout warn">
+    <b class="t">Don't edit by hand</b>
+    Never edit files in <code>requirements/.baseline/</code> and never renumber test-case IDs: reports, coverage and history depend on them.
+  </div>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section class="chapter">
+  <h1>6. Working in sprints</h1>
+  <p>A project is delivered in sprints, and each sprint has several user stories. Usually there is a web app, and
+  sometimes a mobile app as well. This chapter shows how the per-module workflow from chapter 5 fits into that rhythm.</p>
+
+  <h2>6.1 Who does what</h2>
+  <table>
+    <thead><tr><th>Who</th><th>What they do with the framework</th></tr></thead>
+    <tbody>
+      <tr><td>QA</td><td>Owns the framework and every file in it: requirement files, test cases, code and reports.</td></tr>
+      <tr><td>Developers</td><td>Don't use the framework. With every build they send <b>one MD file per story in their own format</b>,
+        the build details and the credentials QA needs. The checklist to send them once is <code>templates/dev-handover.md</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6.2 Starting a new web app</h2>
+  <p>Do this once per project, before the first sprint. Chapter 7 explains each setting in more detail.</p>
+  <ol>
+    <li><b>Create the app folder</b>: <code>npm run new:app -- prj --platforms web,api</code> (leave out <code>api</code> if there
+      are no API tests). It creates <code>apps/prj/</code> with <code>requirements/</code>, <code>test-cases/</code>, <code>sprints/</code>,
+      the code folders, a starter <code>app.config.ts</code>, <code>fixtures.ts</code> and <code>.env</code>.</li>
+    <li><b>Make it the active app</b>: <code>APP=prj</code> in the root <code>.env</code>.</li>
+    <li><b>Fill in <code>app.config.ts</code></b>: <code>baseUrl</code> (the QA URL), <code>testIdAttribute</code> (ask the developers:
+      <code>data-testid</code>, <code>data-test</code> or <code>data-qa</code>), and <code>auth.roles</code> with a <code>defaultRole</code>.</li>
+    <li><b>Fill in <code>apps/prj/.env</code></b> with the accounts the developers shared (<code>USER_USERNAME</code>,
+      <code>USER_PASSWORD</code>, ...). For email OTPs, the <code>MAIL_*</code> settings, then <code>npm run mail:check</code>.</li>
+    <li><b>Automate the login first</b>, because every test starts logged in: requirement
+      <code>requirements/web/PRJ-001-login.md</code> → <code>/qa-testcases</code> → review → <code>/qa-automate</code>. Ask Claude to wire
+      the login steps into <code>auth.login</code>, then run <code>npm run auth</code>: every role must log in.</li>
+    <li><b>Put the framework in Git</b> and commit.</li>
+    <li><b>Send the developers <code>templates/dev-handover.md</code></b>, so they know what to send with each build.</li>
+  </ol>
+  <div class="callout tip">
+    <b class="t">First sprint tips</b>
+    <ul style="margin-bottom:0">
+      <li>The login tests are the first <code>@smoke</code> tests. Tag the main happy path of each new story <code>@smoke</code> so the smoke suite grows every sprint.</li>
+      <li>On machines with <code>NODE_ENV=production</code>, install with <code>npm install --include=dev</code>, or the Playwright packages are left out.</li>
+      <li>While working on one spec: <code>npx playwright test &lt;file&gt; --project=web-chrome</code>.</li>
+    </ul>
+  </div>
+
+  <h2>6.3 Where the files go</h2>
+<pre><code>apps/&lt;app&gt;/
+  requirements/                      ONE file per story per platform, written and owned by QA
+    web/PRJ-101-login.md               template format; developer notes are merged into it
+    mobile/PRJ-140-login.md
+    .baseline/                         versions QA has processed (written by the commands)
+  test-cases/web/login.testcases.md  QA's test cases (/qa-testcases)
+  sprints/
+    sprint-03.md                       sprint tracker (templates/sprint.md)
+    sprint-03/from-dev/2026-10-15/     developer MDs exactly as received, never edited
+      PRJ-101-login.md
+      PRJ-102-dashboard.md
+  .env                               credentials (never committed)</code></pre>
+  <table>
+    <thead><tr><th>MD file</th><th>Written by</th><th>Where it goes</th><th>Edited later?</th></tr></thead>
+    <tbody>
+      <tr><td>QA's MD, from the Jira story</td><td>QA</td><td><code>requirements/web/&lt;JIRA&gt;-&lt;module&gt;.md</code></td><td>Yes: developer notes are merged into it; the tests are built from it</td></tr>
+      <tr><td>Developers' MD, sent with a build</td><td>Developers</td><td><code>sprints/sprint-NN/from-dev/&lt;build date&gt;/&lt;JIRA&gt;-&lt;module&gt;.md</code></td><td>No: kept exactly as received</td></tr>
+      <tr><td>Test cases</td><td>QA + Claude</td><td><code>test-cases/web/&lt;module&gt;.testcases.md</code></td><td>Yes</td></tr>
+    </tbody>
+  </table>
+  <p>Use the <b>same Jira key</b> in both file names (<code>PRJ-101-login.md</code> in <code>requirements/web/</code> and in
+  <code>from-dev/2026-10-15/</code>), so each developer file clearly belongs to one QA file. A mobile version of the story goes in
+  <code>requirements/mobile/</code>.</p>
+  <div class="callout warn">
+    <b class="t">Don't sort requirements or test cases by sprint</b>
+    Baselines are keyed by the file's path under <code>requirements/</code>. A story that changes again in sprint 5 keeps the
+    same file, so <code>req:status</code> and <code>req:diff</code> keep working. Moving the file would lose its history.
+    Which stories belong to which sprint is recorded only in <code>sprints/sprint-NN.md</code>.
+  </div>
+
+  <h2>6.4 The sprint, step by step</h2>
+  <div class="flow">
+    <div class="step"><b>1. Draft</b>Requirement MD from the Jira story<br><span class="who">QA</span></div>
+    <div class="step"><b>2. Test cases</b>/qa-testcases + review<br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>3. Prepare</b>Data, API setup, mocks<br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>4. Build arrives</b>Dev MDs + credentials<br><span class="who">Developers</span></div>
+    <div class="step"><b>5. Merge + diff</b>req:status / req:diff<br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>6. Smoke</b>Accept or reject the build<br><span class="who">QA</span></div>
+    <div class="step"><b>7. Automate</b>/qa-automate, /qa-fix<br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>8. Sign-off</b>Regression + baseline<br><span class="who">QA</span></div>
+  </div>
+  <table>
+    <thead><tr><th>When</th><th>What QA does</th></tr></thead>
+    <tbody>
+      <tr><td>Sprint planning</td><td>Copy <code>templates/sprint.md</code> to <code>sprints/sprint-NN.md</code> and list the stories.
+        For each story, write <code>requirements/&lt;web|mobile&gt;/&lt;JIRA&gt;-&lt;module&gt;.md</code> from the Jira story in the
+        <code>templates/requirement.md</code> format. Test IDs are <code>TBD</code>, because nobody knows the locators yet.</td></tr>
+      <tr><td>Before the build</td><td><code>/qa-testcases</code> on each requirement, then review it (chapter 5, steps 2–3). This records the
+        <code>cases</code> baseline: <b>QA's expectation</b>. Prepare test data, API setup and <code>act.mockApi</code> states.
+        Questions for the developers go in the sprint file.</td></tr>
+      <tr><td>Build day</td><td>Save, merge and compare (6.5). Run <code>npm run test:smoke</code>. If the build fails smoke, reject it and stop until a new build arrives.</td></tr>
+      <tr><td>Testing days</td><td><code>/qa-automate</code> for each test-cases file. The MCP browser now finds the real locators
+        in the build. <code>/qa-fix</code> for failures. Raise real bugs in Jira and add <code>knownBug(...)</code> to the test.</td></tr>
+      <tr><td>Bug-fix builds</td><td>New developer MDs go in a new date folder. Merge again, then <code>req:diff</code> → <code>/qa-update</code>.</td></tr>
+      <tr><td>Sprint end</td><td><code>npm run test:regression</code> (earlier sprints included), <code>npm run coverage:tc</code>, a clean
+        <code>req:status</code>, and a <code>signed-off</code> baseline per story. Fill in the sign-off part of the sprint file.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6.5 Build day: save, merge, compare</h2>
+  <ol>
+    <li><b>Save</b> each developer MD unchanged in <code>sprints/sprint-NN/from-dev/&lt;YYYY-MM-DD&gt;/</code> and add a row to the
+      "Builds received" table of the sprint file. These copies are the record of what was delivered.</li>
+    <li><b>Credentials</b>: put them in <code>apps/&lt;app&gt;/.env</code> (6.6), then run <code>npm run auth</code>.</li>
+    <li><b>Merge</b> each developer MD into its requirement file. Ask Claude:
+<pre><code>Merge the developer notes in apps/prj/sprints/sprint-03/from-dev/2026-10-15/PRJ-101-login.md into
+apps/prj/requirements/web/PRJ-101-login.md. Keep the template structure, fill in the build details,
+test IDs and exact messages they give, and add a Change log row "Merged dev notes, build 1.4.0".
+List every point where the developer notes contradict what was there.</code></pre></li>
+    <li><b>Compare</b>:
+<pre><code>npm run req:status                                       # merged stories show CHANGED
+npm run req:diff -- apps/prj/requirements/web/PRJ-101-login.md   # QA's expectation vs. the build</code></pre>
+      Each difference is either <b>accepted</b> (then run <code>/qa-update</code> on the requirement, which updates only the affected
+      test cases and tests) or <b>questioned</b> (ask the developer, note it in the sprint file, and raise a bug if the build is wrong).</li>
+  </ol>
+  <div class="callout info">
+    <b class="t">Why QA drafts the requirement before the build</b>
+    The test cases are ready when the build arrives, so testing starts on day one. The diff also shows exactly where the
+    developers built something different from the story, which would otherwise go unnoticed.
+  </div>
+
+  <h2>6.6 Credentials</h2>
+  <ul>
+    <li>Developers share credentials through the password manager or another secure channel, <b>never inside the MD files</b>.</li>
+    <li>QA stores them only in <code>apps/&lt;app&gt;/.env</code> (not committed). Requirement files and test code refer to the
+      variable name (<code>ADMIN_PASSWORD</code>), never the value.</li>
+    <li>A new role: add it to <code>auth.roles</code> in <code>app.config.ts</code> and its variables to <code>.env</code>, then run <code>npm run auth</code>.</li>
+    <li>OTP or email verification: use the test inbox (<code>MAIL_*</code>, <code>npm run mail:check</code>) or a fixed QA-only code in <code>OTP_CODE</code>.</li>
+  </ul>
+
+  <h2>6.7 Web and mobile</h2>
+  <p>The same story on web and mobile gets two requirement files (<code>requirements/web/</code> and <code>requirements/mobile/</code>)
+  and two test-cases files, because the screens, test IDs and builds differ. If the mobile app arrives in a later sprint, its
+  file is added then and the web file is not touched.</p>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section class="chapter">
+  <h1>7. Adding a new application</h1>
+<pre><code>npm run new:app -- customer-portal --platforms web,mobile-web,android</code></pre>
+  <p>This creates <code>apps/customer-portal/</code> with the standard folders, a starter <code>app.config.ts</code>,
+  <code>fixtures.ts</code> and <code>.env.example</code>. Then:</p>
+  <ol>
+    <li><b><code>app.config.ts</code></b>: name, platforms, QA base URL, the test-ID attribute the developers use
+      (<code>data-testid</code>, <code>data-test</code>, <code>data-qa</code>, ...), the login roles and the login steps.</li>
+    <li><b><code>.env</code></b>: copy <code>.env.example</code>, fill in accounts per role (the names you used in <code>app.config.ts</code>), API URL/token, mobile builds.</li>
+    <li><b>Root <code>.env</code></b>: <code>APP=customer-portal</code>, or set it per command (section 10).</li>
+    <li>Build the login page model and page first (with Claude: give it the login requirement), because <code>auth.login</code> uses it.</li>
+    <li>Run <code>npm run auth</code> to check every role can log in, then continue with modules (section 5).</li>
+  </ol>
+<pre><code>// apps/customer-portal/app.config.ts
+export default defineApp({
+  name: 'Customer Portal',
+  platforms: ['web', 'mobile-web', 'android'],
+  web: { baseUrl: 'https://qa.portal.example.com', testIdAttribute: 'data-testid' },
+  auth: {
+    defaultRole: 'customer',
+    roles: {
+      customer: { usernameEnv: 'CUSTOMER_USERNAME', passwordEnv: 'CUSTOMER_PASSWORD' },
+      admin:    { usernameEnv: 'ADMIN_USERNAME',    passwordEnv: 'ADMIN_PASSWORD' },
+    },
+    login: async (page, credentials) =&gt; {
+      const loginPage = new LoginPage(page);
+      await loginPage.open();
+      await loginPage.login(credentials);
+      await new DashboardPage(page).expectLoaded();       // wait until really logged in
+    },
+  },
+});</code></pre>
+  <p>Apps without a login simply leave out <code>auth</code>.</p>
+</section>
+
+<!-- ============================== 8 ============================== -->
+<section class="chapter">
+  <h1>8. Writing and editing tests by hand</h1>
+  <p>Claude writes most of the code, but you will read and adjust it. This is the reference.</p>
+
+  <h2>8.1 Field types</h2>
+  <table>
+    <thead><tr><th>Type</th><th>Filled by <code>fillForm</code> / <code>setValue</code> with</th><th>Value in data</th></tr></thead>
+    <tbody>
+      <tr><td><code>text</code>, <code>password</code>, <code>email</code>, <code>number</code>, <code>textarea</code></td><td><code>fill</code> (passwords masked in the report)</td><td>string</td></tr>
+      <tr><td><code>dropdown</code></td><td><code>select</code>: native <code>&lt;select&gt;</code> or custom (MUI, Ant, React-Select...): opened, option clicked</td><td>string or string[]</td></tr>
+      <tr><td><code>date</code></td><td><code>setDate</code>: native date input needs <code>YYYY-MM-DD</code>; custom pickers get the displayed format</td><td>string</td></tr>
+      <tr><td><code>checkbox</code></td><td><code>check</code></td><td>boolean</td></tr>
+      <tr><td><code>radio</code></td><td><code>chooseRadio</code>: locator points at the group, option chosen by its label</td><td>string</td></tr>
+      <tr><td><code>file</code></td><td><code>upload</code></td><td>path or paths</td></tr>
+      <tr><td><code>button</code>, <code>link</code>, <code>label</code></td><td>not filled: clicked or read</td><td>(excluded)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8.2 Locators, in order of preference</h2>
+  <table>
+    <thead><tr><th>Web locator</th><th>Example</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td><code>testId</code></td><td><code>{ testId: 'register-email-input' }</code></td><td>Always, if the element has one</td></tr>
+      <tr><td><code>role</code> + <code>name</code></td><td><code>{ role: 'button', name: 'Create account' }</code></td><td>No test ID; accessible element</td></tr>
+      <tr><td><code>label</code></td><td><code>{ label: 'Email address' }</code></td><td>Form fields with a proper label</td></tr>
+      <tr><td><code>placeholder</code></td><td><code>{ placeholder: 'Search products' }</code></td><td>Inputs without a label</td></tr>
+      <tr><td><code>text</code></td><td><code>{ text: 'No orders yet' }</code></td><td>Static text</td></tr>
+      <tr><td><code>css</code></td><td><code>{ css: '.toast-success' }</code></td><td>Last resort</td></tr>
+      <tr><td><code>xpath</code></td><td>(avoid)</td><td>Only if nothing else works</td></tr>
+    </tbody>
+  </table>
+  <p>Mobile: <code>accessibilityId</code> &rarr; <code>id</code> &rarr; <code>text</code> &rarr; platform-specific
+  (<code>androidUiAutomator</code>, <code>iosPredicate</code>, <code>iosClassChain</code>). A field can have one locator for both platforms or
+  <code>{ android: {...}, ios: {...} }</code>.</p>
+
+  <h2>8.3 Special cases</h2>
+<pre><code>// Locator that depends on data (one button per product): a function in the MODEL returning a field
+export const InventoryDynamicFields = {
+  addToCartButton: (product: string): WebField =&gt; ({
+    label: `Add to cart: ${product}`, type: 'button', locator: { testId: `add-to-cart-${slug(product)}` },
+  }),
+};
+
+// Custom dropdown whose options are not role="option"
+country: { label: 'Country', type: 'dropdown', locator: { testId: 'country-select' },
+           option: (v) =&gt; ({ css: `.menu-item:text-is("${v}")` }) },
+
+// Field inside an iframe (payment widget, embedded editor)
+cardNumber: { label: 'Card number', type: 'text', locator: { placeholder: 'Card number' }, frame: '#payment-frame' },</code></pre>
+
+  <h2>8.4 Actions (<code>this.act</code>) and checks (<code>this.verify</code>) on web</h2>
+  <table>
+    <thead><tr><th>Actions</th><th>Checks</th></tr></thead>
+    <tbody>
+      <tr><td>
+        <code>goto(path)</code>, <code>click</code>, <code>fill</code>, <code>clear</code>, <code>select</code>, <code>setDate</code>,
+        <code>check</code>, <code>chooseRadio</code>, <code>upload</code>, <code>download</code> (returns file path), <code>press</code>,
+        <code>hover</code>, <code>handleNextDialog(accept)</code>, <code>getText</code>, <code>getAllTexts</code>, <code>isVisible</code>,
+        <code>setValue</code>, <code>fillForm(model, data)</code>, <code>mockApi(url, response)</code>, <code>locate(field)</code> (raw Playwright locator)
+      </td><td>
+        <code>visible</code>, <code>hidden</code>, <code>text</code>, <code>containsText</code>, <code>value</code>, <code>count</code>,
+        <code>enabled(field, true|false)</code>, <code>checked</code>, <code>url</code>, <code>title</code>.
+        All auto-wait and retry.
+      </td></tr>
+    </tbody>
+  </table>
+  <p>Group several actions into one named report step with <code>step('Log in as "bob"', async () =&gt; {...})</code> from <code>@core/utils/step</code>.</p>
+
+  <h2>8.5 Test data, roles, mocking</h2>
+<pre><code>test.use({ role: 'admin' });                               // whole file runs as admin
+
+test('TC-ORD-07 | Admin can delete an order', { tag: ['@regression', '@TC-ORD-07'] },
+  async ({ api, cleanup, ordersPage }) =&gt; {
+    // create data through the API (fast), and always register its removal
+    const { body } = await api.post&lt;{ id: string }&gt;('/api/v1/orders', { data: { item: 'Pen', qty: 1 } });
+    cleanup.add(`Delete order ${body.id}`, () =&gt; api.delete(`/api/v1/orders/${body.id}`, { expectStatus: 204 }));
+    ...
+  });
+
+test('TC-ORD-09 | Server error shows a banner', ..., async ({ ordersPage }) =&gt; {
+  await ordersPage.act.mockApi(/\/api\/v1\/orders/, { status: 500, json: { error: 'boom' } });   // before the request
+  await ordersPage.open();
+  ...
+});</code></pre>
+  <p>Unique values: <code>uniqueEmail()</code>, <code>uniqueId('ORD-')</code>, <code>randomDigits(10)</code> from <code>@core/utils/random</code>.</p>
+</section>
+
+<!-- ============================== 9 ============================== -->
+<section class="chapter">
+  <h1>9. Native mobile tests (Appium)</h1>
+  <p>Optional. Until a mobile app is configured, mobile tests are skipped automatically, so the rest works without this.</p>
+  <h2>9.1 Setup</h2>
+<pre><code>npm i -g appium
+appium driver install uiautomator2        # Android
+appium driver install xcuitest            # iOS (macOS + Xcode only)
+appium                                    # start the server (default http://127.0.0.1:4723), keep it running</code></pre>
+  <p>Android needs Android Studio (SDK + an emulator) or a real device with USB debugging. In <code>apps/&lt;app&gt;/.env</code> set
+  <code>ANDROID_APP</code> (path to the .apk) <b>or</b> <code>ANDROID_APP_PACKAGE</code> + <code>ANDROID_APP_ACTIVITY</code> for an installed app,
+  and <code>ANDROID_DEVICE</code> (e.g. <code>emulator-5554</code>). iOS: <code>IOS_APP</code> or <code>IOS_BUNDLE_ID</code>, plus <code>IOS_DEVICE</code>.
+  Mobile accounts go in <code>MOBILE_USERNAME</code> / <code>MOBILE_PASSWORD</code> (or as your app defines them).</p>
+
+  <h2>9.2 Writing mobile tests</h2>
+  <p>Same pattern as web: <code>defineMobileFields</code> models in <code>models/mobile</code>, screens extending <code>BaseScreen</code> in
+  <code>screens/</code>, specs in <code>tests/mobile</code>. Actions: <code>tap</code>, <code>type</code>, <code>setSwitch</code>,
+  <code>choose</code>, <code>getText</code>, <code>isDisplayed</code>, <code>swipe</code>, <code>hideKeyboard</code>, <code>back</code>,
+  <code>setValue</code>, <code>fillForm</code>. Checks: <code>visible</code>, <code>hidden</code>, <code>text</code>, <code>containsText</code>.
+  One Appium session per test; on failure a screenshot and the screen's XML source are attached.</p>
+  <div class="callout info">
+    <b class="t">Claude can't see native apps</b>
+    The MCP browser only works for web. For native screens, put the accessibility IDs in the module MD file (from the developers
+    or Appium Inspector). <code>/qa-automate</code> asks for them if they are missing.
+  </div>
+</section>
+
+<!-- ============================== 10 ============================== -->
+<section class="chapter">
+  <h1>10. Running tests locally and in CI</h1>
+  <table>
+    <thead><tr><th>Command</th><th>What it runs</th></tr></thead>
+    <tbody>
+      <tr><td><code>npm test</code></td><td>Everything for the active app (all its projects)</td></tr>
+      <tr><td><code>npm run test:web</code></td><td>Desktop Chrome</td></tr>
+      <tr><td><code>npm run test:mobile-web</code></td><td>Pixel 7 + iPhone 15 emulation</td></tr>
+      <tr><td><code>npm run test:android</code> / <code>test:ios</code></td><td>Native apps via Appium</td></tr>
+      <tr><td><code>npm run test:smoke</code> / <code>test:regression</code></td><td>By tag</td></tr>
+      <tr><td><code>npx playwright test --grep @TC-LOGIN-02</code></td><td>One test case</td></tr>
+      <tr><td><code>npx playwright test &lt;spec file&gt; --project=web-chrome</code></td><td>One spec on one project</td></tr>
+      <tr><td><code>npm run test:headed</code> / <code>test:ui</code> / <code>test:debug</code></td><td>Visible browser / interactive UI mode / step-through debugger</td></tr>
+      <tr><td><code>npm run auth</code></td><td>Refresh the saved logins (after password changes)</td></tr>
+      <tr><td><code>npm run codegen</code></td><td>Playwright recorder, handy to explore a page by hand</td></tr>
+    </tbody>
+  </table>
+
+  <h2>10.1 Choosing app and environment per run</h2>
+  <table>
+    <thead><tr><th>Shell</th><th>Syntax</th></tr></thead>
+    <tbody>
+      <tr><td>PowerShell</td><td><code>$env:APP='customer-portal'; $env:TEST_ENV='staging'; npm test</code></td></tr>
+      <tr><td>cmd.exe</td><td><code>set APP=customer-portal &amp;&amp; npm test</code></td></tr>
+      <tr><td>Git Bash / macOS / Linux</td><td><code>APP=customer-portal TEST_ENV=staging npm test</code></td></tr>
+    </tbody>
+  </table>
+  <p>Don't pass <code>--reporter</code> on the command line: it replaces the configured Allure reporter.</p>
+
+  <h2>10.2 In CI</h2>
+  <ul>
+    <li>Set <code>CI=true</code> (most CI systems do): 2 retries, 2 workers, and <code>test.only</code> left in code fails the run.</li>
+    <li>Provide <code>APP</code>, <code>TEST_ENV</code> and every account/token as <b>CI secrets</b> (environment variables). They override the <code>.env</code> files, which are not in the repository.</li>
+    <li>Steps: <code>npm ci</code> &rarr; <code>npx playwright install --with-deps chromium webkit</code> &rarr; <code>npx tsc --noEmit</code> &rarr; <code>npm test</code> &rarr; <code>npm run allure:generate</code> and publish <code>allure-report/</code>.</li>
+    <li><code>npm run coverage:tc -- &lt;app&gt; --strict</code> fails the build when a case marked <code>Automate: yes</code> has no test.</li>
+    <li>Keep <code>allure-history.jsonl</code> between runs (cache/artifact) to get trend charts.</li>
+  </ul>
+</section>
+
+<!-- ============================== 11 ============================== -->
+<section class="chapter">
+  <h1>11. Reports and failure triage</h1>
+
+  <h2>11.1 The Allure report</h2>
+  <p><code>npm run report</code> builds and opens it. What you get with no extra code in the specs:</p>
+  <ul>
+    <li>A tree grouped <b>Epic &rarr; Feature &rarr; Story &rarr; test</b> (from <code>storyInfo</code>), with Jira links.</li>
+    <li>For <b>every test</b>: its test case (preconditions, steps, expected result) from the <code>*.testcases.md</code> file, severity from its priority, platform and role.</li>
+    <li>Readable steps (<i>Fill "Username" with "standard_user"</i>, passwords masked), screenshot, video and trace on failure.</li>
+    <li>A <b>Dashboard</b> with status trends, severity and duration charts.</li>
+  </ul>
+  <p><code>npm run report:html</code> opens Playwright's own report, useful for the trace viewer (time-travel through each step).</p>
+
+  <h2>11.2 Every failure comes with a cause and a bug report</h2>
+  <p>The framework classifies each failure and the <b>Categories</b> tab sorts them:</p>
+  <table>
+    <thead><tr><th>Category</th><th>Typical causes</th><th>Who looks</th></tr></thead>
+    <tbody>
+      <tr><td>Product bugs</td><td>Wrong text or value, wrong page/URL, element missing/disabled when it shouldn't be</td><td>Developers</td></tr>
+      <tr><td>Automation issues</td><td>Locator not found or not unique, setup/configuration, error in test code</td><td>QA</td></tr>
+      <tr><td>Environment problems</td><td>Server unreachable, slow response, timeouts</td><td>DevOps / re-run</td></tr>
+      <tr><td>Flaky</td><td>Passed only after a retry</td><td>QA</td></tr>
+    </tbody>
+  </table>
+  <p>Each failed test has a <b>Bug report</b> attachment: steps to reproduce with the real data, expected vs actual, environment,
+  browser or device, page URL, browser console errors, failed API calls, and a text version to paste into Jira.
+  The cause is a strong hint, not a verdict: QA (or <code>/qa-fix</code>) confirms it.</p>
+
+  <h2>11.3 Known bugs</h2>
+<pre><code>test('TC-REG-05 | Duplicate email is rejected', { tag: ['@regression', '@TC-REG-05'] }, async ({ registerPage }) =&gt; {
+  knownBug('SCRUM-456', 'Duplicate email is accepted');      // first line of the test
+  ...                                                         // assertions unchanged
+});</code></pre>
+  <p>The test stays green while the bug exists and is linked to it in the report. Once developers fix the bug, the test turns red
+  ("passed unexpectedly"): that's the signal to remove the <code>knownBug</code> line.</p>
+
+  <h2>11.4 Run history: every report is kept</h2>
+  <p>The working folders (<code>allure-results/</code>, <code>allure-report/</code>, <code>test-results/</code>) are overwritten by
+  each run. So that nothing is lost, every run also saves its own report permanently:</p>
+<pre><code>reports/
+  index.html                                   list of every saved run (npm run reports)
+  saucedemo/
+    2026-10-05_17-47-38_qa_PASSED/
+      report.html                              full Allure report of that run: one file, opens offline
+      summary.json                             date, app, environment, projects, counts, command
+    2026-10-06_09-12-03_staging_FAILED/
+      ...</code></pre>
+  <ul>
+    <li><code>npm run reports</code> opens the list: date, app, environment, status, passed/failed/flaky/skipped, duration, the command
+      that was run, and an <b>Open report</b> link. Use the filter box to find a run by date, app or status.</li>
+    <li>Each <code>report.html</code> is self-contained (screenshots and failure details included). Copy it, attach it to Jira or email it.</li>
+    <li>The run is saved automatically at the end of <code>npm test</code> and every <code>test:*</code> command. The login refresh alone (<code>npm run auth</code>) is not saved.</li>
+    <li>Settings in the root <code>.env</code>: <code>REPORT_KEEP_DAYS=30</code> deletes runs older than 30 days (default <code>0</code> keeps everything);
+      <code>REPORT_ARCHIVE=off</code> stops saving, for example while re-running one test many times during debugging.</li>
+    <li>A report is about 4 MB, more when failures include videos. <code>reports/</code> is not committed to git; back it up
+      or move it to a shared drive if the team needs it.</li>
+  </ul>
+</section>
+
+<!-- ============================== 12 ============================== -->
+<section class="chapter">
+  <h1>12. Rules of the framework</h1>
+  <p>These are also in <code>CLAUDE.md</code>, so Claude follows them. Reviewers check them on every change.</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>Do</h4>
+      <ul>
+        <li>Import <code>test</code>/<code>expect</code> from <code>@apps/&lt;app&gt;/fixtures</code></li>
+        <li>Keep locators in models only; pages use <code>act</code>/<code>verify</code></li>
+        <li>Derive data types from models: <code>FormData&lt;typeof XFields&gt;</code></li>
+        <li>One test per test-case ID, title <code>&lt;ID&gt; | &lt;Title&gt;</code>, tags <code>@smoke</code>/<code>@regression</code> + <code>@&lt;ID&gt;</code></li>
+        <li><code>storyInfo({...})</code> in <code>beforeEach</code></li>
+        <li>Create data via <code>api</code> and register <code>cleanup.add(...)</code></li>
+        <li>Read settings with <code>getEnv</code>/<code>requireEnv</code></li>
+        <li>Run <code>npx tsc --noEmit</code> after every change</li>
+        <li>Put app-specific code in <code>apps/&lt;app&gt;/</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Don't</h4>
+      <ul>
+        <li>Import from <code>@playwright/test</code> in specs</li>
+        <li>Use <code>waitForTimeout</code> or any sleep</li>
+        <li>Write raw locators in pages, screens or specs</li>
+        <li>Weaken an assertion to match a bug: use <code>knownBug</code></li>
+        <li>Renumber test-case IDs or delete retired cases</li>
+        <li>Edit <code>requirements/.baseline/</code> by hand</li>
+        <li>Put app-specific code in <code>src/</code> (change <code>src/</code> only for generic improvements, and run every app's tests)</li>
+        <li>Print, commit or email <code>.env</code> files or saved logins</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 13 ============================== -->
+<section class="chapter">
+  <h1>13. Working well with Claude</h1>
+  <ul>
+    <li><b>Start with the slash commands.</b> They carry the whole procedure. Plain prompts are fine for questions and small changes.</li>
+    <li><b>Give file paths, not descriptions.</b> <code>/qa-automate apps/shop/test-cases/web/cart.testcases.md</code> beats "automate the cart".</li>
+    <li><b>Good input, good output.</b> Vague requirements produce vague tests. Fix the MD file rather than patching tests afterwards.</li>
+    <li><b>Review before you accept.</b> Read test cases and code diffs. Claude asks before running commands or editing files; read what it asks.</li>
+    <li><b>Be specific when correcting.</b> "TC-REG-04 expects the wrong text: the spec says 'Enter a valid email address'" is better than "fix the test".</li>
+    <li><b>One module per conversation.</b> Start a new conversation for a new module; long conversations get summarised and lose detail.</li>
+    <li><b>Tell it about bugs.</b> When you've raised a Jira bug, give Claude the key so it can add <code>knownBug</code>.</li>
+    <li><b>Teach the rules once.</b> If you keep giving the same correction, add it to <code>CLAUDE.md</code> (team-wide, via a PR) so every conversation follows it.</li>
+    <li><b>Secrets stay local.</b> Claude reads test accounts from <code>.env</code> to log in but is instructed never to print them. Never paste real production credentials into a conversation.</li>
+  </ul>
+</section>
+
+<!-- ============================== 14 ============================== -->
+<section class="chapter">
+  <h1>14. Troubleshooting</h1>
+  <table>
+    <thead><tr><th style="width:36%">Symptom</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>APP is not set</code> / <code>Unknown APP "x"</code></td><td>Set <code>APP</code> in the root <code>.env</code> to a folder name under <code>apps/</code>. The message lists the valid names.</td></tr>
+      <tr><td><code>npm install</code> says "up to date" but <code>node_modules</code> is empty, or <code>npx tsc</code> says "This is not the tsc command you are looking for"</td><td>Your machine has <code>NODE_ENV=production</code>, so npm skips dev dependencies (all of this project's packages are). Run <code>npm install --include=dev</code>, or remove that environment variable.</td></tr>
+      <tr><td><code>Missing setting X in apps/&lt;app&gt;/.env</code></td><td>Add the variable to the app's <code>.env</code> (see its <code>.env.example</code>).</td></tr>
+      <tr><td>The <code>setup</code> project fails ("log in as &lt;role&gt;")</td><td>Wrong account in the app <code>.env</code>, expired password, or the login flow changed: check <code>auth.login</code> in <code>app.config.ts</code>. Then <code>npm run auth</code>.</td></tr>
+      <tr><td>Tests suddenly start on the login page</td><td>Saved sessions expired: <code>npm run auth</code>.</td></tr>
+      <tr><td>All mobile tests are skipped</td><td>Expected until <code>ANDROID_APP</code>/<code>ANDROID_APP_PACKAGE</code> (or the iOS equivalent) is set and Appium is running.</td></tr>
+      <tr><td><code>/mcp</code> doesn't show playwright, or it times out</td><td>Approve the server when asked; run the <code>claude mcp add</code> command from 3.4; reload VS Code; start a new conversation. First start downloads the package: retry once it has finished.</td></tr>
+      <tr><td><code>/qa-...</code> commands missing</td><td>VS Code must be opened on the project root (the folder with <code>CLAUDE.md</code> and <code>.claude/</code>).</td></tr>
+      <tr><td><code>APP=x npm test</code> doesn't work on Windows</td><td>That's Bash syntax; use the PowerShell or cmd form from 9.1.</td></tr>
+      <tr><td>Type errors after a change</td><td><code>npx tsc --noEmit</code> shows the file and line. Usual cause: a field renamed in the model but not in data or page.</td></tr>
+      <tr><td>"locator resolved to N elements"</td><td>The test ID isn't unique: ask developers for unique IDs (lists: append the record ID) or narrow the locator in the model.</td></tr>
+      <tr><td>Report is empty or shows old results</td><td>Results are cleared at the start of each run; run the tests, then <code>npm run report</code>. Older runs: <code>npm run reports</code> (10.4).</td></tr>
+      <tr><td>A test passes locally but fails in CI</td><td>Check the CI secrets (accounts, <code>TEST_ENV</code>), then the trace in the report: often timing or data left by another test.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== A ============================== -->
+<section class="chapter">
+  <h1>Appendix A. Command cheat sheet</h1>
+  <h3>In the Claude panel</h3>
+  <table>
+    <thead><tr><th>Command</th><th>Input</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td><code>/qa-testcases</code></td><td><code>apps/&lt;app&gt;/requirements/&lt;web|mobile&gt;/&lt;JIRA&gt;-&lt;module&gt;.md</code></td><td><code>test-cases/&lt;module&gt;.testcases.md</code> + open questions</td></tr>
+      <tr><td><code>/qa-automate</code></td><td><code>apps/&lt;app&gt;/test-cases/.../&lt;module&gt;.testcases.md</code></td><td>Model, page/screen, data, spec; tests run until green</td></tr>
+      <tr><td><code>/qa-fix</code></td><td>Spec path, folder, <code>@tag</code>, or empty</td><td>Fixed automation issues; table of causes and actions</td></tr>
+      <tr><td><code>/qa-update</code></td><td>The changed requirement MD</td><td>Updated cases and tests for what changed; re-test list</td></tr>
+      <tr><td><code>/mcp</code></td><td></td><td>Status of the Playwright MCP server</td></tr>
+    </tbody>
+  </table>
+  <h3>In the terminal</h3>
+  <table>
+    <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>npm install</code> &middot; <code>npm run setup</code></td><td>Install dependencies &middot; install browsers</td></tr>
+      <tr><td><code>npx tsc --noEmit</code></td><td>Type check (after every change)</td></tr>
+      <tr><td><code>npm test</code> &middot; <code>test:web</code> &middot; <code>test:mobile-web</code> &middot; <code>test:android</code> &middot; <code>test:ios</code></td><td>Run tests</td></tr>
+      <tr><td><code>npm run test:smoke</code> &middot; <code>test:regression</code></td><td>Run by tag</td></tr>
+      <tr><td><code>npm run test:headed</code> &middot; <code>test:ui</code> &middot; <code>test:debug</code></td><td>Watch / interactive / debug</td></tr>
+      <tr><td><code>npm run auth</code></td><td>Refresh saved logins</td></tr>
+      <tr><td><code>npm run report</code> &middot; <code>report:html</code></td><td>Allure report &middot; Playwright report</td></tr>
+      <tr><td><code>npm run reports</code></td><td>List of every saved run, with links to each run's report</td></tr>
+      <tr><td><code>npm run coverage:tc [-- &lt;app&gt;] [--strict]</code></td><td>Which test-case IDs are automated</td></tr>
+      <tr><td><code>npm run req:status</code></td><td>Every module's stage and CHANGED flag</td></tr>
+      <tr><td><code>npm run req:diff -- &lt;md&gt;</code></td><td>What changed in a requirement since QA's baseline</td></tr>
+      <tr><td><code>npm run req:baseline -- &lt;md&gt; --stage &lt;cases|automated|signed-off&gt; [--by "name"]</code></td><td>Record the processed version (QA records <code>signed-off</code>)</td></tr>
+      <tr><td><code>npm run new:app -- &lt;name&gt; --platforms web,android</code></td><td>Create a new application folder</td></tr>
+      <tr><td><code>npm run docs:pdf</code></td><td>Rebuild the PDF guides from <code>docs/*.html</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== B ============================== -->
+<section class="chapter">
+  <h1>Appendix B. Glossary</h1>
+  <table>
+    <thead><tr><th style="width:24%">Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Agent</td><td>An AI that can take actions (edit files, run commands, use tools) in a loop to reach a goal, not just answer text.</td></tr>
+      <tr><td>Allure</td><td>The HTML test report used by this framework.</td></tr>
+      <tr><td>Appium</td><td>Server that automates native Android and iOS apps.</td></tr>
+      <tr><td>Baseline</td><td>The version of a requirement MD that QA last processed, stored in <code>requirements/.baseline/</code>, with a stage: <code>cases</code>, <code>automated</code>, <code>signed-off</code>.</td></tr>
+      <tr><td>CLAUDE.md</td><td>Project rules file Claude reads at the start of every conversation.</td></tr>
+      <tr><td>Fixture</td><td>Something Playwright prepares for a test and passes in by name (<code>page</code>, <code>api</code>, <code>loginPage</code>...).</td></tr>
+      <tr><td>Locator</td><td>A description of how to find an element on a page or screen.</td></tr>
+      <tr><td>MCP</td><td>Model Context Protocol: standard way to give an AI assistant extra tools.</td></tr>
+      <tr><td>Model (field model)</td><td>File describing a screen's fields: label, type, locator, rules, messages.</td></tr>
+      <tr><td>Module MD / requirement</td><td>Markdown file describing one module or story: fields, rules, messages, test IDs. Input of the whole process.</td></tr>
+      <tr><td>Page / screen object</td><td>Class with the business actions of one web page or mobile screen.</td></tr>
+      <tr><td>Project (Playwright)</td><td>A named run configuration: browser/device + test folder (<code>web-chrome</code>, <code>android-app</code>...).</td></tr>
+      <tr><td>Role</td><td>A type of user (customer, admin...) with its own test account and saved login session.</td></tr>
+      <tr><td>Slash command</td><td>Saved instructions for Claude, started with <code>/name</code> (our <code>/qa-*</code> commands).</td></tr>
+      <tr><td>Spec</td><td>A test file (<code>*.spec.ts</code>).</td></tr>
+      <tr><td>Test ID</td><td>Stable attribute developers add for automation (<code>data-testid</code>, accessibility ID).</td></tr>
+      <tr><td>Trace</td><td>Playwright's recording of a test (DOM snapshots, network, console) for time-travel debugging.</td></tr>
+      <tr><td>Web-first assertion</td><td>A check that retries until it passes or times out, instead of checking once.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</body>
+</html>

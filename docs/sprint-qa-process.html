@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprint QA Process</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: sticky contents rail on the left, one 760px reading column; phases are numbered because they are a real sequence. */
+  :root {
+    --bg: #ffffff;
+    --surface: #f5f7fa;
+    --raised: #ffffff;
+    --ink: #1b2430;
+    --ink-2: #3a4553;
+    --muted: #5f6b7a;
+    --line: #dde2e9;
+    --brand: #1f4e79;
+    --brand-soft: #e9f1f9;
+    --accent: #0f7b6c;
+    --accent-soft: #e5f4f1;
+    --warn: #9a5b00;
+    --warn-soft: #fdf3e2;
+    --danger: #a12828;
+    --danger-soft: #fbeaea;
+    --code-bg: #f1f4f8;
+    --code-ink: #1b2430;
+    --code-comment: #6b7787;
+    --shadow: 0 1px 2px rgba(20, 35, 55, 0.06), 0 4px 14px rgba(20, 35, 55, 0.05);
+    --font-body: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151c; --surface: #161d26; --raised: #1a222d; --ink: #e4e9f0; --ink-2: #c4ccd7; --muted: #95a1b0;
+      --line: #2a3542; --brand: #8bbbe9; --brand-soft: #182739; --accent: #52c9b4; --accent-soft: #122d29;
+      --warn: #e8b468; --warn-soft: #30250f; --danger: #f08b8b; --danger-soft: #341818;
+      --code-bg: #19212b; --code-ink: #dfe6ee; --code-comment: #8d99a8;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151c; --surface: #161d26; --raised: #1a222d; --ink: #e4e9f0; --ink-2: #c4ccd7; --muted: #95a1b0;
+    --line: #2a3542; --brand: #8bbbe9; --brand-soft: #182739; --accent: #52c9b4; --accent-soft: #122d29;
+    --warn: #e8b468; --warn-soft: #30250f; --danger: #f08b8b; --danger-soft: #341818;
+    --code-bg: #19212b; --code-ink: #dfe6ee; --code-comment: #8d99a8;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3); color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--brand); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  code, pre, kbd { font-family: var(--font-mono); }
+  code { font-size: 0.86em; background: var(--code-bg); color: var(--code-ink); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  p { margin: 0; }
+  ul, ol { margin: 0; padding-left: 1.3em; }
+  li + li { margin-top: 4px; }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.25; text-wrap: balance; }
+  strong, b { font-weight: 600; }
+
+  /* Page frame */
+  .page { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  .rail { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding-block: 40px 32px; }
+  .rail .brand { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; display: block; }
+  .rail nav { display: grid; gap: 2px; }
+  .rail .group { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+  .rail a { display: flex; gap: 10px; align-items: baseline; text-decoration: none; color: var(--ink-2); font-size: 0.9rem; padding: 5px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  .rail a:hover { background: var(--surface); color: var(--ink); }
+  .rail a.active { background: var(--brand-soft); color: var(--brand); border-left-color: var(--brand); font-weight: 500; }
+  .rail a .n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.8rem; min-width: 1.1em; }
+  .rail a.active .n { color: var(--brand); }
+  main { min-width: 0; max-width: 780px; padding-block: 40px 96px; display: grid; gap: 72px; }
+
+  @media (max-width: 900px) {
+    .page { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 16px; }
+    .rail { position: sticky; top: 0; z-index: 5; max-height: none; padding: 10px 0; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
+    .rail .brand, .rail .group { display: none; }
+    .rail nav { display: flex; gap: 4px; width: max-content; }
+    .rail a { white-space: nowrap; border-left: 0; padding: 5px 10px; }
+    .rail a .n:empty { display: none; }
+    main { padding-block: 28px 72px; gap: 56px; }
+    body { font-size: 15.5px; }
+  }
+
+  /* Hero */
+  .hero { display: grid; gap: 18px; }
+  .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(2rem, 4.4vw, 2.75rem); font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+  .hero .lede { font-size: 1.15rem; color: var(--ink-2); max-width: 62ch; }
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+  .fact { padding: 14px 18px; display: grid; gap: 3px; border-top: 1px solid var(--line); min-width: 0; }
+  .fact:nth-child(-n+2) { border-top: 0; }
+  .fact:nth-child(even) { border-left: 1px solid var(--line); }
+  .fact .k { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .fact .v { font-weight: 500; color: var(--ink); }
+  @media (max-width: 560px) {
+    .facts { grid-template-columns: minmax(0, 1fr); }
+    .fact:nth-child(2) { border-top: 1px solid var(--line); }
+    .fact:nth-child(even) { border-left: 0; }
+  }
+
+  /* Sections */
+  section { display: grid; gap: 20px; min-width: 0; }
+  .sec-head { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .sec-head .kicker { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .sec-head h2 { font-size: 1.65rem; font-weight: 700; color: var(--brand); letter-spacing: -0.01em; }
+  .sec-head p { color: var(--ink-2); font-size: 1.05rem; max-width: 64ch; }
+  h3 { font-size: 1.15rem; font-weight: 600; color: var(--ink); }
+  h4 { font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+  .prose { display: grid; gap: 12px; max-width: 68ch; }
+
+  /* Diagram */
+  figure { margin: 0; display: grid; gap: 10px; }
+  .diagram { border: 1px solid var(--line); border-radius: 10px; background: var(--raised); padding: 8px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 620px; height: auto; }
+  figcaption { color: var(--muted); font-size: 0.9rem; }
+  .d-title { font: 600 15px var(--font-body); fill: var(--ink); }
+  .d-name { font: 600 13px var(--font-body); fill: var(--ink); }
+  .d-sub { font: 400 11.5px var(--font-body); fill: var(--muted); }
+  .d-note { font: 400 11.5px var(--font-body); fill: var(--muted); }
+  .d-box { fill: var(--raised); stroke: var(--muted); stroke-width: 1.2; }
+  .d-box.key { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .d-box.dev { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+  .d-line { fill: none; stroke: var(--muted); stroke-width: 1.25; }
+  .d-arrow { fill: var(--muted); }
+  .d-band { fill: var(--surface); }
+  .d-sub.dev { fill: var(--warn); font-weight: 500; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.85rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; border: 2px solid; display: inline-block; }
+  .swatch.qa { border-color: var(--muted); background: var(--raised); }
+  .swatch.key { border-color: var(--accent); background: var(--accent-soft); }
+  .swatch.dev { border-color: var(--warn); background: var(--warn-soft); }
+
+  /* Week plan */
+  .weeks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .wk { padding: 14px 14px 16px; border-left: 1px solid var(--line); display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .wk:first-child { border-left: 0; }
+  .wk .when { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .wk .what { font-weight: 600; font-size: 0.95rem; }
+  .wk p { font-size: 0.86rem; color: var(--ink-2); }
+  .wk.build { background: var(--warn-soft); }
+  .wk.build .what { color: var(--warn); }
+  @media (max-width: 760px) {
+    .weeks { grid-template-columns: minmax(0, 1fr); }
+    .wk { border-left: 0; border-top: 1px solid var(--line); }
+    .wk:first-child { border-top: 0; }
+  }
+
+  /* Role cards */
+  .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .roles { grid-template-columns: minmax(0, 1fr); } }
+  .role { border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 10px; align-content: start; background: var(--raised); box-shadow: var(--shadow); min-width: 0; }
+  .role .tag { justify-self: start; }
+  .role h3 { font-size: 1.05rem; }
+  .role ul { font-size: 0.92rem; color: var(--ink-2); }
+
+  .tag { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; letter-spacing: 0.02em; }
+  .tag.qa { background: var(--brand-soft); color: var(--brand); }
+  .tag.claude { background: var(--accent-soft); color: var(--accent); }
+  .tag.dev { background: var(--warn-soft); color: var(--warn); }
+
+  /* Phase blocks */
+  .phase-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .phase-meta > div { padding: 12px 16px; border-left: 1px solid var(--line); display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .phase-meta > div:first-child { border-left: 0; }
+  .phase-meta .k { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .phase-meta .v { font-size: 0.92rem; color: var(--ink); }
+  .phase-meta .v .tag { margin-right: 4px; }
+  @media (max-width: 640px) {
+    .phase-meta { grid-template-columns: minmax(0, 1fr); }
+    .phase-meta > div { border-left: 0; border-top: 1px solid var(--line); }
+    .phase-meta > div:first-child { border-top: 0; }
+  }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: grid; gap: 0; }
+  .steps > li { counter-increment: st; position: relative; display: grid; gap: 10px; padding: 0 0 26px 48px; margin: 0; min-width: 0; }
+  .steps > li::before { content: counter(st); position: absolute; left: 0; top: -2px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 0.9rem; color: var(--brand); background: var(--brand-soft); border: 1.5px solid var(--brand); font-variant-numeric: tabular-nums; }
+  .steps > li::after { content: ""; position: absolute; left: 15.5px; top: 34px; bottom: 4px; width: 1.5px; background: var(--line); }
+  .steps > li:last-child { padding-bottom: 0; }
+  .steps > li:last-child::after { display: none; }
+  .steps h4 { font-size: 1.02rem; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .steps .detail { display: grid; gap: 10px; color: var(--ink-2); min-width: 0; }
+  .steps .detail ul { display: grid; gap: 2px; }
+
+  /* Code with copy */
+  .code { position: relative; min-width: 0; }
+  .code .pre-wrap { position: relative; }
+  .code pre { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 76px 14px 16px; overflow-x: auto; font-size: 0.84rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .code .label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
+  .code .c { color: var(--code-comment); }
+  .copy { position: absolute; right: 8px; top: 8px; font: 500 0.75rem var(--font-body); color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+  .copy:hover { color: var(--ink); border-color: var(--muted); }
+  .copy.done { color: var(--accent); border-color: var(--accent); }
+
+  /* Callouts */
+  .callout { border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; border: 1px solid; }
+  .callout .t { font-weight: 600; font-size: 0.95rem; }
+  .callout p, .callout li { font-size: 0.94rem; color: var(--ink-2); }
+  .callout.info { background: var(--brand-soft); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+  .callout.info .t { color: var(--brand); }
+  .callout.tip { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .callout.tip .t { color: var(--accent); }
+  .callout.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .callout.warn .t { color: var(--warn); }
+  .callout.stop { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+  .callout.stop .t { color: var(--danger); }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 11px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; background: var(--surface); font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td { color: var(--ink-2); }
+  td:first-child { color: var(--ink); font-weight: 500; }
+  td.nowrap, th.nowrap { white-space: nowrap; }
+  td code { white-space: nowrap; }
+  table.wrap-code td code { white-space: normal; overflow-wrap: anywhere; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Decision cards */
+  .decide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 760px) { .decide { grid-template-columns: minmax(0, 1fr); } }
+  .decide > div { border: 1px solid var(--line); border-top: 3px solid; border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; background: var(--raised); min-width: 0; }
+  .decide .ok { border-top-color: var(--accent); }
+  .decide .ask { border-top-color: var(--brand); }
+  .decide .bug { border-top-color: var(--danger); }
+  .decide h4 { font-size: 0.98rem; }
+  .decide p { font-size: 0.9rem; color: var(--ink-2); }
+
+  /* Checklists */
+  .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .checklist li { margin: 0; border-top: 1px solid var(--line); }
+  .checklist li:first-child { border-top: 0; }
+  .checklist label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; padding: 12px 16px; cursor: pointer; align-items: start; }
+  .checklist label:hover { background: var(--surface); }
+  .checklist input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--accent); }
+  .checklist .txt { display: grid; gap: 2px; min-width: 0; }
+  .checklist .txt b { font-weight: 500; color: var(--ink); }
+  .checklist .txt span { font-size: 0.88rem; color: var(--muted); }
+  .checklist input:checked + .txt b { color: var(--muted); text-decoration: line-through; }
+  .check-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.85rem; color: var(--muted); }
+  .btn { font: 500 0.82rem var(--font-body); color: var(--ink-2); background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); color: var(--ink); }
+
+  /* Handover */
+  .handover { display: grid; gap: 14px; }
+  .hcard { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--raised); min-width: 0; }
+  .hcard header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .hcard header .idx { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; color: var(--warn); background: var(--warn-soft); border: 1.5px solid var(--warn); font-size: 0.9rem; }
+  .hcard header h3 { font-size: 1.05rem; }
+  .hcard header .why { color: var(--muted); font-size: 0.88rem; flex-basis: 100%; padding-left: 40px; margin-top: -6px; }
+  .hcard .body { padding: 16px 18px; display: grid; gap: 12px; }
+  .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 28px; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
+  .ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 0.93rem; color: var(--ink-2); }
+  .ticks li { margin: 0; padding-left: 24px; position: relative; }
+  .ticks li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 9px; height: 5px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
+  .ticks.no li::before { width: 10px; height: 2px; border: 0; background: var(--danger); transform: none; top: 0.72em; }
+
+  /* File tree */
+  .tree { font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.75; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; }
+  .tree .row { display: grid; grid-template-columns: minmax(250px, max-content) minmax(0, 1fr); gap: 16px; white-space: pre; }
+  .tree .p { color: var(--code-ink); }
+  .tree .p.dir { color: var(--brand); font-weight: 500; }
+  .tree .p.dev { color: var(--warn); font-weight: 500; }
+  .tree .d { color: var(--code-comment); font-family: var(--font-body); font-size: 0.86rem; white-space: normal; }
+
+  /* Worked example */
+  .story { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .story-head { padding: 14px 18px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; }
+  .story-head b { font-size: 1rem; }
+  .story-head span { color: var(--muted); font-size: 0.88rem; }
+  .story .table-wrap { border: 0; border-radius: 0; }
+
+  /* Situations */
+  .faq { display: grid; gap: 12px; }
+  .qa-item { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; background: var(--raised); min-width: 0; }
+  .qa-item h4 { font-size: 1rem; color: var(--ink); }
+  .qa-item p, .qa-item li { color: var(--ink-2); font-size: 0.94rem; }
+
+  /* Glossary */
+  dl.gloss { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  dl.gloss dt, dl.gloss dd { margin: 0; padding: 11px 16px; border-top: 1px solid var(--line); }
+  dl.gloss dt:first-of-type, dl.gloss dd:first-of-type { border-top: 0; }
+  dl.gloss dt { font-weight: 600; background: var(--surface); font-size: 0.92rem; }
+  dl.gloss dd { color: var(--ink-2); font-size: 0.93rem; }
+  @media (max-width: 560px) {
+    dl.gloss { grid-template-columns: minmax(0, 1fr); }
+    dl.gloss dd { border-top: 0; padding-top: 0; background: var(--surface); }
+  }
+
+  footer { color: var(--muted); font-size: 0.88rem; border-top: 1px solid var(--line); padding-top: 20px; display: grid; gap: 6px; }
+
+  @media print {
+    .rail, .copy, .check-foot .btn { display: none; }
+    .page { grid-template-columns: minmax(0, 1fr); }
+    main { max-width: none; gap: 40px; }
+    section { break-inside: auto; }
+    .role, .hcard, .qa-item, .decide > div { break-inside: avoid; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <aside class="rail" aria-label="Contents">
+    <span class="brand">Sprint QA Process</span>
+    <nav id="toc">
+      <a href="#overview"><span class="n"></span>Overview</a>
+      <a href="#flow"><span class="n"></span>The sprint at a glance</a>
+      <a href="#roles"><span class="n"></span>Who does what</a>
+      <a href="#setup"><span class="n"></span>Starting a new web app</a>
+      <div class="group">Phases</div>
+      <a href="#planning"><span class="n">1</span>Sprint planning</a>
+      <a href="#before"><span class="n">2</span>Before the build</a>
+      <a href="#buildday"><span class="n">3</span>Build day</a>
+      <a href="#testing"><span class="n">4</span>Testing days</a>
+      <a href="#bugfix"><span class="n">5</span>Bug-fix builds</a>
+      <a href="#end"><span class="n">6</span>Sprint end</a>
+      <div class="group">Reference</div>
+      <a href="#handover"><span class="n"></span>What developers send</a>
+      <a href="#files"><span class="n"></span>Where files live</a>
+      <a href="#example"><span class="n"></span>Worked example</a>
+      <a href="#situations"><span class="n"></span>Common situations</a>
+      <a href="#commands"><span class="n"></span>Commands</a>
+      <a href="#glossary"><span class="n"></span>Glossary</a>
+    </nav>
+  </aside>
+
+  <main>
+
+    <!-- ============ Overview ============ -->
+    <section class="hero" id="overview">
+      <span class="eyebrow">QA Automation Framework · Playwright + Appium + Claude</span>
+      <h1>Sprint QA Process</h1>
+      <p class="lede">How the QA team tests and automates each sprint. QA writes its own version of every story before the
+      build arrives. On build day it compares that with what the developers actually delivered, then automates against the
+      live build.</p>
+      <div class="facts">
+        <div class="fact"><span class="k">Who uses the framework</span><span class="v">QA team only</span></div>
+        <div class="fact"><span class="k">Developers send</span><span class="v">Story MDs, build details, credentials</span></div>
+        <div class="fact"><span class="k">Source of truth per story</span><span class="v"><code>requirements/&lt;platform&gt;/&lt;JIRA&gt;-&lt;module&gt;.md</code></span></div>
+        <div class="fact"><span class="k">How differences are found</span><span class="v"><code>npm run req:diff</code> after the merge</span></div>
+      </div>
+    </section>
+
+    <!-- ============ Flow ============ -->
+    <section id="flow">
+      <div class="sec-head">
+        <span class="kicker">At a glance</span>
+        <h2>The sprint at a glance</h2>
+        <p>Developers hand over the build once. QA runs every other step, and two loops send work back when the build isn't ready.</p>
+      </div>
+
+      <figure>
+        <div class="diagram">
+          <svg viewBox="0 0 760 330" role="img" aria-label="Sprint flow: draft requirement, write test cases, build arrives, merge and diff, smoke test, automate and triage, regression run, sign off">
+            <defs>
+              <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="d-arrow" d="M0 0L10 5L0 10z"/></marker>
+            </defs>
+            <rect class="d-band" x="12" y="78" width="736" height="88" rx="10"/>
+            <rect class="d-band" x="12" y="228" width="736" height="88" rx="10"/>
+            <text class="d-note" x="24" y="72">BEFORE AND ON BUILD DAY</text>
+            <text class="d-note" x="24" y="222">AFTER THE BUILD IS ACCEPTED</text>
+
+            <g class="d-line">
+              <path d="M180 122H202" marker-end="url(#arr)"/>
+              <path d="M358 122H380" marker-end="url(#arr)"/>
+              <path d="M536 122H558" marker-end="url(#arr)"/>
+              <path d="M660 150V242" marker-end="url(#arr)"/>
+              <path d="M558 272H536" marker-end="url(#arr)"/>
+              <path d="M380 272H358" marker-end="url(#arr)"/>
+              <path d="M202 272H180" marker-end="url(#arr)"/>
+              <path d="M458 244V196H592V150" marker-end="url(#arr)"/>
+              <path d="M714 272H738V40H458V94" marker-end="url(#arr)"/>
+            </g>
+
+            <rect class="d-box" x="24" y="94" width="156" height="56" rx="8"/>
+            <text class="d-name" x="102" y="119" text-anchor="middle">Draft requirement</text>
+            <text class="d-sub" x="102" y="137" text-anchor="middle">QA, from Jira</text>
+
+            <rect class="d-box" x="202" y="94" width="156" height="56" rx="8"/>
+            <text class="d-name" x="280" y="119" text-anchor="middle">Write test cases</text>
+            <text class="d-sub" x="280" y="137" text-anchor="middle">QA + Claude</text>
+
+            <rect class="d-box dev" x="380" y="94" width="156" height="56" rx="8"/>
+            <text class="d-name" x="458" y="119" text-anchor="middle">Build arrives</text>
+            <text class="d-sub dev" x="458" y="137" text-anchor="middle">Developers</text>
+
+            <rect class="d-box key" x="558" y="94" width="156" height="56" rx="8"/>
+            <text class="d-name" x="636" y="119" text-anchor="middle">Merge + req:diff</text>
+            <text class="d-sub" x="636" y="137" text-anchor="middle">QA + Claude</text>
+
+            <rect class="d-box" x="558" y="244" width="156" height="56" rx="8"/>
+            <text class="d-name" x="636" y="269" text-anchor="middle">Smoke test</text>
+            <text class="d-sub" x="636" y="287" text-anchor="middle">QA</text>
+
+            <rect class="d-box" x="380" y="244" width="156" height="56" rx="8"/>
+            <text class="d-name" x="458" y="269" text-anchor="middle">Automate + triage</text>
+            <text class="d-sub" x="458" y="287" text-anchor="middle">QA + Claude</text>
+
+            <rect class="d-box" x="202" y="244" width="156" height="56" rx="8"/>
+            <text class="d-name" x="280" y="269" text-anchor="middle">Regression run</text>
+            <text class="d-sub" x="280" y="287" text-anchor="middle">QA, sprint end</text>
+
+            <rect class="d-box" x="24" y="244" width="156" height="56" rx="8"/>
+            <text class="d-name" x="102" y="269" text-anchor="middle">Sign off stories</text>
+            <text class="d-sub" x="102" y="287" text-anchor="middle">QA lead</text>
+
+            <text class="d-note" x="598" y="32" text-anchor="middle">smoke fails: reject, wait for a new build</text>
+            <text class="d-note" x="525" y="190" text-anchor="middle">bug-fix build</text>
+            <text class="d-note" x="668" y="196">differences</text>
+            <text class="d-note" x="668" y="211">resolved</text>
+          </svg>
+        </div>
+        <div class="legend">
+          <span><i class="swatch qa"></i>QA step</span>
+          <span><i class="swatch dev"></i>Developer hand-over</span>
+          <span><i class="swatch key"></i>Where QA's expectation meets the build</span>
+        </div>
+      </figure>
+
+      <h3>A two-week sprint, as an example</h3>
+      <div class="weeks">
+        <div class="wk"><span class="when">Days 1–2</span><span class="what">Planning</span><p>Sprint file, one requirement MD per story, from Jira.</p></div>
+        <div class="wk"><span class="when">Days 2–7</span><span class="what">Before the build</span><p>Test cases reviewed, data and mocks ready, questions sent.</p></div>
+        <div class="wk build"><span class="when">Build day</span><span class="what">Build arrives</span><p>Save, credentials, merge, diff, smoke.</p></div>
+        <div class="wk"><span class="when">Following days</span><span class="what">Testing</span><p>Automate, triage, raise bugs, bug-fix builds.</p></div>
+        <div class="wk"><span class="when">Last day</span><span class="what">Sprint end</span><p>Regression, coverage, sign-off.</p></div>
+      </div>
+      <p style="color:var(--muted);font-size:0.9rem">Day numbers are an example. Your sprint length and build date set the real ones.</p>
+    </section>
+
+    <!-- ============ Roles ============ -->
+    <section id="roles">
+      <div class="sec-head">
+        <span class="kicker">People</span>
+        <h2>Who does what</h2>
+        <p>The framework belongs to QA. Developers never edit it; they only send information with each build.</p>
+      </div>
+      <div class="roles">
+        <div class="role">
+          <span class="tag qa">QA team</span>
+          <h3>Owns the framework</h3>
+          <ul>
+            <li>Writes a requirement MD per story from Jira</li>
+            <li>Reviews test cases and generated code</li>
+            <li>Merges developer notes and compares them</li>
+            <li>Accepts or rejects builds</li>
+            <li>Raises bugs, signs off stories</li>
+          </ul>
+        </div>
+        <div class="role">
+          <span class="tag dev">Developers</span>
+          <h3>Send, don't edit</h3>
+          <ul>
+            <li>One MD per story, in any format</li>
+            <li>Build details: version, URL, app links</li>
+            <li>Credentials through a secure channel</li>
+            <li>Answer QA's questions about differences</li>
+          </ul>
+        </div>
+        <div class="role">
+          <span class="tag claude">Claude in VS Code</span>
+          <h3>Does the heavy lifting</h3>
+          <ul>
+            <li>Drafts test cases from requirements</li>
+            <li>Merges developer notes into the template</li>
+            <li>Finds real locators in the live build</li>
+            <li>Writes and runs tests, triages failures</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout info">
+        <span class="t">Everything Claude produces is reviewed by QA</span>
+        <p>Claude drafts; QA decides. A wrong expected result caught at review never becomes a wrong test.</p>
+      </div>
+    </section>
+
+    <!-- ============ Setup ============ -->
+    <section id="setup">
+      <div class="sec-head">
+        <span class="kicker">Once per project</span>
+        <h2>Starting a new web app</h2>
+        <p>Do this once, before the first sprint. It takes about half a day, most of it automating the login. The examples use the app name <code>prj</code>.</p>
+      </div>
+      <div class="phase-meta">
+        <div><span class="k">Who</span><span class="v"><span class="tag qa">QA</span><span class="tag claude">Claude</span></span></div>
+        <div><span class="k">Need from developers</span><span class="v">QA URL, test-ID attribute, one account per role</span></div>
+        <div><span class="k">Result</span><span class="v">App folder ready, every role logs in</span></div>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Create the app folder</h4>
+          <div class="detail">
+            <div class="code"><pre>npm run new:app -- prj --platforms web,api</pre></div>
+            <p>Creates <code>apps/prj/</code> with <code>requirements/</code>, <code>test-cases/</code>, <code>sprints/</code>, the code folders (<code>models/</code>, <code>pages/</code>, <code>data/</code>, <code>tests/</code>), a starter <code>app.config.ts</code>, <code>fixtures.ts</code> and <code>.env</code>. Leave out <code>api</code> if you won't write API tests.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Make it the active app</h4>
+          <div class="detail">
+            <p>In the <b>root</b> <code>.env</code> of the framework:</p>
+            <div class="code"><pre>APP=prj</pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Fill in <code>apps/prj/app.config.ts</code></h4>
+          <div class="detail">
+            <div class="code"><pre>web: {
+  baseUrl: 'https://qa.prj.example.com',   <span class="c">// the QA URL from the developers</span>
+  testIdAttribute: 'data-testid',          <span class="c">// ask them: data-testid, data-test or data-qa</span>
+},
+auth: {
+  defaultRole: 'user',
+  roles: {
+    user:  { usernameEnv: 'USER_USERNAME',  passwordEnv: 'USER_PASSWORD' },
+    admin: { usernameEnv: 'ADMIN_USERNAME', passwordEnv: 'ADMIN_PASSWORD' },
+  },
+},</pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Fill in <code>apps/prj/.env</code></h4>
+          <div class="detail">
+            <p>The accounts the developers shared through the password manager, using the variable names from <code>auth.roles</code>. If the app sends email OTPs, also fill in the <code>MAIL_*</code> settings and run <code>npm run mail:check</code>.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Automate the login first</h4>
+          <div class="detail">
+            <p>Every test starts logged in, so the login comes before any other story.</p>
+            <div class="code"><pre>1. write   apps/prj/requirements/web/PRJ-001-login.md   <span class="c">(from templates/requirement.md)</span>
+2. /qa-testcases apps/prj/requirements/web/PRJ-001-login.md   <span class="c">→ review the cases</span>
+3. /qa-automate  apps/prj/test-cases/web/login.testcases.md
+4. ask Claude: "wire the login page into auth.login in apps/prj/app.config.ts"
+5. npm run auth                                       <span class="c"># every role must log in</span></pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Put the framework in Git and tell the developers what to send</h4>
+          <div class="detail">
+            <p>Commit the new app. Send the developers <code>templates/dev-handover.md</code> so they know what to share with every build.</p>
+          </div>
+        </li>
+      </ol>
+      <div class="callout tip">
+        <span class="t">First sprint tips</span>
+        <ul>
+          <li>The login tests are your first <code>@smoke</code> tests. Tag the main happy path of each new story <code>@smoke</code> as you automate it, so the smoke suite grows every sprint.</li>
+          <li>On a machine with <code>NODE_ENV=production</code>, install with <code>npm install --include=dev</code>, or the Playwright packages are left out.</li>
+          <li>While working on one spec: <code>npx playwright test &lt;file&gt; --project=web-chrome</code>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 1 Planning ============ -->
+    <section id="planning">
+      <div class="sec-head">
+        <span class="kicker">Phase 1</span>
+        <h2>Sprint planning</h2>
+        <p>Turn each Jira story into a requirement file in the framework's format, before any code exists.</p>
+      </div>
+      <div class="phase-meta">
+        <div><span class="k">Who</span><span class="v"><span class="tag qa">QA</span></span></div>
+        <div><span class="k">Input</span><span class="v">Jira stories for the sprint, designs if any</span></div>
+        <div><span class="k">Output</span><span class="v">Sprint file + one requirement MD per story</span></div>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Create the sprint file</h4>
+          <div class="detail">
+            <p>Copy the template and fill in dates, goal, platforms and the story table.</p>
+            <div class="code"><pre>copy templates/sprint.md  →  apps/&lt;app&gt;/sprints/sprint-03.md</pre></div>
+            <p>The story table is your checklist for the sprint: Jira key, platform, requirement file, test-case file, stage, automated count.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Write one requirement MD per story and platform</h4>
+          <div class="detail">
+            <p>Copy <code>templates/requirement.md</code> to <code>apps/&lt;app&gt;/requirements/web/PRJ-101-login.md</code> and fill it in from the Jira story:</p>
+            <ul>
+              <li>Overview, user story and acceptance criteria (Given / When / Then)</li>
+              <li>Fields, actions and messages as far as the story describes them</li>
+              <li>Business rules, roles, test data needed</li>
+              <li>Test ID column: write <code>TBD</code>. Nobody knows the locators yet, and that's fine.</li>
+            </ul>
+            <p>A story for both web and mobile gets two files: <code>requirements/web/…</code> and <code>requirements/mobile/…</code>.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Note what's unclear</h4>
+          <div class="detail">
+            <p>Missing error texts, unclear rules, unknown roles: list them in the sprint file so you can ask the developers early.</p>
+          </div>
+        </li>
+      </ol>
+      <div class="callout tip">
+        <span class="t">Tip: let Claude draft the requirement</span>
+        <p>Paste the Jira story into Claude and ask: <i>"Create apps/prj/requirements/web/PRJ-101-login.md from this story using templates/requirement.md. Leave test IDs as TBD and list open questions."</i> Then review it.</p>
+      </div>
+    </section>
+
+    <!-- ============ 2 Before the build ============ -->
+    <section id="before">
+      <div class="sec-head">
+        <span class="kicker">Phase 2</span>
+        <h2>Before the build</h2>
+        <p>Have reviewed test cases and test data ready, so automation can start the day the build lands.</p>
+      </div>
+      <div class="phase-meta">
+        <div><span class="k">Who</span><span class="v"><span class="tag qa">QA</span><span class="tag claude">Claude</span></span></div>
+        <div><span class="k">Input</span><span class="v">Requirement MDs from phase 1</span></div>
+        <div><span class="k">Output</span><span class="v">Reviewed test cases, <code>cases</code> baseline, data and mocks</span></div>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Generate test cases</h4>
+          <div class="detail">
+            <div class="code"><pre>/qa-testcases apps/prj/requirements/web/PRJ-101-login.md</pre></div>
+            <p>Claude writes <code>apps/prj/test-cases/web/login.testcases.md</code>: one row per case with ID (<code>TC-LOGIN-01</code>…), type, priority, tags, steps, expected result and whether to automate. It covers every acceptance criterion, field rule, boundary, role and UI state.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Review every row</h4>
+          <div class="detail">
+            <p>This is the most important human step. Fix expected results, remove noise, add what's missing, and answer Claude's open questions. Edit the file directly or ask Claude to change it.</p>
+          </div>
+        </li>
+        <li>
+          <h4>The <code>cases</code> baseline is recorded</h4>
+          <div class="detail">
+            <p><code>/qa-testcases</code> saves a snapshot of the requirement file in <code>requirements/.baseline/</code>. This snapshot is <b>QA's expectation</b>; on build day, <code>req:diff</code> compares against it.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Prepare data and states</h4>
+          <div class="detail">
+            <ul>
+              <li>Test data created through the API, with cleanup registered</li>
+              <li>Error and empty states with <code>act.mockApi(...)</code>, so they don't depend on the build</li>
+              <li>Per-environment values with <code>forEnv(...)</code></li>
+            </ul>
+          </div>
+        </li>
+      </ol>
+      <div class="callout info">
+        <span class="t">Why draft before the build?</span>
+        <p>Testing starts on build day instead of days later, and the comparison on build day shows exactly where the developers built something different from the story.</p>
+      </div>
+    </section>
+
+    <!-- ============ 3 Build day ============ -->
+    <section id="buildday">
+      <div class="sec-head">
+        <span class="kicker">Phase 3</span>
+        <h2>Build day</h2>
+        <p>Record what arrived, compare it with what QA expected, and decide whether the build is testable. The example build arrives on 15 Oct.</p>
+      </div>
+      <div class="phase-meta">
+        <div><span class="k">Who</span><span class="v"><span class="tag dev">Developers</span> then <span class="tag qa">QA</span><span class="tag claude">Claude</span></span></div>
+        <div><span class="k">Input</span><span class="v">Developer MDs, build details, credentials</span></div>
+        <div><span class="k">Output</span><span class="v">Merged requirements, decisions on differences, smoke result</span></div>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Save the developer MDs exactly as received</h4>
+          <div class="detail">
+            <div class="code"><pre>apps/prj/sprints/sprint-03/from-dev/2026-10-15/PRJ-101-login.md
+apps/prj/sprints/sprint-03/from-dev/2026-10-15/PRJ-102-dashboard.md</pre></div>
+            <p>Never edit these copies. They are the record of what was delivered, useful when a disagreement comes up later. Add the build to the "Builds received" table in the sprint file.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Store the credentials and check the logins</h4>
+          <div class="detail">
+            <p>Put accounts only in <code>apps/prj/.env</code>, never in any MD file. New role? Add it to <code>auth.roles</code> in <code>app.config.ts</code> with its <code>.env</code> variable names.</p>
+            <div class="code"><pre>npm run auth          <span class="c"># logs in every role and saves the sessions</span></pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Merge each developer MD into its requirement file</h4>
+          <div class="detail">
+            <p>Developers write in their own format; the requirement file keeps the template format. Ask Claude:</p>
+            <div class="code"><span class="label">Prompt for Claude</span><pre>Merge the developer notes in apps/prj/sprints/sprint-03/from-dev/2026-10-15/PRJ-101-login.md
+into apps/prj/requirements/web/PRJ-101-login.md. Keep the template structure, fill in the
+build details, test IDs and exact messages they give, and add a Change log row
+"Merged dev notes, build 1.4.0". List every point where the developer notes contradict
+what was there.</pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Compare QA's expectation with the build</h4>
+          <div class="detail">
+            <div class="code"><pre>npm run req:status                <span class="c"># every merged story shows CHANGED</span>
+npm run req:diff -- apps/prj/requirements/web/PRJ-101-login.md
+
+<span class="c">Changes in web/PRJ-101-login.md since QA baseline "Test cases written"</span>
+<span class="c">## Fields</span>
+<span class="c">  ~ CHANGED  Password: Error message: "Password is required" → "Password must be 8+ characters"</span>
+<span class="c">  + ADDED    Remember me (Type: checkbox; Required: no; Test ID: login-remember)</span></pre></div>
+            <p>Decide on each difference:</p>
+            <div class="decide">
+              <div class="ok">
+                <h4>Accept</h4>
+                <p>The change is intended (agreed with the PO or developer). Run <code>/qa-update</code> on the requirement file. It updates only the affected test cases and tests.</p>
+              </div>
+              <div class="ask">
+                <h4>Question</h4>
+                <p>Not sure it's intended. Ask the developer, record the question in the sprint file's "Differences found" table, and wait before changing tests.</p>
+              </div>
+              <div class="bug">
+                <h4>Raise a bug</h4>
+                <p>The build contradicts the story. Raise it in Jira. Tests keep the expected behaviour; the failing test gets <code>knownBug('PRJ-…')</code>.</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <h4>Smoke test: accept or reject the build</h4>
+          <div class="detail">
+            <div class="code"><pre>npm run test:smoke</pre></div>
+            <p>Green: the build is accepted, testing starts. Red on a core flow (login, main navigation): reject the build, note it in the sprint file, and wait for a new one.</p>
+          </div>
+        </li>
+      </ol>
+      <div class="callout stop">
+        <span class="t">Never put credentials in MD files</span>
+        <p>Requirement files, test cases and the developer copies are shared and versioned. Only <code>.env</code> holds secrets, and it is never committed.</p>
+      </div>
+    </section>
+
+    <!-- ============ 4 Testing ============ -->
+    <section id="testing">
+      <div class="sec-head">
+        <span class="kicker">Phase 4</span>
+        <h2>Testing days</h2>
+        <p>Automate every reviewed test case against the accepted build, and sort every failure into "our problem" or "the app's problem".</p>
+      </div>
+      <div class="phase-meta">
+        <div><span class="k">Who</span><span class="v"><span class="tag qa">QA</span><span class="tag claude">Claude</span></span></div>
+        <div><span class="k">Input</span><span class="v">Accepted build, reviewed test cases</span></div>
+        <div><span class="k">Output</span><span class="v">Green tests, bugs in Jira, <code>automated</code> baseline</span></div>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Automate each test-case file</h4>
+          <div class="detail">
+            <div class="code"><pre>/qa-automate apps/prj/test-cases/web/login.testcases.md</pre></div>
+            <p>Claude:</p>
+            <ul>
+              <li>opens the page in the browser, logs in with the right role, and reads the <b>real</b> test IDs and error texts from the build</li>
+              <li>writes the model (the only place locators live), page, data and spec, reusing what exists</li>
+              <li>runs the type check and the spec, and fixes automation problems until green</li>
+              <li>keeps assertions when the app behaves differently, and reports a suspected bug instead</li>
+              <li>records the <code>automated</code> baseline</li>
+            </ul>
+          </div>
+        </li>
+        <li>
+          <h4>Review the generated code</h4>
+          <div class="detail">
+            <p>Like a colleague's pull request: locators only in models, one test per test-case ID, titles <code>&lt;ID&gt; | &lt;Title&gt;</code>, no sleeps, no weakened checks, test data cleaned up.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Triage failures</h4>
+          <div class="detail">
+            <div class="code"><pre>/qa-fix apps/prj/tests/web/login        <span class="c"># or a tag: /qa-fix @smoke</span></pre></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Claude classifies it as</th><th>What happens</th></tr></thead>
+                <tbody>
+                  <tr><td>Automation issue</td><td>Fixed in the model, page or data</td></tr>
+                  <tr><td>Framework issue</td><td>Fixed in <code>src/</code>, only if every app benefits</td></tr>
+                  <tr><td>Application bug</td><td>Raised in Jira; assertion kept; <code>knownBug('PRJ-…', '…')</code> as the test's first line</td></tr>
+                  <tr><td>Unclear requirement</td><td>A question for you, then the developer</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </li>
+      </ol>
+      <div class="callout warn">
+        <span class="t">A test that passes only on retry is flaky</span>
+        <p>It shows up in <code>reports/flaky.html</code>. Fix the cause with <code>npm run flaky:check -- &lt;spec&gt; -g &lt;ID&gt;</code>; never add sleeps or retries.</p>
+      </div>
+    </section>
+
+    <!-- ============ 5 Bug-fix ============ -->
+    <section id="bugfix">
+      <div class="sec-head">
+        <span class="kicker">Phase 5</span>
+        <h2>Bug-fix builds</h2>
+        <p>Every new build repeats the build-day routine, so changes never slip in unnoticed.</p>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Save the new developer MDs in a new date folder</h4>
+          <div class="detail"><div class="code"><pre>apps/prj/sprints/sprint-03/from-dev/2026-10-17/PRJ-101-login.md</pre></div></div>
+        </li>
+        <li>
+          <h4>Merge, then compare</h4>
+          <div class="detail">
+            <p>Same prompt as build day, with the new folder and build number. <code>req:diff</code> now shows only what changed since the last time QA processed the file.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Update and re-test</h4>
+          <div class="detail">
+            <div class="code"><pre>/qa-update apps/prj/requirements/web/PRJ-101-login.md</pre></div>
+            <p>New cases get the next free IDs, changed cases keep their IDs, removed behaviour is retired with <code>Automate: no</code>. IDs are never renumbered. Claude reruns the affected tests and gives you a re-test list. Remove <code>knownBug</code> from tests whose bug is now fixed.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ 6 Sprint end ============ -->
+    <section id="end">
+      <div class="sec-head">
+        <span class="kicker">Phase 6</span>
+        <h2>Sprint end</h2>
+        <p>Prove the whole product still works, and record which version of each story QA signed off.</p>
+      </div>
+      <ul class="checklist" id="endChecklist">
+        <li><label><input type="checkbox" id="chk-regression"><span class="txt"><b>Regression suite is green</b><span><code>npm run test:regression</code>, including stories from earlier sprints. Every remaining failure is a ticketed <code>knownBug</code>.</span></span></label></li>
+        <li><label><input type="checkbox" id="chk-coverage"><span class="txt"><b>Every test case is automated</b><span><code>npm run coverage:tc</code> shows no MISSING for <code>Automate: yes</code> cases.</span></span></label></li>
+        <li><label><input type="checkbox" id="chk-status"><span class="txt"><b>No story is left CHANGED or NEW</b><span><code>npm run req:status</code> is clean.</span></span></label></li>
+        <li><label><input type="checkbox" id="chk-signoff"><span class="txt"><b>Each story is signed off</b><span><code>npm run req:baseline -- &lt;md&gt; --stage signed-off --by "&lt;name&gt;"</code></span></span></label></li>
+        <li><label><input type="checkbox" id="chk-report"><span class="txt"><b>Report shared</b><span><code>npm run report</code>; Allure report attached to the Jira stories.</span></span></label></li>
+        <li><label><input type="checkbox" id="chk-sprintfile"><span class="txt"><b>Sprint file completed</b><span>Builds, differences, bugs and the sign-off line filled in.</span></span></label></li>
+      </ul>
+      <div class="check-foot"><span id="checkCount">0 of 6 done</span><button class="btn" type="button" id="resetChecks">Clear ticks</button></div>
+    </section>
+
+    <!-- ============ Handover ============ -->
+    <section id="handover">
+      <div class="sec-head">
+        <span class="kicker">Reference</span>
+        <h2>What developers send with every build</h2>
+        <p>Send the developers <code>templates/dev-handover.md</code> once at the start of the project. With each build they share these three things.</p>
+      </div>
+      <div class="handover">
+        <article class="hcard">
+          <header><span class="idx">1</span><h3>One MD file per story</h3><span class="why">Any format. Named <code>&lt;JIRA&gt;-&lt;short-name&gt;.md</code>, e.g. <code>PRJ-101-login.md</code>.</span></header>
+          <div class="body">
+            <ul class="ticks two-col">
+              <li>Jira key, story title, platform</li>
+              <li>Acceptance criteria as implemented</li>
+              <li>Screen location and allowed roles</li>
+              <li>Fields: type, required, rules, default</li>
+              <li>Buttons: when enabled, success, failure</li>
+              <li>Every message, with exact text</li>
+              <li>Business rules and APIs used</li>
+              <li>What changed since the last build</li>
+              <li>Optional: <code>data-testid</code> / accessibility IDs</li>
+            </ul>
+            <div class="code"><span class="label">Example developer note (their own format is fine)</span><pre># PRJ-101 Login (web)
+Built: email + password login, "Remember me" checkbox (new).
+Errors: empty email -&gt; "Email is required"; wrong password -&gt; "Invalid email or password".
+Password rule changed: min 8 characters -&gt; "Password must be 8+ characters".
+Locked after 5 failed attempts -&gt; "Account locked. Try again in 15 minutes."
+Test ids: login-email, login-password, login-remember, login-submit, login-error
+Changed since last build: remember-me added, password rule.</pre></div>
+          </div>
+        </article>
+
+        <article class="hcard">
+          <header><span class="idx">2</span><h3>Build details</h3><span class="why">In the message, or a <code>build.md</code> next to the story MDs.</span></header>
+          <div class="body" style="padding:0">
+            <div class="table-wrap" style="border:0;border-radius:0">
+              <table>
+                <thead><tr><th>Item</th><th>Example</th></tr></thead>
+                <tbody>
+                  <tr><td>Build date / version</td><td class="num">2026-10-15 / 1.4.0</td></tr>
+                  <tr><td>Platform(s)</td><td>web, android</td></tr>
+                  <tr><td>QA URL and app builds</td><td>QA URL, APK link, TestFlight link</td></tr>
+                  <tr><td>Stories included</td><td>PRJ-101 done · PRJ-103 partial (export not built)</td></tr>
+                  <tr><td>Bug fixes included</td><td>PRJ-188, PRJ-190</td></tr>
+                  <tr><td>Known issues</td><td>PRJ-103 export button hidden</td></tr>
+                  <tr><td>Flags, DB, config</td><td>New role "supervisor"; flag <code>newDashboard</code> on</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+
+        <article class="hcard">
+          <header><span class="idx">3</span><h3>Credentials</h3><span class="why">Through the password manager or another secure channel. Never inside an MD file, chat message or email body.</span></header>
+          <div class="body">
+            <div class="two-col">
+              <div style="display:grid;gap:8px;align-content:start">
+                <h4>Ask for</h4>
+                <ul class="ticks">
+                  <li>One test account per role</li>
+                  <li>Accounts in special states (locked, unverified, expired)</li>
+                  <li>OTP approach: fixed QA code, bypass, or test inbox</li>
+                  <li>Captcha off on QA, or a test key</li>
+                  <li>API keys for test data setup and cleanup</li>
+                </ul>
+              </div>
+              <div style="display:grid;gap:8px;align-content:start">
+                <h4>Never accept</h4>
+                <ul class="ticks no">
+                  <li>Real customer or production accounts</li>
+                  <li>Passwords pasted into story MDs</li>
+                  <li>One shared account for every role</li>
+                  <li>Personal developer accounts</li>
+                </ul>
+              </div>
+            </div>
+            <div class="code"><span class="label">Where QA puts them: apps/prj/.env (not committed)</span><pre>USER_USERNAME=qa.user@prj.test
+USER_PASSWORD=<span class="c">••••••••</span>
+ADMIN_USERNAME=qa.admin@prj.test
+ADMIN_PASSWORD=<span class="c">••••••••</span></pre></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ Files ============ -->
+    <section id="files">
+      <div class="sec-head">
+        <span class="kicker">Reference</span>
+        <h2>Where files live</h2>
+        <p>Requirement and test-case files are organised by platform and module, never by sprint. Everything about a sprint goes in <code>sprints/</code>.</p>
+      </div>
+      <div class="tree" role="figure" aria-label="Folder layout of an app">
+        <div class="row"><span class="p dir">apps/prj/</span><span class="d"></span></div>
+        <div class="row"><span class="p dir">  requirements/</span><span class="d">One file per story per platform, owned by QA</span></div>
+        <div class="row"><span class="p">    web/PRJ-101-login.md</span><span class="d">Template format, developer notes merged in</span></div>
+        <div class="row"><span class="p">    mobile/PRJ-140-login.md</span><span class="d">Same story on mobile, its own file</span></div>
+        <div class="row"><span class="p">    .baseline/</span><span class="d">Snapshots QA processed; written by the commands only</span></div>
+        <div class="row"><span class="p dir">  test-cases/</span><span class="d">QA's reviewed test cases</span></div>
+        <div class="row"><span class="p">    web/login.testcases.md</span><span class="d">From /qa-testcases</span></div>
+        <div class="row"><span class="p dir">  sprints/</span><span class="d">Sprint bookkeeping only</span></div>
+        <div class="row"><span class="p">    sprint-03.md</span><span class="d">Sprint tracker (templates/sprint.md)</span></div>
+        <div class="row"><span class="p dev">    sprint-03/from-dev/2026-10-15/</span><span class="d">Developer MDs exactly as received</span></div>
+        <div class="row"><span class="p dev">    sprint-03/from-dev/2026-10-17/</span><span class="d">Next build's MDs</span></div>
+        <div class="row"><span class="p dir">  models/  pages/  data/  tests/</span><span class="d">The automation code</span></div>
+        <div class="row"><span class="p">  .env</span><span class="d">Credentials; never committed</span></div>
+      </div>
+      <h3>QA's MD vs the developers' MD</h3>
+      <div class="table-wrap">
+        <table class="wrap-code">
+          <thead><tr><th>MD file</th><th>Written by</th><th>Where it goes</th><th>Edited later?</th></tr></thead>
+          <tbody>
+            <tr><td>QA's MD, from the Jira story</td><td><span class="tag qa">QA</span></td><td><code>requirements/web/&lt;JIRA&gt;-&lt;module&gt;.md</code></td><td>Yes. Developer notes are merged into it, and the tests are built from it.</td></tr>
+            <tr><td>Developers' MD, sent with a build</td><td><span class="tag dev">Developers</span></td><td><code>sprints/sprint-NN/from-dev/&lt;build date&gt;/&lt;JIRA&gt;-&lt;module&gt;.md</code></td><td>No. Kept exactly as received.</td></tr>
+            <tr><td>Test cases</td><td><span class="tag qa">QA</span> <span class="tag claude">Claude</span></td><td><code>test-cases/web/&lt;module&gt;.testcases.md</code></td><td>Yes</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip">
+        <span class="t">Use the same Jira key in both file names</span>
+        <p><code>PRJ-101-login.md</code> in <code>requirements/web/</code> and <code>PRJ-101-login.md</code> in <code>from-dev/2026-10-15/</code>: each developer file clearly belongs to one QA file. A mobile version of the story goes in <code>requirements/mobile/</code>.</p>
+      </div>
+      <div class="callout warn">
+        <span class="t">Why requirements aren't sorted by sprint</span>
+        <p>The change history (baselines) is keyed by the file's path. A story that changes again two sprints later keeps the same file, so <code>req:status</code> and <code>req:diff</code> still work. Moving the file would lose its history.</p>
+      </div>
+      <div class="callout info">
+        <span class="t">Keep the framework in Git</span>
+        <p>Commit <code>requirements/.baseline/</code>, <code>test-cases/</code> and <code>sprints/</code>. Without that, the history <code>req:diff</code> compares against can be lost.</p>
+      </div>
+    </section>
+
+    <!-- ============ Example ============ -->
+    <section id="example">
+      <div class="sec-head">
+        <span class="kicker">Reference</span>
+        <h2>Worked example: one story through a sprint</h2>
+        <p>PRJ-101 Login (web) in sprint 03, 5 to 16 Oct 2026, with a build on 15 Oct and a bug-fix build on 16 Oct.</p>
+      </div>
+      <div class="story">
+        <div class="story-head"><b>PRJ-101 · Login</b><span>web · sprint 03 · requirement <code>requirements/web/PRJ-101-login.md</code></span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th class="nowrap">Date</th><th>What happened</th><th>File / command</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap num">5 Oct</td><td>QA writes the requirement from Jira. Test IDs <code>TBD</code>.</td><td><code>requirements/web/PRJ-101-login.md</code></td></tr>
+              <tr><td class="nowrap num">6 Oct</td><td>12 test cases generated and reviewed (<code>TC-LOGIN-01…12</code>).</td><td><code>/qa-testcases</code></td></tr>
+              <tr><td class="nowrap num">7–14 Oct</td><td>Test data and locked-account mock prepared. Question sent: lock after how many attempts?</td><td>sprint file</td></tr>
+              <tr><td class="nowrap num">15 Oct</td><td>Build 1.4.0 arrives. Developer note saved, merged.</td><td><code>from-dev/2026-10-15/</code></td></tr>
+              <tr><td class="nowrap num">15 Oct</td><td>Diff: password message changed (accepted), "Remember me" added (accepted), lock text differs from the story (bug PRJ-201).</td><td><code>req:diff</code> → <code>/qa-update</code></td></tr>
+              <tr><td class="nowrap num">15 Oct</td><td>Smoke green. 13 cases automated; TC-LOGIN-09 fails on PRJ-201.</td><td><code>/qa-automate</code>, <code>knownBug</code></td></tr>
+              <tr><td class="nowrap num">16 Oct</td><td>Bug-fix build 1.4.1 fixes PRJ-201. Diff shows the corrected text; <code>knownBug</code> removed, all green.</td><td><code>from-dev/2026-10-16/</code></td></tr>
+              <tr><td class="nowrap num">16 Oct</td><td>Regression green, coverage 13/13, story signed off.</td><td><code>req:baseline --stage signed-off</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Situations ============ -->
+    <section id="situations">
+      <div class="sec-head">
+        <span class="kicker">Reference</span>
+        <h2>Common situations</h2>
+        <p>What to do when the sprint doesn't go to plan.</p>
+      </div>
+      <div class="faq">
+        <div class="qa-item">
+          <h4>The developers changed a story mid-sprint</h4>
+          <p>Treat it like a build: save their new MD in a dated folder, merge, <code>req:diff</code>, then <code>/qa-update</code>. Never rewrite the requirement from scratch; the diff only works on the same file.</p>
+        </div>
+        <div class="qa-item">
+          <h4>A story arrives only partly built</h4>
+          <p>Keep all its test cases. Mark the ones that can't run yet as <code>Automate: later</code> in the test-case file and note it in the sprint file. Switch them back when the rest arrives.</p>
+        </div>
+        <div class="qa-item">
+          <h4>The developers didn't give test IDs</h4>
+          <p>That's fine. <code>/qa-automate</code> reads the page and picks the best available locator: role and name, label, placeholder or text. Ask for <code>data-testid</code> on elements that turn out unstable.</p>
+        </div>
+        <div class="qa-item">
+          <h4>The build failed smoke</h4>
+          <p>Reject it in the sprint file ("Builds received": rejected) with the failing test IDs and the Allure report. Don't merge or automate against it. Repeat build day when the new build arrives.</p>
+        </div>
+        <div class="qa-item">
+          <h4>The mobile app comes in a later sprint</h4>
+          <p>Add <code>requirements/mobile/&lt;JIRA&gt;-&lt;module&gt;.md</code> in that sprint. The web file and its history are not touched.</p>
+        </div>
+        <div class="qa-item">
+          <h4>A story is removed or a behaviour is dropped</h4>
+          <p>Don't delete test cases or renumber IDs. <code>/qa-update</code> retires removed cases with <code>Automate: no</code>, so reports and history stay consistent.</p>
+        </div>
+        <div class="qa-item">
+          <h4>A new role or login method appears</h4>
+          <p>Add the role to <code>auth.roles</code> in <code>app.config.ts</code> and its variables to <code>.env</code>, then <code>npm run auth</code>. Email OTPs: use the test inbox (<code>npm run mail:check</code>) or a fixed QA-only code in <code>OTP_CODE</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Commands ============ -->
+    <section id="commands">
+      <div class="sec-head">
+        <span class="kicker">Reference</span>
+        <h2>Commands used in a sprint</h2>
+        <p>In order of use. Slash commands run in the Claude panel in VS Code; <code>npm run</code> commands in the terminal.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Phase</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>/qa-testcases &lt;requirement.md&gt;</code></td><td>2</td><td>Test cases from a requirement file; records the <code>cases</code> baseline</td></tr>
+            <tr><td><code>npm run auth</code></td><td>3</td><td>Logs in every role from <code>app.config.ts</code></td></tr>
+            <tr><td><code>npm run req:status</code></td><td>3, 6</td><td>Every story: stage, automated count, CHANGED / NEW flags</td></tr>
+            <tr><td><code>npm run req:diff -- &lt;md&gt;</code></td><td>3, 5</td><td>What changed since QA last processed the file</td></tr>
+            <tr><td><code>/qa-update &lt;md&gt;</code></td><td>3, 5</td><td>Updates only the affected test cases and tests</td></tr>
+            <tr><td><code>npm run test:smoke</code></td><td>3</td><td>Smoke suite: accept or reject a build</td></tr>
+            <tr><td><code>/qa-automate &lt;testcases.md&gt;</code></td><td>4</td><td>Model, page, data and spec; runs until green</td></tr>
+            <tr><td><code>/qa-fix [spec | @tag]</code></td><td>4</td><td>Classifies and fixes failures</td></tr>
+            <tr><td><code>npm run test:regression</code></td><td>6</td><td>Full regression, all sprints so far</td></tr>
+            <tr><td><code>npm run coverage:tc</code></td><td>6</td><td>Test-case IDs not automated yet</td></tr>
+            <tr><td><code>npm run req:baseline -- &lt;md&gt; --stage signed-off --by "&lt;name&gt;"</code></td><td>6</td><td>Records QA sign-off of a story</td></tr>
+            <tr><td><code>npm run report</code></td><td>Any</td><td>Builds and opens the Allure report</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ Glossary ============ -->
+    <section id="glossary">
+      <div class="sec-head">
+        <span class="kicker">Reference</span>
+        <h2>Glossary</h2>
+      </div>
+      <dl class="gloss">
+        <dt>Requirement file</dt><dd>QA's MD for one story on one platform, in <code>templates/requirement.md</code> format. The single source of truth for the tests.</dd>
+        <dt>Developer MD</dt><dd>The developers' own notes for a story, sent with a build. Saved unchanged under <code>sprints/…/from-dev/</code> and merged into the requirement file.</dd>
+        <dt>Baseline</dt><dd>A snapshot of a requirement file at a stage QA finished: <code>cases</code>, <code>automated</code> or <code>signed-off</code>.</dd>
+        <dt><code>req:diff</code></dt><dd>Shows, field by field, how a requirement file differs from its last baseline.</dd>
+        <dt>Test-case ID</dt><dd><code>TC-&lt;MODULE&gt;-NN</code>. One automated test per ID, titled <code>&lt;ID&gt; | &lt;Title&gt;</code>. Never renumbered.</dd>
+        <dt>Smoke</dt><dd>The small <code>@smoke</code> suite that decides whether a build is testable.</dd>
+        <dt>Regression</dt><dd>The full <code>@regression</code> suite across all sprints.</dd>
+        <dt><code>knownBug</code></dt><dd>Marks a test that fails because of a ticketed app bug, without weakening its assertion.</dd>
+      </dl>
+    </section>
+
+    <footer>
+      <span>Full details: <i>Getting Started Guide</i>, chapter 6 "Working in sprints" (<code>docs/Getting-Started-Guide.pdf</code>).</span>
+      <span>Templates: <code>templates/sprint.md</code> · <code>templates/dev-handover.md</code> · <code>templates/requirement.md</code></span>
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Copy buttons on every code block
+  document.querySelectorAll('.code').forEach((box) => {
+    const pre = box.querySelector('pre');
+    if (!pre) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy';
+    btn.textContent = 'Copy';
+    btn.setAttribute('aria-label', 'Copy to clipboard');
+    btn.addEventListener('click', () => {
+      const text = pre.innerText.trim();
+      const done = () => { btn.textContent = 'Copied'; btn.classList.add('done'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Press Ctrl+C'; };
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+    });
+    const wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.replaceWith(wrap);
+    wrap.append(pre, btn);
+  });
+
+  // Sprint-end checklist: ticks remembered in this browser only
+  const KEY = 'sprint-qa-end-checklist';
+  const boxes = [...document.querySelectorAll('#endChecklist input')];
+  const count = document.getElementById('checkCount');
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
+  const save = (state) => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+  const refresh = () => { count.textContent = `${boxes.filter((b) => b.checked).length} of ${boxes.length} done`; };
+  const state = load();
+  boxes.forEach((b) => { b.checked = !!state[b.id]; b.addEventListener('change', () => { const s = load(); s[b.id] = b.checked; save(s); refresh(); }); });
+  document.getElementById('resetChecks').addEventListener('click', () => { boxes.forEach((b) => (b.checked = false)); save({}); refresh(); });
+  refresh();
+
+  // Highlight the current section in the contents rail
+  const links = [...document.querySelectorAll('#toc a')];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        links.forEach((a) => a.classList.remove('active'));
+        const a = byId.get(e.target.id);
+        if (a) { a.classList.add('active'); if (window.matchMedia('(max-width: 900px)').matches) a.scrollIntoView({ block: 'nearest', inline: 'center' }); }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('main > section[id]').forEach((s) => obs.observe(s));
+  }
+</script>
+</body>
+</html>

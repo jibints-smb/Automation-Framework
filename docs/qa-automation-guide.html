@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Automation Guide</title>
+<style>
+  @page { size: A4; }
+  :root {
+    --ink: #1c2430;
+    --muted: #5b6676;
+    --line: #d9dee6;
+    --brand: #1f4e79;
+    --brand-soft: #e8f0f8;
+    --accent: #0f7b6c;
+    --accent-soft: #e6f4f1;
+    --warn: #9a5b00;
+    --warn-soft: #fdf3e2;
+    --danger: #a12828;
+    --danger-soft: #fbeaea;
+    --code-bg: #f4f6f9;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: #fff; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    font-size: 10pt;
+    line-height: 1.5;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { color: var(--brand); line-height: 1.25; break-after: avoid; }
+  h1 { font-size: 20pt; margin: 0 0 6pt; padding-bottom: 6pt; border-bottom: 2px solid var(--brand); }
+  h2 { font-size: 13.5pt; margin: 18pt 0 6pt; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; color: var(--ink); }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+  li { margin-bottom: 2.5pt; }
+  section.chapter { break-before: page; }
+  code, pre { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; font-size: 8.6pt; }
+  code { background: var(--code-bg); padding: 0.5pt 3pt; border-radius: 3px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-left: 3px solid var(--brand);
+    padding: 7pt 9pt; border-radius: 4px; white-space: pre-wrap; word-break: break-word;
+    margin: 0 0 9pt; line-height: 1.4;
+  }
+  pre code { background: none; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 3pt 0 10pt; font-size: 8.8pt; break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 4pt 5pt; text-align: left; vertical-align: top; }
+  th { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+  tbody tr:nth-child(even) td { background: #fafbfd; }
+  td code { font-size: 8pt; }
+  .small { font-size: 8.6pt; color: var(--muted); }
+  .muted { color: var(--muted); }
+
+  .callout { border-radius: 5px; padding: 7pt 10pt; margin: 6pt 0 10pt; break-inside: avoid; border-left: 4px solid; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout b.t { display: block; margin-bottom: 2pt; }
+  .info { background: var(--brand-soft); border-color: var(--brand); }
+  .tip { background: var(--accent-soft); border-color: var(--accent); }
+  .warn { background: var(--warn-soft); border-color: var(--warn); }
+  .bad { background: var(--danger-soft); border-color: var(--danger); }
+
+  /* Cover */
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .band { background: var(--brand); color: #fff; padding: 34pt 30pt 30pt; border-radius: 6px; margin-top: 40mm; }
+  .cover .band .kicker { text-transform: uppercase; letter-spacing: 2px; font-size: 9pt; opacity: 0.85; }
+  .cover .band h1 { color: #fff; border: none; font-size: 28pt; margin: 8pt 0 6pt; padding: 0; }
+  .cover .band p { font-size: 12pt; margin: 0; opacity: 0.95; }
+  .cover .meta td { border: none; padding: 2pt 10pt 2pt 0; background: none !important; font-size: 9.5pt; }
+  .cover .meta td:first-child { color: var(--muted); width: 32mm; }
+
+  /* TOC */
+  .toc ol { list-style: none; padding: 0; counter-reset: none; }
+  .toc li { display: flex; padding: 4pt 0; border-bottom: 1px dotted var(--line); }
+  .toc li span.n { width: 10mm; color: var(--brand); font-weight: 600; }
+  .toc li span.d { color: var(--muted); margin-left: auto; font-size: 8.6pt; }
+
+  /* Flow diagram: 4 x 2 grid, read left to right, top to bottom */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt 14pt; margin: 6pt 0 12pt; break-inside: avoid; }
+  .flow .step { position: relative; border: 1px solid var(--brand); border-radius: 5px; padding: 6pt 8pt; background: var(--brand-soft); font-size: 8.6pt; }
+  .flow .step b { display: block; color: var(--brand); font-size: 9.5pt; margin-bottom: 1pt; }
+  .flow .step .who { display: inline-block; margin-top: 3pt; font-size: 7.6pt; color: #fff; background: var(--accent); border-radius: 8px; padding: 0 5pt; }
+  .flow .step:not(:nth-child(4n))::after { content: "\2192"; position: absolute; right: -12pt; top: 50%; transform: translateY(-50%); color: var(--brand); font-size: 11pt; }
+
+  /* Rendered example document */
+  .doc { border: 1px solid var(--line); border-radius: 6px; padding: 10pt 12pt; margin: 6pt 0 10pt; }
+  .doc h3 { color: var(--brand); font-size: 10pt; margin: 10pt 0 3pt; }
+  .doc h3:first-child { margin-top: 0; }
+  .doc .doc-title { font-size: 12pt; font-weight: 700; color: var(--ink); margin-bottom: 4pt; }
+  .doc table { font-size: 7.8pt; }
+  .doc th, .doc td { padding: 3pt 4pt; }
+  .doc td code { font-size: 7.4pt; padding: 0 2pt; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .card { border: 1px solid var(--line); border-radius: 5px; padding: 7pt 9pt; break-inside: avoid; }
+  .card h4 { margin: 0 0 4pt; font-size: 10pt; color: var(--brand); }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding-left: 16pt; position: relative; }
+  .checklist li::before { content: "\2610"; position: absolute; left: 0; top: -1pt; font-size: 11pt; color: var(--brand); }
+  .tag { display: inline-block; font-size: 7.6pt; padding: 0 5pt; border-radius: 8px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); margin-left: 3pt; vertical-align: 1px; }
+  .tag.req { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+  .nobreak { break-inside: avoid; }
+
+  /* ---------- Screen / responsive (print layout above is unchanged) ---------- */
+  @media screen {
+    body { max-width: 1000px; margin: 0 auto; padding: 24px 32px 48px; font-size: 15px; }
+    code, pre { font-size: 13px; }
+    td code { font-size: 12px; }
+    table { font-size: 13.5px; }
+    .doc table { font-size: 12.5px; }
+    .doc td code { font-size: 11.5px; }
+    section.chapter { margin-top: 40px; padding-top: 8px; border-top: 1px solid var(--line); }
+    .cover { height: auto; min-height: 0; gap: 24px; }
+    .cover .band { margin-top: 0; }
+    td code, li code, p code { overflow-wrap: anywhere; }
+    /* code blocks keep their alignment and scroll instead of wrapping */
+    pre { white-space: pre; overflow-x: auto; word-break: normal; }
+  }
+
+  @media screen and (max-width: 900px) {
+    body { padding: 16px 16px 40px; }
+    /* wide tables scroll sideways inside their own box */
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cover .meta { display: table; }
+    .doc { padding: 10px; }
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    .flow .step:not(:nth-child(4n))::after { content: none; }
+    .flow .step:nth-child(odd)::after { content: "\2192"; }
+  }
+
+  @media screen and (max-width: 600px) {
+    body { font-size: 14.5px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; }
+    .cover .band { padding: 24px 18px; }
+    .cover .band h1 { font-size: 26px; }
+    .cover .band p { font-size: 15px; }
+    .cover .meta td:first-child { width: auto; white-space: nowrap; }
+    .grid2 { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; gap: 16pt; }
+    .flow .step:nth-child(n)::after { content: "\2193"; position: absolute; color: var(--brand); font-size: 11pt; right: auto; left: 50%; top: auto; bottom: -15pt; transform: translateX(-50%); }
+    .flow .step:nth-child(n):last-child::after { content: none; }
+    .toc li { display: grid; grid-template-columns: 10mm 1fr; }
+    .toc li span.d { grid-column: 2; margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<div class="cover">
+  <div class="band">
+    <div class="kicker">QA Automation Framework</div>
+    <h1>Module Testing &amp; Automation Guide</h1>
+    <p>How a module is tested, from Jira story to Allure report, and what developers need to provide for reliable automated tests.</p>
+  </div>
+  <div>
+    <table class="meta">
+      <tr><td>Audience</td><td>Developers, QA engineers, product owners, team leads</td></tr>
+      <tr><td>Applies to</td><td>Web applications, mobile web, native Android and iOS apps</td></tr>
+      <tr><td>Tooling</td><td>Playwright, Appium (WebdriverIO), Claude Code + Playwright MCP, Allure 3</td></tr>
+      <tr><td>Version</td><td>1.0 &middot; 2 October 2026</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============================== TOC ============================== -->
+<section class="chapter toc">
+  <h1>Contents</h1>
+  <ol>
+    <li><span class="n">1</span>Purpose and who does what<span class="d">Start here</span></li>
+    <li><span class="n">2</span>The testing process, step by step<span class="d">QA &amp; developers</span></li>
+    <li><span class="n">3</span>The module MD file: what developers must provide<span class="d">Developers</span></li>
+    <li><span class="n">4</span>Test ID contract (web and mobile)<span class="d">Developers</span></li>
+    <li><span class="n">5</span>Definition of Ready checklist<span class="d">Everyone</span></li>
+    <li><span class="n">6</span>Worked example: a complete module MD<span class="d">Developers</span></li>
+    <li><span class="n">7</span>From test cases to automation<span class="d">QA</span></li>
+    <li><span class="n">8</span>Running tests and reading the Allure report<span class="d">QA &amp; developers</span></li>
+    <li><span class="n">9</span>Failure triage and bug reporting<span class="d">QA &amp; developers</span></li>
+    <li><span class="n">10</span>When a module changes after testing<span class="d">QA &amp; developers</span></li>
+    <li><span class="n">11</span>Things that block automation, and how to avoid them<span class="d">Developers</span></li>
+    <li><span class="n">A</span>Appendix: blank module MD template<span class="d">Copy &amp; fill</span></li>
+    <li><span class="n">B</span>Appendix: glossary and commands<span class="d">Reference</span></li>
+  </ol>
+
+  <div class="callout info" style="margin-top:16pt">
+    <b class="t">The one-sentence version</b>
+    <p>For every module, the developer hands QA one Markdown file that lists every field, rule, message and test ID
+    (Section 3 and the template in Appendix A). QA turns it into reviewed test cases, Claude turns those into
+    automated tests, and the results appear in the Allure report linked to the Jira story.</p>
+  </div>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<section class="chapter">
+  <h1>1. Purpose and who does what</h1>
+  <p>This guide describes how every module of our web and mobile applications is tested with the shared automation
+  framework, and what information has to be agreed <i>before</i> testing starts. Automation quality depends on
+  the quality of its input: most flaky or wrong tests come from vague requirements ("show an error") or from UI
+  elements that can't be located reliably. A complete module MD file solves both.</p>
+
+  <h2>1.1 Roles</h2>
+  <table>
+    <thead><tr><th style="width:22%">Role</th><th>Responsibilities</th></tr></thead>
+    <tbody>
+      <tr><td><b>Developer</b></td><td>Writes or completes the module MD file (fields, rules, exact messages, test IDs, APIs, test data).
+        Adds <code>data-testid</code> / accessibility IDs in the code. Deploys the build to the QA environment. Fixes confirmed bugs.</td></tr>
+      <tr><td><b>Product owner / BA</b></td><td>Owns the Jira story and acceptance criteria. Answers open questions about business rules.</td></tr>
+      <tr><td><b>QA engineer</b></td><td>Checks the MD file against the Definition of Ready. Generates and reviews test cases, runs automation,
+        triages failures, raises bugs, signs off the module.</td></tr>
+      <tr><td><b>Claude (AI assistant)</b></td><td>Drafts test cases from the MD file, explores the app through the Playwright MCP browser,
+        writes the model, page, data and spec code, runs tests and proposes fixes. Its output is always reviewed by QA.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.2 Where things live in the repository</h2>
+  <table>
+    <thead><tr><th style="width:36%">Folder / file</th><th>Contains</th><th style="width:18%">Owner</th></tr></thead>
+    <tbody>
+      <tr><td><code>apps/&lt;app&gt;/app.config.ts</code></td><td>The application: platforms, QA URL, test-ID attribute, login roles</td><td>QA, from developer input</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/requirements/</code></td><td>Module MD files: <code>&lt;JIRA-KEY&gt;-&lt;module&gt;.md</code></td><td>Developer + QA</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/test-cases/</code></td><td>Reviewed test cases: <code>&lt;module&gt;.testcases.md</code></td><td>QA</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/models/</code></td><td>Field models: each field's label, type, locator and rules</td><td>QA (generated)</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/pages/</code>, <code>screens/</code></td><td>Page / screen objects with business actions</td><td>QA (generated)</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/data/</code></td><td>Typed test data per module</td><td>QA</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/tests/</code></td><td>Automated test specs, one test per test-case ID</td><td>QA (generated)</td></tr>
+      <tr><td><code>apps/&lt;app&gt;/.env</code> (never committed)</td><td>QA URLs, test accounts per role, app builds, API token</td><td>QA, from developer input</td></tr>
+      <tr><td><code>src/</code></td><td>The shared framework used by every application (no app code here)</td><td>Framework owners</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.3 One framework, many applications</h2>
+  <p>Every project uses the same framework. A new application is added with
+  <code>npm run new:app -- &lt;name&gt; --platforms web,android</code>, which creates <code>apps/&lt;name&gt;/</code>.
+  The developer and QA then fill in <code>app.config.ts</code> (QA URL, test-ID attribute, user roles and how to log in)
+  and the app's <code>.env</code> (test accounts, app builds). The active application is chosen with the
+  <code>APP</code> setting. Improvements to the framework reach every project at once.</p>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section class="chapter">
+  <h1>2. The testing process, step by step</h1>
+
+  <div class="flow">
+    <div class="step"><b>1. Write spec</b>Module MD file<br><span class="who">Developer</span></div>
+    <div class="step"><b>2. Ready check</b>Definition of Ready<br><span class="who">QA</span></div>
+    <div class="step"><b>3. Test cases</b><code>/qa-testcases</code><br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>4. Review</b>Test cases approved<br><span class="who">QA + Dev + PO</span></div>
+    <div class="step"><b>5. Automate</b><code>/qa-automate</code><br><span class="who">QA + Claude</span></div>
+    <div class="step"><b>6. Run</b>Web, mobile web, apps<br><span class="who">QA / CI</span></div>
+    <div class="step"><b>7. Triage</b><code>/qa-fix</code>, bugs<br><span class="who">QA + Dev</span></div>
+    <div class="step"><b>8. Sign-off</b>Allure report<br><span class="who">QA</span></div>
+  </div>
+
+  <h3>Step 1: Developer writes the module MD file</h3>
+  <p>As soon as the story is in development, the developer copies <code>templates/requirement.md</code> to
+  <code>apps/&lt;app&gt;/requirements/&lt;JIRA-KEY&gt;-&lt;module&gt;.md</code> and fills it in (Section 3 explains every part).
+  Free-form notes are accepted, but the information in Section 3 must be in there.</p>
+  <p><b>Output:</b> module MD file committed or shared with QA. &nbsp; <b>Done when:</b> it passes the Definition of Ready (Section 5).</p>
+
+  <h3>Step 2: QA checks the Definition of Ready</h3>
+  <p>QA reads the file against the checklist in Section 5. Missing exact messages, missing test IDs or unclear rules go
+  back to the developer as comments on the Jira story. <b>Automation does not start on an incomplete spec</b>: guessing
+  produces tests that check the wrong thing.</p>
+
+  <h3>Step 3: Generate test cases</h3>
+  <p>In VS Code, QA runs <code>/qa-testcases apps/shop/requirements/SCRUM-123-registration.md</code>. Claude reads the file,
+  optionally opens the page in a browser to confirm fields and messages, and writes
+  <code>apps/shop/test-cases/registration.testcases.md</code> containing:</p>
+  <ul>
+    <li>at least one <b>positive</b> case for every acceptance criterion;</li>
+    <li><b>negative</b> cases for every required field and every validation rule;</li>
+    <li><b>boundary</b> cases for lengths and ranges (min&minus;1, min, max, max+1);</li>
+    <li>cases for <b>business rules</b>, <b>roles/permissions</b> and <b>UI states</b> (empty, disabled, error);</li>
+    <li>IDs <code>TC-&lt;MODULE&gt;-NN</code>, tags <code>@smoke</code> (main happy path) or <code>@regression</code>, and whether each case can be automated.</li>
+  </ul>
+  <p>Claude also lists <b>gaps and questions</b>, for example an error message that is not specified.</p>
+
+  <h3>Step 4: Review the test cases</h3>
+  <p>QA reviews the test-cases file and shares it with the developer and PO (in the PR or the Jira story). This is the
+  cheapest place to catch misunderstandings: a wrong expected result fixed here never becomes a wrong test.</p>
+
+  <h3>Step 5: Automate</h3>
+  <p>QA runs <code>/qa-automate apps/shop/test-cases/registration.testcases.md</code>. Claude:</p>
+  <ol>
+    <li>opens the application through the <b>Playwright MCP</b> browser and confirms locators and message texts (web);</li>
+    <li>creates the <b>field model</b>, <b>page/screen object</b>, <b>test data</b> and <b>spec</b> (Section 7);</li>
+    <li>type-checks and runs the new tests, fixing automation problems until they pass;</li>
+    <li>reports any test that fails because the application behaves differently from the spec (a possible bug).</li>
+  </ol>
+  <p>QA reviews the generated code like any pull request.</p>
+
+  <h3>Step 6: Run on every platform</h3>
+  <p>Web specs run on desktop Chrome and on mobile emulation (Pixel 7, iPhone 15). Native app specs run on Android and iOS
+  through Appium. The same tests run in CI on every deployment to the QA environment.</p>
+
+  <h3>Step 7: Triage failures</h3>
+  <p>QA runs <code>/qa-fix</code> for failing tests. Each failure is classified as an <b>automation issue</b> (fixed in the
+  framework), an <b>application bug</b> (Jira bug raised, test marked as expected-to-fail with the bug key), or an
+  <b>unclear requirement</b> (question to PO). See Section 9.</p>
+
+  <h3>Step 8: Sign-off</h3>
+  <p>The module is signed off when every automatable test case passes (or is linked to an accepted, open bug) on all
+  target platforms. The Allure report link is attached to the Jira story.</p>
+
+  <div class="callout tip">
+    <b class="t">Typical timeline for one module</b>
+    <p>Spec ready with the code &rarr; test cases same day &rarr; review within 1 day &rarr; automation and first run within 1&ndash;2 days
+    &rarr; regression on every later build at no extra cost.</p>
+  </div>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section class="chapter">
+  <h1>3. The module MD file: what developers must provide</h1>
+  <p>One file per module (or per story that changes a module). Use the template in <code>templates/requirement.md</code>
+  (reproduced in Appendix A). Sections marked <span class="tag req">required</span> must be complete before QA starts.
+  The table below explains what each section is used for, so it's clear why the detail matters.</p>
+
+  <table>
+    <thead><tr><th style="width:24%">Section</th><th style="width:40%">What to write</th><th>How automation uses it</th></tr></thead>
+    <tbody>
+      <tr><td><b>1. Overview</b> <span class="tag req">required</span></td>
+        <td>Jira key, epic, module, platform, QA URL/path, build or app version, feature flag, priority, names.</td>
+        <td>Allure grouping (Epic &rarr; Feature &rarr; Story), Jira link in the report, which test projects run, the base URL.</td></tr>
+      <tr><td><b>2. User story</b> <span class="tag req">required</span></td>
+        <td>As a &hellip; I want &hellip; so that &hellip;</td>
+        <td>Story label in the report; context for test-case generation.</td></tr>
+      <tr><td><b>3. Acceptance criteria</b> <span class="tag req">required</span></td>
+        <td>Numbered (AC1, AC2&hellip;), testable, Given/When/Then, exact expected texts in quotes.</td>
+        <td>Each AC becomes at least one test case; traceability AC &rarr; test ID.</td></tr>
+      <tr><td><b>4. Entry point &amp; preconditions</b> <span class="tag req">required</span></td>
+        <td>URL or menu path, roles that can access it, data that must exist first.</td>
+        <td>Page <code>path</code>, which login session to use, setup steps.</td></tr>
+      <tr><td><b>5. Fields</b> <span class="tag req">required</span></td>
+        <td>Every input, dropdown, checkbox, button and label with type, test ID, required, default, rules, dependencies and exact error message.</td>
+        <td>Becomes the <b>field model</b> directly; drives negative and boundary cases; error texts become assertions.</td></tr>
+      <tr><td><b>6. Actions &amp; outcomes</b> <span class="tag req">required</span></td>
+        <td>Each button/link: when it is enabled, what happens on success (navigate, toast, close dialog) and on failure.</td>
+        <td>Page methods (<code>submit()</code>, <code>cancel()</code>) and their expected results.</td></tr>
+      <tr><td><b>7. Messages</b> <span class="tag req">required</span></td>
+        <td>Every toast, banner, dialog and empty state, with its test ID and <b>exact text</b> including punctuation.</td>
+        <td>The <code>Messages</code> constant in the model; text assertions.</td></tr>
+      <tr><td><b>8. Business rules</b></td>
+        <td>Calculations, limits, role permissions, conditional fields, uniqueness (e.g. "email must be unique").</td>
+        <td>Dedicated rule test cases; data-driven tests for calculations.</td></tr>
+      <tr><td><b>9. UI states</b></td>
+        <td>Loading, empty, server-error, disabled/read-only behaviour.</td>
+        <td>State tests, often using API mocking.</td></tr>
+      <tr><td><b>10. APIs</b></td>
+        <td>Endpoints the screen calls, with method, purpose, success and error codes.</td>
+        <td>Fast test setup and cleanup via API; mocking error states; checking that the right request is sent.</td></tr>
+      <tr><td><b>11. Test data &amp; accounts</b> <span class="tag req">required</span></td>
+        <td>Accounts per role (password as an <code>.env</code> variable name, never the value), seed data, cleanup method, OTP/captcha/email bypass.</td>
+        <td>Roles in <code>app.config.ts</code>, accounts in the app <code>.env</code>, data files; API cleanup keeps tests repeatable.</td></tr>
+      <tr><td><b>12. Mobile only</b></td>
+        <td>APK/IPA link, package/bundle ID, launch activity, OS versions, permissions, deep links.</td>
+        <td>Appium capabilities in <code>.env</code>; deep links skip slow navigation.</td></tr>
+      <tr><td><b>13. Out of scope / known issues</b></td>
+        <td>What is not delivered yet; known bugs with Jira keys.</td>
+        <td>Prevents false failures; known bugs become expected-to-fail tests.</td></tr>
+      <tr><td><b>14. Change log</b></td>
+        <td>Date, what changed, who.</td>
+        <td>Tells QA which test cases and models to update.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.1 The fields table in detail</h2>
+  <p>This is the most important part of the file. Each row becomes one entry in the field model.</p>
+  <table>
+    <thead><tr><th style="width:18%">Column</th><th style="width:42%">Meaning</th><th>Good example</th></tr></thead>
+    <tbody>
+      <tr><td>Field</td><td>Visible label, as the user sees it</td><td>Email address</td></tr>
+      <tr><td>Type</td><td>One of: text, password, email, number, textarea, date, dropdown, checkbox, radio, file, button, link, label</td><td>email</td></tr>
+      <tr><td>Test ID</td><td>The <code>data-testid</code> (web) or accessibility ID (mobile); see Section 4</td><td><code>register-email-input</code></td></tr>
+      <tr><td>Required</td><td>yes / no / conditional (explain in "Depends on")</td><td>yes</td></tr>
+      <tr><td>Default</td><td>Pre-filled or pre-selected value</td><td>India (dropdown)</td></tr>
+      <tr><td>Rules</td><td>Min/max length, format (regex or description), numeric range, allowed options, file types and size</td><td>max 100 chars, valid email format, unique</td></tr>
+      <tr><td>Depends on</td><td>Shown, enabled or required only when another field has a value</td><td>Required when Country = "United States"</td></tr>
+      <tr><td>Error message</td><td><b>Exact</b> text per rule; give each rule its own message</td><td>required: "Email is required"; format: "Enter a valid email address"</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid2">
+    <div class="callout bad">
+      <b class="t">Not testable</b>
+      <ul>
+        <li>"Email should be validated."</li>
+        <li>"Show an error if the password is weak."</li>
+        <li>"Phone number field with proper format."</li>
+        <li>"Button should work."</li>
+      </ul>
+    </div>
+    <div class="callout tip">
+      <b class="t">Testable</b>
+      <ul>
+        <li>Email: required, max 100, RFC format, unique. Errors: "Email is required", "Enter a valid email address", "This email is already registered".</li>
+        <li>Password: 8&ndash;64 chars, at least 1 upper, 1 lower, 1 digit. Error: "Password must be 8&ndash;64 characters and include upper case, lower case and a number".</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section class="chapter">
+  <h1>4. Test ID contract (web and mobile)</h1>
+  <p>Automated tests find elements by a dedicated, stable attribute rather than CSS classes, XPath or visible text,
+  which change with styling, refactoring and translations. Adding test IDs is a small development task that makes
+  automation <b>much</b> more stable. Every element listed in the fields, actions and messages tables needs one.</p>
+
+  <h2>4.1 Naming convention</h2>
+  <pre><code>&lt;module&gt;-&lt;element&gt;-&lt;kind&gt;            kebab-case, lower case, English, no spaces
+
+register-email-input        register-submit-button      register-email-error
+register-country-select     register-terms-checkbox     register-success-toast
+orders-row-&lt;orderId&gt;        orders-row-&lt;orderId&gt;-delete-button     (lists: append the record's stable id)</code></pre>
+
+  <table>
+    <thead><tr><th style="width:20%">Kind suffix</th><th>Use for</th></tr></thead>
+    <tbody>
+      <tr><td><code>-input</code></td><td>text, email, password, number, date, textarea</td></tr>
+      <tr><td><code>-select</code></td><td>dropdowns / pickers</td></tr>
+      <tr><td><code>-checkbox</code>, <code>-radio</code>, <code>-switch</code></td><td>toggles (for radio groups put the ID on the group, and give each option a unique ID or label)</td></tr>
+      <tr><td><code>-button</code>, <code>-link</code></td><td>actions and navigation</td></tr>
+      <tr><td><code>-error</code></td><td>the inline validation message of a field</td></tr>
+      <tr><td><code>-toast</code>, <code>-banner</code>, <code>-dialog</code></td><td>feedback messages and modals</td></tr>
+      <tr><td><code>-title</code>, <code>-label</code>, <code>-value</code></td><td>read-only text that tests check</td></tr>
+      <tr><td><code>-row</code>, <code>-card</code>, <code>-list</code></td><td>repeated items and their container</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4.2 How to add them, per technology</h2>
+  <table>
+    <thead><tr><th style="width:22%">Technology</th><th>Code</th></tr></thead>
+    <tbody>
+      <tr><td>HTML / React / Angular / Vue</td><td><code>&lt;input data-testid="register-email-input" /&gt;</code></td></tr>
+      <tr><td>React Native</td><td><code>&lt;TextInput testID="register-email-input" accessibilityLabel="register-email-input" /&gt;</code></td></tr>
+      <tr><td>Flutter</td><td><code>Semantics(identifier: 'register-email-input', child: ...)</code> or <code>Key('register-email-input')</code> with the Appium Flutter driver</td></tr>
+      <tr><td>Android (XML / Compose)</td><td><code>android:id="@+id/register_email_input"</code> and/or <code>android:contentDescription</code>; Compose: <code>Modifier.testTag("register-email-input")</code> with <code>testTagsAsResourceId = true</code></td></tr>
+      <tr><td>iOS (UIKit / SwiftUI)</td><td><code>view.accessibilityIdentifier = "register-email-input"</code>; SwiftUI: <code>.accessibilityIdentifier("register-email-input")</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>4.3 Rules</h2>
+  <ul>
+    <li><b>Stable</b>: never generated (no <code>input-4821</code>, no hashed class names) and not changed during refactoring.</li>
+    <li><b>Unique</b> on the screen. In lists, append the record's business ID, not its position.</li>
+    <li><b>Not translated</b>: test IDs stay English when the UI language changes.</li>
+    <li><b>Present in QA/staging builds.</b> They may be stripped from production if required, but never from test builds.</li>
+    <li>On mobile, use the <b>same IDs on Android and iOS</b> when possible, so one model serves both platforms.</li>
+    <li>The attribute name (<code>data-testid</code>, <code>data-test</code>, <code>data-qa</code>) is configurable per application
+      (<code>testIdAttribute</code> in the app's <code>app.config.ts</code>); pick one per application and use it everywhere.</li>
+  </ul>
+
+  <div class="callout info">
+    <b class="t">No test IDs yet?</b>
+    <p>The framework can fall back to accessible roles and labels (for example "the button named <i>Register</i>"), which
+    Claude finds through the Playwright MCP. This works, but breaks when texts change or the app is translated. Treat
+    missing test IDs as technical debt to be fixed in the next sprint.</p>
+  </div>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section class="chapter">
+  <h1>5. Definition of Ready checklist</h1>
+  <p>QA checks a module MD file against this list before generating test cases. Every unchecked item goes back to the
+  developer or PO as a Jira comment.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Scope and access</h4>
+      <ul class="checklist">
+        <li>Jira key, epic, module and platform(s) filled in</li>
+        <li>QA environment URL / app build available and working</li>
+        <li>Feature flag named, with how to switch it on</li>
+        <li>Entry point (URL, menu path or deep link) given</li>
+        <li>Roles that can and cannot access the module listed</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Behaviour</h4>
+      <ul class="checklist">
+        <li>Acceptance criteria numbered and testable</li>
+        <li>Every button has success <i>and</i> failure outcomes</li>
+        <li>Business rules have concrete numbers and limits</li>
+        <li>Conditional fields and their trigger values described</li>
+        <li>Loading, empty and error states described</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Fields and messages</h4>
+      <ul class="checklist">
+        <li>Every field has type, required flag and rules</li>
+        <li>Lengths, ranges and formats are specific numbers or patterns</li>
+        <li>Dropdown / radio options listed in display order</li>
+        <li>Every validation rule has its own <b>exact</b> error text</li>
+        <li>Every toast, banner and dialog text is exact</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Testability</h4>
+      <ul class="checklist">
+        <li>Every element in the tables has a test ID (Section 4)</li>
+        <li>Test accounts exist for every role (passwords via <code>.env</code>)</li>
+        <li>Way to create and clean up test data (API or script)</li>
+        <li>OTP, captcha and email have a test bypass</li>
+        <li>Mobile: APK/IPA, package/bundle ID and devices given</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section class="chapter">
+  <h1>6. Worked example: a complete module MD</h1>
+  <p>Below is what a "ready" file looks like for a customer registration screen. It is long because it is complete:
+  every line here removes a guess from the tests.</p>
+
+<div class="callout info">
+    <b class="t">How to read this example</b>
+    <p>The file is written in Markdown (headings with <code>##</code>, tables with <code>|</code> pipes, as in
+    <code>templates/requirement.md</code>). It is shown formatted here so it's easier to read.</p>
+  </div>
+
+  <div class="doc">
+    <div class="doc-title">SCRUM-123 — Customer registration</div>
+
+    <h3>1. Overview</h3>
+    <table>
+      <tbody>
+        <tr><td style="width:24%"><b>Jira</b></td><td>SCRUM-123</td><td style="width:20%"><b>Epic</b></td><td>Customer onboarding</td></tr>
+        <tr><td><b>Module</b></td><td>Registration</td><td><b>Platform</b></td><td>web, mobile-web</td></tr>
+        <tr><td><b>Environment / URL</b></td><td>https://qa.shop.example.com/register</td><td><b>Build</b></td><td>web 4.12.0</td></tr>
+        <tr><td><b>Feature flag</b></td><td>none</td><td><b>Priority</b></td><td>critical</td></tr>
+        <tr><td><b>Developer / QA</b></td><td colspan="3">A. Developer / B. Tester</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2. User story</h3>
+    <p>As a new visitor, I want to create an account so that I can place orders.</p>
+
+    <h3>3. Acceptance criteria</h3>
+    <ol>
+      <li><b>AC1</b> Given all fields are valid, when I click "Create account", then my account is created, I see the toast
+        "Welcome, {firstName}!" and I land on <code>/account</code>.</li>
+      <li><b>AC2</b> Given an email that is already registered, then I see "This email is already registered" under the email
+        field and no account is created.</li>
+      <li><b>AC3</b> "Create account" stays disabled until "I accept the terms" is checked.</li>
+      <li><b>AC4</b> Users younger than 18 cannot register.</li>
+    </ol>
+
+    <h3>4. Entry point &amp; preconditions</h3>
+    <ul>
+      <li>URL <code>/register</code>, or the "Sign up" link on the login page (test ID <code>login-signup-link</code>).</li>
+      <li>Logged-out users only; logged-in users are redirected to <code>/account</code>.</li>
+      <li>Country list is loaded from <code>GET /api/v1/countries</code>.</li>
+    </ul>
+
+    <h3>5. Fields</h3>
+    <table>
+      <thead><tr><th>#</th><th>Field</th><th>Type</th><th>Test ID</th><th>Req</th><th>Default</th><th>Rules</th><th>Depends on</th><th style="width:27%">Error message (exact)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>First name</td><td>text</td><td><code>register-firstname-input</code></td><td>yes</td><td></td><td>2–50 chars; letters, space, ' and -</td><td></td><td>required: "First name is required"<br>format: "Use letters only"</td></tr>
+        <tr><td>2</td><td>Last name</td><td>text</td><td><code>register-lastname-input</code></td><td>yes</td><td></td><td>1–50 chars; same as first name</td><td></td><td>required: "Last name is required"</td></tr>
+        <tr><td>3</td><td>Email</td><td>email</td><td><code>register-email-input</code></td><td>yes</td><td></td><td>max 100; email format; unique</td><td></td><td>required: "Email is required"<br>format: "Enter a valid email address"<br>unique: "This email is already registered"</td></tr>
+        <tr><td>4</td><td>Mobile number</td><td>text</td><td><code>register-mobile-input</code></td><td>no</td><td></td><td>exactly 10 digits</td><td></td><td>format: "Enter a 10-digit mobile number"</td></tr>
+        <tr><td>5</td><td>Country</td><td>dropdown</td><td><code>register-country-select</code></td><td>yes</td><td>India</td><td>from /api/v1/countries, sorted A–Z</td><td></td><td></td></tr>
+        <tr><td>6</td><td>State</td><td>dropdown</td><td><code>register-state-select</code></td><td>cond.</td><td></td><td>US states</td><td>shown and required if Country = United States</td><td>required: "State is required"</td></tr>
+        <tr><td>7</td><td>Date of birth</td><td>date</td><td><code>register-dob-input</code></td><td>yes</td><td></td><td>DD/MM/YYYY; age ≥ 18</td><td></td><td>required: "Date of birth is required"<br>age: "You must be at least 18 years old"</td></tr>
+        <tr><td>8</td><td>Password</td><td>password</td><td><code>register-password-input</code></td><td>yes</td><td></td><td>8–64 chars; ≥1 upper, ≥1 lower, ≥1 digit</td><td></td><td>"Password must be 8–64 characters and include upper case, lower case and a number"</td></tr>
+        <tr><td>9</td><td>Confirm password</td><td>password</td><td><code>register-confirm-input</code></td><td>yes</td><td></td><td>equals Password</td><td></td><td>"Passwords do not match"</td></tr>
+        <tr><td>10</td><td>I accept the terms</td><td>checkbox</td><td><code>register-terms-checkbox</code></td><td>yes</td><td>unchecked</td><td></td><td></td><td></td></tr>
+        <tr><td>11</td><td>Create account</td><td>button</td><td><code>register-submit-button</code></td><td></td><td></td><td>disabled until terms checked</td><td></td><td></td></tr>
+        <tr><td>12</td><td>Field errors</td><td>label</td><td><code>register-&lt;field&gt;-error</code></td><td></td><td></td><td>one per field, under the field</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h3>6. Actions &amp; outcomes</h3>
+    <table>
+      <thead><tr><th>Action</th><th>Test ID</th><th>Enabled when</th><th>On success</th><th>On failure</th></tr></thead>
+      <tbody>
+        <tr><td>Create account</td><td><code>register-submit-button</code></td><td>terms checked</td><td>toast "Welcome, {firstName}!", go to /account</td><td>inline field errors, stay on page</td></tr>
+        <tr><td>Already have an account? Log in</td><td><code>register-login-link</code></td><td>always</td><td>go to /login</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h3>7. Messages</h3>
+    <table>
+      <thead><tr><th>Key</th><th>Where</th><th>Test ID</th><th>Exact text</th></tr></thead>
+      <tbody>
+        <tr><td>welcome</td><td>toast</td><td><code>register-success-toast</code></td><td>Welcome, {firstName}!</td></tr>
+        <tr><td>serverError</td><td>banner</td><td><code>register-error-banner</code></td><td>Something went wrong. Please try again.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>8. Business rules</h3>
+    <ul>
+      <li><b>BR1</b> Email comparison is case-insensitive (Test@x.com is the same as test@x.com).</li>
+      <li><b>BR2</b> Leading and trailing spaces are trimmed from all text fields before validation.</li>
+    </ul>
+
+    <h3>9. UI states</h3>
+    <ul>
+      <li>Loading: the submit button shows a spinner (<code>register-submit-spinner</code>) and is disabled.</li>
+      <li>Server error (5xx): <i>serverError</i> banner; entered values are kept.</li>
+    </ul>
+
+    <h3>10. APIs</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th><th>Success</th><th>Errors</th></tr></thead>
+      <tbody>
+        <tr><td>POST</td><td><code>/api/v1/customers</code></td><td>create account</td><td>201</td><td>409 duplicate email, 422 validation</td></tr>
+        <tr><td>DELETE</td><td><code>/api/v1/test/customers/{email}</code></td><td>cleanup (QA env only)</td><td>204</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h3>11. Test data &amp; accounts</h3>
+    <table>
+      <thead><tr><th>Purpose</th><th>Username / data</th><th>Secret (.env variable)</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Existing customer</td><td>existing.customer@example.com</td><td><code>EXISTING_USER_PASS</code></td><td>for AC2 duplicate check</td></tr>
+        <tr><td>New registrations</td><td>qa.&lt;random&gt;@example.com</td><td>—</td><td>deleted with the cleanup API</td></tr>
+      </tbody>
+    </table>
+    <p>No OTP or captcha in the QA environment.</p>
+
+    <h3>13. Out of scope / known issues</h3>
+    <ul><li>Social sign-up (Google) is a separate story, SCRUM-130.</li></ul>
+
+    <h3>14. Change log</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Change</th><th>By</th></tr></thead>
+      <tbody><tr><td>2026-10-01</td><td>First version</td><td>A. Developer</td></tr></tbody>
+    </table>
+  </div>
+
+  <p class="small">In Markdown, the first fields row is written as:<br>
+  <code>| 1 | First name | text | register-firstname-input | yes | | 2–50 chars; letters, space, ' and - | | required: "First name is required"; format: "Use letters only" |</code></p>
+
+
+  <h2>6.1 What QA generates from it (excerpt)</h2>
+  <table>
+    <thead><tr><th style="width:15%">ID</th><th>Title</th><th style="width:11%">Type</th><th style="width:12%">Tags</th><th style="width:8%">From</th></tr></thead>
+    <tbody>
+      <tr><td>TC-REG-01</td><td>Valid registration shows welcome toast and opens /account</td><td>positive</td><td>@smoke</td><td>AC1</td></tr>
+      <tr><td>TC-REG-02</td><td>Already-registered email shows "This email is already registered"</td><td>negative</td><td>@regression</td><td>AC2</td></tr>
+      <tr><td>TC-REG-03</td><td>Email check is case-insensitive</td><td>rule</td><td>@regression</td><td>BR1</td></tr>
+      <tr><td>TC-REG-04</td><td>Create account disabled until terms accepted</td><td>ui</td><td>@regression</td><td>AC3</td></tr>
+      <tr><td>TC-REG-05</td><td>Age 17 years 364 days is rejected; exactly 18 is accepted</td><td>boundary</td><td>@regression</td><td>AC4</td></tr>
+      <tr><td>TC-REG-06</td><td>Each required field left empty shows its own message</td><td>negative</td><td>@regression</td><td>Fields</td></tr>
+      <tr><td>TC-REG-07</td><td>Password 7 / 8 / 64 / 65 characters</td><td>boundary</td><td>@regression</td><td>Fields</td></tr>
+      <tr><td>TC-REG-08</td><td>State required only when Country = United States</td><td>rule</td><td>@regression</td><td>Fields</td></tr>
+      <tr><td>TC-REG-09</td><td>Server error keeps entered values and shows banner</td><td>ui</td><td>@regression</td><td>UI states</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section class="chapter">
+  <h1>7. From test cases to automation</h1>
+  <p>Every part of the MD file has exactly one place in the code. This is why reviewers can check generated code
+  against the spec line by line.</p>
+
+  <table>
+    <thead><tr><th style="width:30%">MD file section</th><th style="width:34%">Code artefact</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Overview (Jira, epic, module)</td><td><code>storyInfo({...})</code> in the spec</td><td>Allure: Customer onboarding &rarr; Registration &rarr; SCRUM-123</td></tr>
+      <tr><td>Entry point</td><td>page <code>path</code></td><td><code>readonly path = '/register'</code></td></tr>
+      <tr><td>Fields table</td><td>field model <code>apps/shop/models/web/registration.model.ts</code></td><td>one entry per row: label, type, locator, rules</td></tr>
+      <tr><td>Messages table</td><td><code>RegistrationMessages</code> constant in the model</td><td><code>welcome: (name) =&gt; `Welcome, ${name}!`</code></td></tr>
+      <tr><td>Actions &amp; outcomes</td><td>page methods</td><td><code>register(data)</code>, <code>expectWelcome(name)</code></td></tr>
+      <tr><td>Test data &amp; accounts</td><td><code>apps/shop/data/web/registration.data.ts</code> + app <code>.env</code></td><td>valid customer, invalid cases array</td></tr>
+      <tr><td>Test cases file</td><td>spec <code>apps/shop/tests/web/registration/registration.spec.ts</code></td><td>one test per ID, titled <code>TC-REG-01 | ...</code></td></tr>
+      <tr><td>APIs</td><td><code>api</code> + <code>cleanup</code> fixtures, <code>act.mockApi</code></td><td>create data via API and delete it after the test; fake a 500 for the error state</td></tr>
+      <tr><td>Roles</td><td><code>auth.roles</code> in <code>app.config.ts</code></td><td><code>test.use({ role: 'admin' })</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>7.1 The four layers</h2>
+<pre><code>// 1. MODEL: the fields table, as data
+export const RegistrationFields = defineWebFields({
+  email: {
+    label: 'Email', type: 'email', locator: { testId: 'register-email-input' },
+    rules: { required: true, maxLength: 100,
+             messages: { required: 'Email is required', pattern: 'Enter a valid email address' } },
+  },
+  terms:  { label: 'I accept the terms', type: 'checkbox', locator: { testId: 'register-terms-checkbox' } },
+  submit: { label: 'Create account',     type: 'button',   locator: { testId: 'register-submit-button' } },
+  // ... one entry per row
+});
+export type RegistrationData = FormData&lt;typeof RegistrationFields&gt;;   // typed automatically
+
+// 2. PAGE: business actions, no locators
+export class RegistrationPage extends BasePage {
+  readonly path = '/register';
+  readonly fields = RegistrationFields;
+  async register(data: RegistrationData) {
+    await this.act.fillForm(this.fields, data);      // fills each field according to its type
+    await this.act.click(this.fields.submit);
+  }
+}
+
+// 3. DATA: typed by the model
+export const validCustomer: RegistrationData = { firstName: 'Asha', email: uniqueEmail(), terms: true, /* ... */ };
+
+// 4. SPEC: reads like the test case
+test('TC-REG-01 | Valid registration shows welcome toast and opens /account',
+  { tag: ['@smoke', '@TC-REG-01'] }, async ({ registrationPage }) =&gt; {
+    await registrationPage.register(validCustomer);
+    await registrationPage.expectWelcome(validCustomer.firstName!);
+  });</code></pre>
+
+  <h2>7.2 What appears in the report</h2>
+  <p>Every action is a readable step, so a failed test can be understood without opening the code:</p>
+<pre><code>TC-REG-01 | Valid registration shows welcome toast and opens /account
+  Open "/register"
+  Fill "First name" with "Asha"
+  Fill "Email" with "qa.lx3k9a@example.com"
+  Fill "Password" with "********"          &lt;- passwords are always masked
+  Check "I accept the terms"
+  Click "Create account"
+  Verify "Welcome toast" has text "Welcome, Asha!"</code></pre>
+
+  <h2>7.3 Mobile modules</h2>
+  <p>Native screens follow the same pattern: <code>defineMobileFields</code>, a screen object extending
+  <code>BaseScreen</code>, and <code>this.act.tap / type / fillForm / swipe</code>. If Android and iOS use different
+  IDs, a field can declare both: <code>locator: { android: { id: '...' }, ios: { accessibilityId: '...' } }</code>.
+  The Playwright MCP cannot drive native apps, so mobile locators come from the MD file (Section 12 and the test ID
+  column) or from Appium Inspector.</p>
+</section>
+
+<!-- ============================== 8 ============================== -->
+<section class="chapter">
+  <h1>8. Running tests and reading the Allure report</h1>
+
+  <h2>8.1 Commands</h2>
+  <table>
+    <thead><tr><th style="width:42%">Command</th><th>What it runs</th></tr></thead>
+    <tbody>
+      <tr><td><code>npm test</code></td><td>Everything. Native app tests are skipped if no app is configured.</td></tr>
+      <tr><td><code>npm run test:web</code></td><td>Web specs on desktop Chrome</td></tr>
+      <tr><td><code>npm run test:mobile-web</code></td><td>Web specs on Pixel 7 and iPhone 15 emulation</td></tr>
+      <tr><td><code>npm run test:android</code> / <code>test:ios</code></td><td>Native app specs through Appium</td></tr>
+      <tr><td><code>npm run test:smoke</code> / <code>test:regression</code></td><td>By tag</td></tr>
+      <tr><td><code>npx playwright test --grep @TC-REG-02</code></td><td>One test case by ID</td></tr>
+      <tr><td><code>npm run test:ui</code> / <code>test:headed</code> / <code>test:debug</code></td><td>Interactive runner / visible browser / step-through debugging</td></tr>
+      <tr><td><code>TEST_ENV=staging npm test</code></td><td>Against another environment (<code>apps/&lt;app&gt;/.env.staging</code>)</td></tr>
+      <tr><td><code>npm run report</code></td><td>Build and open the Allure report</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8.2 Reading the report</h2>
+  <div class="grid2">
+    <div class="card"><h4>Results tree</h4><p>Results grouped by <b>Epic &rarr; Feature &rarr; Story</b>, matching Jira. Use it for module sign-off. Role logins appear under <i>Test setup</i>.</p></div>
+    <div class="card"><h4>Test detail</h4><p>The description shows the <b>test case</b> (preconditions, steps, expected result) from the test-cases file, then the readable steps, Jira link, severity and tags.</p></div>
+    <div class="card"><h4>Categories tab</h4><p>Failures sorted by likely cause: <b>Product bugs</b> (developers start here), <b>Automation issues</b> (QA) and <b>Environment problems</b>.</p></div>
+    <div class="card"><h4>History, dashboard</h4><p>Run history shows flaky tests and regressions. The report's start page also links a Dashboard with charts and trends.</p></div>
+  </div>
+
+  <h3>What a failed test shows</h3>
+  <p>Every failed test opens with a summary (likely cause, the step that failed, expected vs actual) and has a
+  <b>Bug report</b> attachment, generated automatically for every application:</p>
+  <ul>
+    <li><b>Expected vs Actual</b>: what the test checked, the test case's expected result and what the app showed;</li>
+    <li><b>Steps to reproduce</b>: every executed step with the real data (passwords masked) and the failing step marked;</li>
+    <li><b>Details</b>: Jira story and test case, severity, environment and URL, browser/version or device, user role, page URL at failure, attempt;</li>
+    <li><b>Browser console errors</b> and <b>failed network requests</b> (4xx/5xx) captured during the test;</li>
+    <li>the error and Playwright call log, and a <b>Copy for Jira</b> text block;</li>
+    <li>next to it: screenshot, video and trace (web), or screenshot and page source (mobile).</li>
+  </ul>
+  <div class="callout info">
+    <b class="t">The likely cause is a first guess</b>
+    <p>It is based on the failing step and error (wrong text, wrong page, element not found, server unreachable).
+    When the test checked a different text than the test case specifies, the failure is marked as an
+    <i>automation issue</i>, not a product bug. QA confirms the cause before a Jira bug is raised (Section 9).</p>
+  </div>
+
+  <h2>8.3 Severity</h2>
+  <p>The story's priority in the MD file becomes the Allure severity: <b>blocker</b> (release stopper),
+  <b>critical</b> (core flow broken), <b>normal</b>, <b>minor</b>, <b>trivial</b>. A release needs zero failing blocker
+  and critical tests.</p>
+</section>
+
+<!-- ============================== 9 ============================== -->
+<section class="chapter">
+  <h1>9. Failure triage and bug reporting</h1>
+  <p>Each failing test is classified before anything is changed. <code>/qa-fix</code> helps: Claude re-runs the test,
+  reproduces it in the browser and proposes a classification, and QA confirms it.</p>
+
+  <table>
+    <thead><tr><th style="width:20%">Classification</th><th style="width:38%">Typical signs</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><b>Automation issue</b></td><td>Element not found after a UI change, timing, expired test data, environment down</td>
+        <td>Fix the model locator, data or setup. Never weaken an assertion to make a test pass.</td></tr>
+      <tr><td><b>Application bug</b></td><td>Behaviour differs from the MD file / test case: wrong message, wrong navigation, data not saved</td>
+        <td>Raise a Jira bug (copy the <i>Copy for Jira</i> text from the Bug report). Add <code>knownBug('SCRUM-456', 'summary')</code>
+        as the first line of the test: it stays green while the bug exists, links the bug in the report, and turns red once the
+        bug is fixed, so QA removes the line.</td></tr>
+      <tr><td><b>Spec changed</b></td><td>Developer changed behaviour on purpose, but the MD file wasn't updated</td>
+        <td>Developer updates the MD file and change log; QA updates test cases and the model.</td></tr>
+      <tr><td><b>Unclear requirement</b></td><td>Both behaviours seem reasonable</td>
+        <td>Ask the PO; the test stays as it is until answered.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9.1 Bug report contents</h2>
+  <ul>
+    <li><b>Title</b>: <code>[Registration] Duplicate email accepted (TC-REG-02)</code></li>
+    <li><b>Story / test case</b>: SCRUM-123, TC-REG-02</li>
+    <li><b>Environment</b>: QA, web 4.12.0, Chrome desktop (and others where it reproduces)</li>
+    <li><b>Steps</b>: from the Bug report's <i>Steps to reproduce</i> (or its <i>Copy for Jira</i> block)</li>
+    <li><b>Expected</b>: from the MD file, with the exact text. <b>Actual</b>: what happened.</li>
+    <li><b>Evidence</b>: Allure report link, screenshot, trace or video</li>
+  </ul>
+</section>
+
+<!-- ============================== 10 ============================== -->
+<section class="chapter">
+  <h1>10. When a module changes after testing</h1>
+  <p>Modules change after QA has tested them: a bug fix adds a field, a validation message is reworded, a new
+  acceptance criterion appears. The framework records which version of each module MD file QA last processed
+  (the <b>baseline</b>), so changes are found automatically. Nobody has to compare files by eye or remember what
+  was tested.</p>
+
+  <h2>10.1 Module stages</h2>
+  <table>
+    <thead><tr><th style="width:20%">Stage</th><th>Meaning</th><th style="width:30%">Recorded by</th></tr></thead>
+    <tbody>
+      <tr><td><b>Test cases written</b></td><td>Test cases generated and reviewed for this version of the MD</td><td><code>/qa-testcases</code> (automatic)</td></tr>
+      <tr><td><b>Automated</b></td><td>All automatable test cases pass for this version</td><td><code>/qa-automate</code>, <code>/qa-update</code> (automatic)</td></tr>
+      <tr><td><b>Signed off</b></td><td>QA has verified the module at this version</td><td>QA only: <code>npm run req:baseline -- &lt;md&gt; --stage signed-off --by "Name"</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>10.2 The re-test loop</h2>
+  <div class="flow">
+    <div class="step"><b>1. Developer</b>Fixes the bug and updates the module MD (and its change log)<br><span class="who">Developer</span></div>
+    <div class="step"><b>2. Detect</b><code>npm run req:status</code> flags the module CHANGED<br><span class="who">QA / CI</span></div>
+    <div class="step"><b>3. See what changed</b><code>npm run req:diff -- &lt;md&gt;</code><br><span class="who">QA</span></div>
+    <div class="step"><b>4. Update</b><code>/qa-update &lt;md&gt;</code>: only affected cases and tests<br><span class="who">QA + Claude</span></div>
+  </div>
+
+  <h3>Example: status</h3>
+<pre><code>Module MD                  Jira       Automated  Last QA stage          Attention
+web/SCRUM-101-login.md     SCRUM-101  5/5        Signed off 2026-10-02  CHANGED since baseline
+web/SCRUM-102-products.md  SCRUM-102  5/5        Signed off 2026-10-02</code></pre>
+
+  <h3>Example: what changed</h3>
+<pre><code>## Acceptance criteria
+  + ADDED    AC5 After 3 wrong passwords the account is locked for 15 minutes with "Too many attempts..."
+
+## Fields
+  ~ CHANGED  Password: Rules: "masked" → "masked, 8-64 chars";
+             Error message: "Password is required" → "Password must be at least 8 characters"
+  + ADDED    Remember me (Type: checkbox; Required: no; Test ID: remember-me)</code></pre>
+
+  <h2>10.3 What <code>/qa-update</code> does with the changes</h2>
+  <table>
+    <thead><tr><th style="width:24%">Change in the MD</th><th>Effect on test cases and automation</th></tr></thead>
+    <tbody>
+      <tr><td>Field / AC / rule / message <b>added</b></td><td>New test cases with the next free IDs; model, page, data and specs extended</td></tr>
+      <tr><td>Rule or exact text <b>changed</b></td><td>Affected test cases updated, <b>same IDs</b>; assertions updated</td></tr>
+      <tr><td>Behaviour <b>removed</b></td><td>Test cases retired (<code>Automate: no</code>, kept for history); their tests removed</td></tr>
+      <tr><td>Priority changed</td><td>Severity and tags updated</td></tr>
+    </tbody>
+  </table>
+  <p>It also re-runs the module's smoke tests (a fix can break the happy path), adds an entry to the test-cases
+  file's <b>Change history</b>, records the new baseline as <i>Automated</i>, and gives QA a <b>re-test list</b>.
+  QA re-tests and signs off.</p>
+
+  <div class="callout warn">
+    <b class="t">For developers</b>
+    <ul>
+      <li>Always edit the <b>same</b> module MD file. Don't create a new copy per iteration, or the history is lost.</li>
+      <li>Rows are matched by their first column (field name, action, message key). A renamed field therefore shows as
+        removed + added; write the rename in the change log (<code>"Mobile" renamed to "Phone number"</code>) so QA keeps the same test cases.</li>
+      <li>Add a change-log line (section 14) with the Jira bug key, e.g. <code>2026-10-09 | Password min length 8 (SCRUM-456) | A. Dev</code>.</li>
+    </ul>
+  </div>
+  <p class="small">Baselines are stored in <code>apps/&lt;app&gt;/requirements/.baseline/</code> and are committed with the repository,
+  so the whole team (and CI) sees the same status.</p>
+</section>
+
+<!-- ============================== 11 ============================== -->
+<section class="chapter">
+  <h1>11. Things that block automation, and how to avoid them</h1>
+  <table>
+    <thead><tr><th style="width:28%">Problem</th><th style="width:34%">Effect on tests</th><th>Developer-side solution</th></tr></thead>
+    <tbody>
+      <tr><td>No test IDs, or generated IDs</td><td>Brittle locators that break on every UI change</td><td>Add test IDs per Section 4</td></tr>
+      <tr><td>Vague or missing messages</td><td>Tests can only check "some error", so real bugs slip through</td><td>Exact text per rule in the MD file</td></tr>
+      <tr><td>OTP / SMS / captcha</td><td>Cannot be automated reliably</td><td>Fixed OTP or bypass in QA env, or a test API that returns the OTP; captcha disabled for test accounts</td></tr>
+      <tr><td>Email verification links</td><td>Tests stuck waiting for an inbox</td><td>Test inbox API (e.g. Mailpit/Mailhog) or an endpoint that returns or verifies the link</td></tr>
+      <tr><td>Shared or changing test data</td><td>Tests pass alone and fail together</td><td>Dedicated accounts per role; create and delete data via API</td></tr>
+      <tr><td>No cleanup endpoint</td><td>Database fills up; unique-value rules start failing</td><td>QA-only cleanup API or nightly reset script</td></tr>
+      <tr><td>Animations, long loaders</td><td>Slow, flaky tests</td><td>Loading indicators with test IDs; reduced-motion respected</td></tr>
+      <tr><td>Third-party widgets (payments, maps) in iframes</td><td>Slow, unstable, may hit real services</td><td>Sandbox mode and documented test cards; feature flag to stub</td></tr>
+      <tr><td>Behaviour depends on date/time or location</td><td>Tests fail on certain days or machines</td><td>Document the rule; allow time and locale override in QA env</td></tr>
+      <tr><td>Mobile: no debuggable build</td><td>Appium cannot inspect the app</td><td>Provide QA builds (debug/ad-hoc signed) with accessibility IDs</td></tr>
+      <tr><td>Spec not updated after a change</td><td>Tests fail on correct behaviour</td><td>Update the MD file and change log in the same PR as the code</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <b class="t">Golden rule for developers</b>
+    <p>If a person needs to ask you a question to know whether the screen behaves correctly, the answer belongs in the
+    module MD file.</p>
+  </div>
+</section>
+
+<!-- ============================== A ============================== -->
+<section class="chapter">
+  <h1>Appendix A: Blank module MD template</h1>
+  <p class="small">Also in the repository as <code>templates/requirement.md</code>. Copy it to
+  <code>apps/&lt;app&gt;/requirements/&lt;JIRA-KEY&gt;-&lt;module&gt;.md</code>.</p>
+<pre><code># &lt;JIRA-KEY&gt; — &lt;Module / story title&gt;
+
+## 1. Overview (required)
+| Item              | Value                                               |
+| ----------------- | --------------------------------------------------- |
+| Jira              | &lt;JIRA-KEY&gt;                                          |
+| Epic              | &lt;Epic / product area&gt;                               |
+| Module            | &lt;Module name&gt;                                       |
+| Platform          | web / mobile-web / android / ios                    |
+| Environment / URL | &lt;QA URL + path&gt;                                     |
+| Build / version   | &lt;web build or app version; APK/IPA link&gt;            |
+| Feature flag      | &lt;flag + how to enable, or "none"&gt;                   |
+| Priority          | blocker / critical / normal / minor                 |
+| Developer / QA    | &lt;names&gt;                                             |
+
+## 2. User story (required)
+As a &lt;role&gt;, I want &lt;goal&gt; so that &lt;benefit&gt;.
+
+## 3. Acceptance criteria (required)
+1. AC1 Given ..., when ..., then ...
+
+## 4. Entry point &amp; preconditions (required)
+- How to reach the screen:
+- Roles that can access it:
+- Data that must exist first:
+
+## 5. Fields (required)
+| # | Field | Type | Test ID | Required | Default | Rules | Depends on | Error message (exact) |
+| - | ----- | ---- | ------- | -------- | ------- | ----- | ---------- | --------------------- |
+
+## 6. Actions &amp; outcomes (required)
+| Action | Test ID | Enabled when | On success | On failure |
+| ------ | ------- | ------------ | ---------- | ---------- |
+
+## 7. Messages (required)
+| Key | Where shown | Test ID | Exact text |
+| --- | ----------- | ------- | ---------- |
+
+## 8. Business rules
+- BR1:
+
+## 9. UI states
+- Loading:          - Empty:          - Error (5xx):          - Disabled / read-only:
+
+## 10. APIs (setup, cleanup, mocking)
+| Method | Endpoint | Purpose | Success | Errors |
+| ------ | -------- | ------- | ------- | ------ |
+
+## 11. Test data &amp; accounts (required)
+| Purpose | Username / data | Secret (.env variable) | Notes |
+| ------- | --------------- | ---------------------- | ----- |
+- Cleanup:
+- OTP / captcha / email:
+
+## 12. Mobile only
+| Item                     | Android        | iOS            |
+| ------------------------ | -------------- | -------------- |
+| App build                |                |                |
+| Package / bundle id      |                |                |
+| Launch activity          |                | n/a            |
+| Min OS / test devices    |                |                |
+| Permissions asked        |                |                |
+| Deep link to this screen |                |                |
+
+## 13. Out of scope / known issues
+-
+
+## 14. Change log
+| Date | Change | By |
+| ---- | ------ | -- |</code></pre>
+</section>
+
+<!-- ============================== B ============================== -->
+<section class="chapter">
+  <h1>Appendix B: Glossary and commands</h1>
+  <table>
+    <thead><tr><th style="width:24%">Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Module MD file</td><td>The Markdown specification of one module or story, written by the developer (Section 3).</td></tr>
+      <tr><td>Test-cases file</td><td>Reviewed list of test cases derived from the module MD file; one row = one automated test.</td></tr>
+      <tr><td>Field model</td><td>Code description of a page's fields (label, type, locator, rules); the only place locators live.</td></tr>
+      <tr><td>Page / screen object</td><td>Class with business actions for one web page or mobile screen (<code>register()</code>, <code>expectError()</code>).</td></tr>
+      <tr><td>Test ID</td><td>Stable attribute used to find an element: <code>data-testid</code> on web, accessibility ID on mobile.</td></tr>
+      <tr><td>Playwright</td><td>Browser automation framework used for web and mobile-web tests, and as the test runner for everything.</td></tr>
+      <tr><td>Appium</td><td>Automation server for native Android/iOS apps, driven through WebdriverIO.</td></tr>
+      <tr><td>MCP / Playwright MCP</td><td>Lets Claude control a real browser to explore pages, find locators and confirm behaviour.</td></tr>
+      <tr><td>Allure</td><td>Test report grouped by Epic/Feature/Story, with steps, attachments, Jira links and history.</td></tr>
+      <tr><td>Smoke / regression</td><td>Smoke: a few critical happy paths run on every build. Regression: the full set.</td></tr>
+      <tr><td>Definition of Ready</td><td>Checklist a module MD file must pass before testing starts (Section 5).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Claude commands (VS Code)</h2>
+  <table>
+    <thead><tr><th style="width:42%">Command</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td><code>/qa-testcases &lt;requirements md&gt;</code></td><td>Structured test cases in <code>apps/&lt;app&gt;/test-cases/</code>, plus open questions</td></tr>
+      <tr><td><code>/qa-automate &lt;test-cases md&gt;</code></td><td>Model, page/screen, data and spec, run until green</td></tr>
+      <tr><td><code>/qa-fix [spec | @tag]</code></td><td>Failure triage: automation fixes and suspected bugs</td></tr>
+    </tbody>
+  </table>
+
+  <h2>One-time setup</h2>
+<pre><code>npm install
+npm run setup                 # browsers
+copy .env.example .env        # root: APP, TEST_ENV, JIRA_BASE_URL
+npm run new:app -- shop --platforms web,android   # new application, then fill
+                              # apps/shop/app.config.ts and apps/shop/.env
+claude mcp add playwright --scope user -- cmd /c npx -y @playwright/mcp@latest ^
+  --isolated --output-dir=.playwright-mcp</code></pre>
+</section>
+
+</body>
+</html>

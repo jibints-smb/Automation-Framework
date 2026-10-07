@@ -1,0 +1,23 @@
+{
+  "web/SCRUM-101-login.md": {
+    "stage": "signed-off",
+    "date": "2026-10-02",
+    "by": "QA Team",
+    "note": "",
+    "hash": "6c889f245a08320c"
+  },
+  "web/SCRUM-102-products.md": {
+    "stage": "signed-off",
+    "date": "2026-10-02",
+    "by": "QA Team",
+    "note": "",
+    "hash": "8f11f4b7547b3419"
+  },
+  "mobile/MOB-201-login.md": {
+    "stage": "cases",
+    "date": "2026-10-02",
+    "by": "QA Team",
+    "note": "",
+    "hash": "855135ffb611b774"
+  }
+}
