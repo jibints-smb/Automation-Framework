@@ -17,7 +17,8 @@ Create structured test cases from the requirement file: **$ARGUMENTS**
      field and validation rule, boundary cases (min-1, min, max, max+1) where rules give limits, cases for
      business rules, each role's permissions, and UI states (empty, disabled, server error).
    - Email / OTP flows: valid code, wrong code, expired code, code used twice, resend (old code fails, new works),
-     too many attempts, email not received ("Resend" available after the timer).
+     too many attempts, email not received ("Resend" available after the timer). Use `templates/otp-testcases.md`
+     as the checklist: take the rows that apply, fill in the exact messages and limits from the requirement.
    - Non-functional, where the requirement or the page calls for it (Type and extra tag):
      `accessibility` (`@a11y`, one per main page/dialog: "meets WCAG 2.1 AA"), `visual` (`@visual`, key
      screens only, not every page), `performance` (`@perf`, with the budget as the expected result, e.g.

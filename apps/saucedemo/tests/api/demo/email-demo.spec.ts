@@ -6,10 +6,13 @@
  * Run: npm run demo:email   (needs MAIL_USER / MAIL_PASSWORD; tagged @demo, so no other run includes it)
  */
 import { expect, test } from '@apps/saucedemo/fixtures';
-import { demoAppSendsCode, demoAppSendsLink, DemoShop } from '@apps/saucedemo/demo/demoAppMailer';
+import { demoAppSendsCode, demoAppSendsLink, demoAppVerifies, DemoShop } from '@apps/saucedemo/demo/demoAppMailer';
 import { storyInfo } from '@core/utils/allure';
 
 const firstName = 'Anna';
+
+/** A wrong code of the same length: the real code with its last digit changed. */
+const otherCode = (code: string) => code.slice(0, -1) + ((Number(code.at(-1)) + 1) % 10);
 
 test.describe('Email testing demo', () => {
   test.beforeEach(async () => {
@@ -55,5 +58,55 @@ test.describe('Email testing demo', () => {
 
     const message = await mailbox.waitForEmail(email, { subject: 'Confirm your' });
     expect(await mailbox.linkFrom(message, '/verify-email')).toBe(sent);
+  });
+
+  // TC-MAILDEMO-05 to 09: what the app answers when a code is entered. Like a real test, they only use the code
+  // read from the email; demoAppVerifies plays the app's verify screen / API.
+
+  test('TC-MAILDEMO-05 | Correct code from the email is accepted', { tag: ['@demo', '@TC-MAILDEMO-05'] }, async ({ mailbox }) => {
+    const email = mailbox.newAddress('valid');
+    await demoAppSendsCode(email, firstName);
+    const code = await mailbox.otpFrom(await mailbox.waitForEmail(email, { subject: 'verification code' }));
+
+    expect(demoAppVerifies(email, code)).toBe('Verified');
+  });
+
+  test('TC-MAILDEMO-06 | Wrong code is rejected', { tag: ['@demo', '@TC-MAILDEMO-06'] }, async ({ mailbox }) => {
+    const email = mailbox.newAddress('wrong');
+    await demoAppSendsCode(email, firstName);
+    const code = await mailbox.otpFrom(await mailbox.waitForEmail(email, { subject: 'verification code' }));
+
+    expect(demoAppVerifies(email, otherCode(code))).toBe('Invalid code');
+  });
+
+  test('TC-MAILDEMO-07 | Old code no longer works after resend', { tag: ['@demo', '@TC-MAILDEMO-07'] }, async ({ mailbox }) => {
+    const email = mailbox.newAddress('old');
+    await demoAppSendsCode(email, firstName);
+    const first = await mailbox.waitForEmail(email, { subject: 'verification code' });
+    const firstCode = await mailbox.otpFrom(first);
+
+    await demoAppSendsCode(email, firstName); // "Resend code"
+    const secondCode = await mailbox.otpFrom(await mailbox.waitForEmail(email, { subject: 'verification code', newerThan: first }));
+
+    expect(demoAppVerifies(email, firstCode)).toBe('Invalid code');
+    expect(demoAppVerifies(email, secondCode)).toBe('Verified');
+  });
+
+  test('TC-MAILDEMO-08 | Code can be used only once', { tag: ['@demo', '@TC-MAILDEMO-08'] }, async ({ mailbox }) => {
+    const email = mailbox.newAddress('reuse');
+    await demoAppSendsCode(email, firstName);
+    const code = await mailbox.otpFrom(await mailbox.waitForEmail(email, { subject: 'verification code' }));
+
+    expect(demoAppVerifies(email, code)).toBe('Verified');
+    expect(demoAppVerifies(email, code)).toBe('Code already used');
+  });
+
+  test('TC-MAILDEMO-09 | Expired code is rejected', { tag: ['@demo', '@TC-MAILDEMO-09'] }, async ({ mailbox }) => {
+    // A real app needs a short QA expiry setting (or a fixed QA code) for this; never wait minutes with a sleep.
+    const email = mailbox.newAddress('expired');
+    await demoAppSendsCode(email, firstName, { expiresInSeconds: 0 });
+    const code = await mailbox.otpFrom(await mailbox.waitForEmail(email, { subject: 'verification code' }));
+
+    expect(demoAppVerifies(email, code)).toBe('Code expired');
   });
 });

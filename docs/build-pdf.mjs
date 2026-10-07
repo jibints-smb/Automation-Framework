@@ -9,6 +9,7 @@ const guides = [
   { source: 'docs/getting-started-guide.html', output: 'docs/Getting-Started-Guide.pdf', title: 'Getting Started Guide' },
   { source: 'docs/sprint-qa-process.html', output: 'docs/Sprint-QA-Process.pdf', title: 'Sprint QA Process' },
   { source: 'docs/team-setup.html', output: 'docs/QA-Team-Setup.pdf', title: 'QA Team Setup' },
+  { source: 'docs/otp-email-testing.html', output: 'docs/OTP-Email-Testing.pdf', title: 'OTP &amp; Email Testing' },
 ];
 
 const footer = (title) => `

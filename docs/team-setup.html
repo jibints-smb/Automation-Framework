@@ -171,8 +171,8 @@
   .qa-item h4 { font-size: 1rem; font-weight: 600; }
   .qa-item p { color: var(--ink-2); font-size: 0.94rem; }
 
-  .links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  @media (max-width: 760px) { .links { grid-template-columns: minmax(0, 1fr); } }
+  .links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .links { grid-template-columns: minmax(0, 1fr); } }
   .links a { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; text-decoration: none; display: grid; gap: 4px; background: var(--raised); color: var(--ink); }
   .links a:hover { border-color: var(--brand); }
   .links a b { color: var(--brand); }
@@ -512,6 +512,7 @@ git push -u origin prj-101-login            <span class="c"># then open a pull r
         <a href="Getting-Started-Guide.pdf"><b>Getting Started Guide</b><span>How Playwright + Claude automation works, the framework's architecture, a full walkthrough.</span><code>docs/Getting-Started-Guide.pdf</code></a>
         <a href="sprint-qa-process.html"><b>Sprint QA Process</b><span>Planning, build day, testing and sign-off for each sprint.</span><code>docs/sprint-qa-process.html</code></a>
         <a href="QA-Automation-Guide.pdf"><b>QA Automation Guide</b><span>What a module MD must contain, test IDs, severity, re-testing.</span><code>docs/QA-Automation-Guide.pdf</code></a>
+        <a href="otp-email-testing.html"><b>OTP &amp; Email Testing</b><span>Test inbox setup, reading OTPs and links, what to test, the demo tests.</span><code>docs/otp-email-testing.html</code></a>
       </div>
     </section>
 

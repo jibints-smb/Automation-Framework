@@ -32,13 +32,35 @@ const layout = (body: string) => `<!doctype html><html><head><style>p{font-famil
 <p style="color:#777">Support ticket 778899 · ${DemoShop.name}, 10115 Berlin · © ${new Date().getFullYear()}</p>
 <p><a href="https://demo-shop.example/unsubscribe?u=1">Unsubscribe</a></p></body></html>`;
 
-/** The demo app sends a signup verification code; returns the code it sent (a real test never knows it). */
-export async function demoAppSendsCode(to: string, firstName: string): Promise<string> {
+/** The demo app's answer when a code is entered: plays the messages a real verify screen or API shows. */
+export type DemoVerifyResult = 'Verified' | 'Invalid code' | 'Code expired' | 'Code already used';
+
+/** The demo app's own record of the last code per address (a real app keeps this in its database). */
+const issuedCodes = new Map<string, { code: string; expiresAt: number; used: boolean }>();
+
+/**
+ * The demo app sends a signup verification code; returns the code it sent (a real test never knows it).
+ * Sending again replaces the previous code, so the old one stops working, as in most real apps.
+ */
+export async function demoAppSendsCode(to: string, firstName: string, options: { expiresInSeconds?: number } = {}): Promise<string> {
+  const expiresInSeconds = options.expiresInSeconds ?? 600;
   const code = randomDigits(6);
+  const expiry = expiresInSeconds >= 60 ? `${Math.round(expiresInSeconds / 60)} minutes` : `${expiresInSeconds} seconds`;
   await step(`Demo app sends a verification code to ${to}`, () =>
-    send(to, DemoShop.codeSubject, layout(`<p>Hi ${firstName},</p><p>Your verification code is <b>${code}</b>. It expires in 10 minutes.</p><p>Didn't sign up? Ignore this email.</p>`)),
+    send(to, DemoShop.codeSubject, layout(`<p>Hi ${firstName},</p><p>Your verification code is <b>${code}</b>. It expires in ${expiry}.</p><p>Didn't sign up? Ignore this email.</p>`)),
   );
+  issuedCodes.set(to, { code, expiresAt: Date.now() + expiresInSeconds * 1000, used: false });
   return code;
+}
+
+/** The user enters `code` for `to` in the demo app: what the app answers. A correct code works only once. */
+export function demoAppVerifies(to: string, code: string): DemoVerifyResult {
+  const issued = issuedCodes.get(to);
+  if (!issued || issued.code !== code.trim()) return 'Invalid code';
+  if (Date.now() >= issued.expiresAt) return 'Code expired';
+  if (issued.used) return 'Code already used';
+  issued.used = true;
+  return 'Verified';
 }
 
 /** The demo app sends a "confirm your email" link; returns the link it sent. */

@@ -93,6 +93,8 @@ Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
   address in the test inbox (MAIL_* in the app .env, plus addressing), `mailbox.waitForEmail(address, { subject })`,
   then `mailbox.otpFrom(email)` / `mailbox.linkFrom(email, '/verify')`. Resend: `waitForEmail(..., { newerThan: first })`.
   Never hard-code an OTP unless QA has a fixed QA-only code (then `requireEnv('OTP_CODE')`).
+  Standard OTP test cases: `templates/otp-testcases.md`; examples: `apps/saucedemo/tests/api/demo/email-demo.spec.ts`;
+  guide: `docs/otp-email-testing.html`. Test inbox is a dedicated Gmail (IMAP), never Yopmail or other public inboxes.
 - Flaky tests (passed only on a retry) are tagged `flaky` and listed in `reports/flaky.html`: fix the cause,
   never add retries or sleeps.
 - App-specific settings: `getEnv('NAME')` / `requireEnv('NAME')` from `@core/config/env`.

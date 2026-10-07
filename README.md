@@ -17,7 +17,11 @@ module walkthrough.
 
 **Process guide for developers and QA:** [docs/QA-Automation-Guide.pdf](docs/QA-Automation-Guide.pdf):
 the testing steps and exactly what a module MD file must contain. Edit the HTML files in `docs/` and run
-`npm run docs:pdf` to rebuild all four PDFs.
+`npm run docs:pdf` to rebuild all PDFs.
+
+**OTP and email testing:** [docs/otp-email-testing.html](docs/otp-email-testing.html) (PDF:
+[docs/OTP-Email-Testing.pdf](docs/OTP-Email-Testing.pdf)): Gmail test inbox setup, reading OTPs and links, what to test.
+Standard test cases: `templates/otp-testcases.md`.
 
 **Working in sprints (QA team):** [docs/sprint-qa-process.md](docs/sprint-qa-process.md) (web version:
 [docs/sprint-qa-process.html](docs/sprint-qa-process.html), PDF: [docs/Sprint-QA-Process.pdf](docs/Sprint-QA-Process.pdf)): sprint steps, build day, what developers send,

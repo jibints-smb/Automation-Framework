@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OTP &amp; Email Testing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: same system as team-setup.html: contents rail on the left, one reading column. */
+  :root {
+    --bg: #ffffff; --surface: #f5f7fa; --raised: #ffffff;
+    --ink: #1b2430; --ink-2: #3a4553; --muted: #5f6b7a; --line: #dde2e9;
+    --brand: #1f4e79; --brand-soft: #e9f1f9;
+    --accent: #0f7b6c; --accent-soft: #e5f4f1;
+    --warn: #9a5b00; --warn-soft: #fdf3e2;
+    --danger: #a12828; --danger-soft: #fbeaea;
+    --code-bg: #f1f4f8; --code-ink: #1b2430; --code-comment: #6b7787;
+    --shadow: 0 1px 2px rgba(20, 35, 55, 0.06), 0 4px 14px rgba(20, 35, 55, 0.05);
+    --font-body: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151c; --surface: #161d26; --raised: #1a222d; --ink: #e4e9f0; --ink-2: #c4ccd7; --muted: #95a1b0;
+      --line: #2a3542; --brand: #8bbbe9; --brand-soft: #182739; --accent: #52c9b4; --accent-soft: #122d29;
+      --warn: #e8b468; --warn-soft: #30250f; --danger: #f08b8b; --danger-soft: #341818;
+      --code-bg: #19212b; --code-ink: #dfe6ee; --code-comment: #8d99a8; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151c; --surface: #161d26; --raised: #1a222d; --ink: #e4e9f0; --ink-2: #c4ccd7; --muted: #95a1b0;
+    --line: #2a3542; --brand: #8bbbe9; --brand-soft: #182739; --accent: #52c9b4; --accent-soft: #122d29;
+    --warn: #e8b468; --warn-soft: #30250f; --danger: #f08b8b; --danger-soft: #341818;
+    --code-bg: #19212b; --code-ink: #dfe6ee; --code-comment: #8d99a8; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3); color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  a { color: var(--brand); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  code, pre { font-family: var(--font-mono); }
+  code { font-size: 0.86em; background: var(--code-bg); color: var(--code-ink); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  p { margin: 0; }
+  ul, ol { margin: 0; padding-left: 1.3em; }
+  li + li { margin-top: 4px; }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.25; text-wrap: balance; }
+  strong, b { font-weight: 600; }
+
+  .page { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  .rail { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding-block: 40px 32px; }
+  .rail .brand { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; display: block; }
+  .rail nav { display: grid; gap: 2px; }
+  .rail .group { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+  .rail a { display: block; text-decoration: none; color: var(--ink-2); font-size: 0.9rem; padding: 5px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  .rail a:hover { background: var(--surface); color: var(--ink); }
+  .rail a.active { background: var(--brand-soft); color: var(--brand); border-left-color: var(--brand); font-weight: 500; }
+  main { min-width: 0; max-width: 780px; padding-block: 40px 96px; display: grid; gap: 72px; }
+  @media (max-width: 900px) {
+    .page { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 16px; }
+    .rail { position: sticky; top: 0; z-index: 5; max-height: none; padding: 10px 0; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
+    .rail .brand, .rail .group { display: none; }
+    .rail nav { display: flex; gap: 4px; width: max-content; }
+    .rail a { white-space: nowrap; border-left: 0; }
+    main { padding-block: 28px 72px; gap: 56px; }
+    body { font-size: 15.5px; }
+  }
+
+  .hero { display: grid; gap: 18px; }
+  .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(2rem, 4.4vw, 2.75rem); font-weight: 700; letter-spacing: -0.02em; }
+  .hero .lede { font-size: 1.15rem; color: var(--ink-2); max-width: 62ch; }
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+  .fact { padding: 14px 18px; display: grid; gap: 3px; border-left: 1px solid var(--line); min-width: 0; align-content: start; }
+  .fact:first-child { border-left: 0; }
+  .fact .k { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .fact .v { font-weight: 500; }
+  @media (max-width: 640px) {
+    .facts { grid-template-columns: minmax(0, 1fr); }
+    .fact { border-left: 0; border-top: 1px solid var(--line); }
+    .fact:first-child { border-top: 0; }
+  }
+
+  section { display: grid; gap: 20px; min-width: 0; }
+  .sec-head { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .sec-head .kicker { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .sec-head h2 { font-size: 1.65rem; font-weight: 700; color: var(--brand); letter-spacing: -0.01em; }
+  .sec-head p { color: var(--ink-2); font-size: 1.05rem; max-width: 64ch; }
+  h3 { font-size: 1.15rem; font-weight: 600; }
+
+  .diagram { border: 1px solid var(--line); border-radius: 10px; background: var(--raised); padding: 8px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 600px; height: auto; }
+  figure { margin: 0; display: grid; gap: 10px; }
+  figcaption { color: var(--muted); font-size: 0.9rem; }
+  .d-title { font: 600 13px var(--font-body); fill: var(--ink); }
+  .d-name { font: 600 13px var(--font-mono); fill: var(--ink); }
+  .d-sub { font: 400 11.5px var(--font-body); fill: var(--muted); }
+  .d-box { fill: var(--raised); stroke: var(--muted); stroke-width: 1.2; }
+  .d-repo { fill: var(--surface); stroke: var(--brand); stroke-width: 1.6; }
+  .d-core { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.4; }
+  .d-app { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .d-person { fill: var(--raised); stroke: var(--muted); stroke-width: 1.2; }
+  .d-line { fill: none; stroke: var(--muted); stroke-width: 1.25; }
+  .d-arrow { fill: var(--muted); }
+  .d-label { font: 400 11.5px var(--font-body); fill: var(--muted); }
+
+  .tag { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .tag.free { background: var(--accent-soft); color: var(--accent); }
+  .tag.paid { background: var(--warn-soft); color: var(--warn); }
+  .tag.lead { background: var(--brand-soft); color: var(--brand); }
+  .tag.qa { background: var(--accent-soft); color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 11px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; background: var(--surface); font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td { color: var(--ink-2); }
+  td:first-child { color: var(--ink); font-weight: 500; }
+
+  .installs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .installs { grid-template-columns: minmax(0, 1fr); } }
+  .install { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; background: var(--raised); box-shadow: var(--shadow); min-width: 0; }
+  .install b { font-size: 1rem; }
+  .install span { color: var(--ink-2); font-size: 0.9rem; }
+  .install .check { color: var(--muted); font-size: 0.82rem; }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: grid; }
+  .steps > li { counter-increment: st; position: relative; display: grid; gap: 10px; padding: 0 0 26px 48px; margin: 0; min-width: 0; }
+  .steps > li::before { content: counter(st); position: absolute; left: 0; top: -2px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 0.9rem; color: var(--brand); background: var(--brand-soft); border: 1.5px solid var(--brand); }
+  .steps > li::after { content: ""; position: absolute; left: 15.5px; top: 34px; bottom: 4px; width: 1.5px; background: var(--line); }
+  .steps > li:last-child { padding-bottom: 0; }
+  .steps > li:last-child::after { display: none; }
+  .steps h4 { font-size: 1.02rem; font-weight: 600; }
+  .steps .detail { display: grid; gap: 10px; color: var(--ink-2); min-width: 0; }
+
+  .code { position: relative; min-width: 0; }
+  .code .label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
+  .code .pre-wrap { position: relative; }
+  .code pre { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 76px 14px 16px; overflow-x: auto; font-size: 0.84rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .code .c { color: var(--code-comment); }
+  .copy { position: absolute; right: 8px; top: 8px; font: 500 0.75rem var(--font-body); color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+  .copy:hover { color: var(--ink); border-color: var(--muted); }
+  .copy.done { color: var(--accent); border-color: var(--accent); }
+
+  .callout { border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; border: 1px solid; }
+  .callout .t { font-weight: 600; font-size: 0.95rem; }
+  .callout p, .callout li { font-size: 0.94rem; color: var(--ink-2); }
+  .callout.info { background: var(--brand-soft); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+  .callout.info .t { color: var(--brand); }
+  .callout.tip { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .callout.tip .t { color: var(--accent); }
+  .callout.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .callout.warn .t { color: var(--warn); }
+  .callout.stop { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+  .callout.stop .t { color: var(--danger); }
+
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; background: var(--raised); min-width: 0; }
+  .card ul { font-size: 0.93rem; color: var(--ink-2); }
+  .ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 0.93rem; color: var(--ink-2); }
+  .ticks li { margin: 0; padding-left: 24px; position: relative; }
+  .ticks li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 9px; height: 5px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
+  .ticks.no li::before { width: 10px; height: 2px; border: 0; background: var(--danger); transform: none; top: 0.72em; }
+
+  .faq { display: grid; gap: 12px; }
+  .qa-item { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; background: var(--raised); min-width: 0; }
+  .qa-item h4 { font-size: 1rem; font-weight: 600; }
+  .qa-item p { color: var(--ink-2); font-size: 0.94rem; }
+
+  .links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 760px) { .links { grid-template-columns: minmax(0, 1fr); } }
+  .links a { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; text-decoration: none; display: grid; gap: 4px; background: var(--raised); color: var(--ink); }
+  .links a:hover { border-color: var(--brand); }
+  .links a b { color: var(--brand); }
+  .links a span { color: var(--ink-2); font-size: 0.9rem; }
+  .links a code { justify-self: start; }
+
+  footer { color: var(--muted); font-size: 0.88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  @media print {
+    .rail, .copy { display: none; }
+    .page { grid-template-columns: minmax(0, 1fr); padding: 0; }
+    main { max-width: none; gap: 40px; padding-block: 0; }
+    .install, .card, .qa-item, .links a, .diagram { break-inside: avoid; box-shadow: none; }
+    .sec-head { break-after: avoid; }
+  }
+</style>
+<style>
+  /* Extra pieces for this page; everything else is the shared docs style above. */
+  .verdict { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .verdict { grid-template-columns: minmax(0, 1fr); } }
+  .verdict .card { border-top: 3px solid; }
+  .verdict .yes { border-top-color: var(--accent); }
+  .verdict .no { border-top-color: var(--danger); }
+  .addr { font-family: var(--font-mono); font-size: 0.95rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; overflow-wrap: anywhere; }
+  .addr .u { color: var(--brand); font-weight: 600; }
+  .addr .p { color: var(--accent); font-weight: 600; }
+  .addr .l { color: var(--warn); font-weight: 600; }
+  .addr .r { color: var(--muted); }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.85rem; color: var(--muted); }
+  .key b { font-weight: 600; }
+  .key .u { color: var(--brand); } .key .p { color: var(--accent); } .key .l { color: var(--warn); } .key .r { color: var(--muted); }
+  .d-step { font: 600 11.5px var(--font-body); fill: var(--brand); }
+  .d-box.app { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.6; }
+  .d-box.inbox { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.6; }
+  .d-box.fix { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; }
+  .cases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .cases { grid-template-columns: minmax(0, 1fr); } }
+  .cases .card h3 { font-size: 1rem; }
+  .cases .card .ids { font-size: 0.8rem; color: var(--muted); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <aside class="rail" aria-label="Contents">
+    <span class="brand">OTP &amp; Email Testing</span>
+    <nav id="toc">
+      <a href="#overview">Overview</a>
+      <a href="#how">How it works</a>
+      <a href="#yopmail">Why not Yopmail</a>
+      <div class="group">Set up</div>
+      <a href="#setup">Set up the test inbox</a>
+      <a href="#addresses">Unique addresses</a>
+      <div class="group">Write tests</div>
+      <a href="#patterns">Code patterns</a>
+      <a href="#whattotest">What to test</a>
+      <a href="#expiry">Expiry and limits</a>
+      <a href="#try">Try the demo</a>
+      <div class="group">Help</div>
+      <a href="#reference">Quick reference</a>
+      <a href="#problems">Common problems</a>
+    </nav>
+  </aside>
+
+  <main>
+
+    <section class="hero" id="overview">
+      <span class="eyebrow">QA Automation Framework</span>
+      <h1>OTP &amp; Email Testing</h1>
+      <p class="lede">How to check that an OTP or verification email arrives, read the code from it, and test that the app
+      accepts the right code and rejects wrong, old, reused and expired ones. Everything runs against a real test inbox,
+      with no hard-coded codes.</p>
+      <div class="facts">
+        <div class="fact"><span class="k">Test inbox</span><span class="v">One dedicated Gmail per project</span></div>
+        <div class="fact"><span class="k">In tests</span><span class="v">The <code>mailbox</code> fixture</span></div>
+        <div class="fact"><span class="k">Standard cases</span><span class="v"><code>templates/otp-testcases.md</code></span></div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="sec-head">
+        <span class="kicker">The idea</span>
+        <h2>How it works</h2>
+        <p>The test signs up with a unique address that lands in the team's Gmail test inbox. The <code>mailbox</code> fixture
+        reads that inbox, takes the code out of the email, and the test types it in, just like a person would.</p>
+      </div>
+      <figure>
+        <div class="diagram">
+          <svg viewBox="0 0 760 290" role="img" aria-label="Test signs up with a unique address, the app emails the OTP to the Gmail test inbox, the mailbox fixture reads it and the test enters the code">
+            <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="d-arrow" d="M0 0L10 5L0 10z"/></marker></defs>
+            <g class="d-line">
+              <path d="M114 122V60H290" marker-end="url(#arr)"/>
+              <path d="M470 60H646V122" marker-end="url(#arr)"/>
+              <path d="M646 178V238H470" marker-end="url(#arr)"/>
+              <path d="M290 238H114V178" marker-end="url(#arr)"/>
+              <path d="M204 150H380V90" marker-end="url(#arr)"/>
+            </g>
+            <rect class="d-box" x="24" y="122" width="180" height="56" rx="8"/>
+            <text class="d-title" x="114" y="146" text-anchor="middle">Playwright test</text>
+            <text class="d-sub" x="114" y="164" text-anchor="middle">signup.spec.ts</text>
+
+            <rect class="d-box app" x="290" y="34" width="180" height="56" rx="8"/>
+            <text class="d-title" x="380" y="58" text-anchor="middle">Your app (QA)</text>
+            <text class="d-sub" x="380" y="76" text-anchor="middle">sends the OTP email</text>
+
+            <rect class="d-box inbox" x="556" y="122" width="180" height="56" rx="8"/>
+            <text class="d-title" x="646" y="146" text-anchor="middle">Gmail test inbox</text>
+            <text class="d-sub" x="646" y="164" text-anchor="middle">qa.prj@gmail.com</text>
+
+            <rect class="d-box fix" x="290" y="210" width="180" height="56" rx="8"/>
+            <text class="d-title" x="380" y="234" text-anchor="middle">mailbox fixture</text>
+            <text class="d-sub" x="380" y="252" text-anchor="middle">reads it over IMAP</text>
+
+            <text class="d-step" x="124" y="52">1  sign up, new address</text>
+            <text class="d-step" x="482" y="52">2  email delivered</text>
+            <text class="d-step" x="656" y="212">3  waitForEmail</text>
+            <text class="d-step" x="124" y="230">4  otpFrom → "482913"</text>
+            <text class="d-step" x="214" y="142">5  enter the code</text>
+          </svg>
+        </div>
+        <figcaption>After the test, its emails are moved to Trash automatically, so the inbox stays clean.</figcaption>
+      </figure>
+    </section>
+
+    <section id="yopmail">
+      <div class="sec-head">
+        <span class="kicker">Decision</span>
+        <h2>Why a Gmail test inbox, not Yopmail</h2>
+        <p>Yopmail is handy for a quick look by hand, but it isn't safe or reliable for automated tests.</p>
+      </div>
+      <div class="verdict">
+        <div class="card yes">
+          <h3>Gmail test inbox</h3>
+          <ul class="ticks">
+            <li>Private: only the team can read it</li>
+            <li>Read over IMAP: fast and stable, no website to click through</li>
+            <li>Unlimited unique addresses with <code>+</code> (plus addressing)</li>
+            <li>Already built into the framework (<code>mailbox</code>)</li>
+            <li>Free</li>
+          </ul>
+        </div>
+        <div class="card no">
+          <h3>Yopmail</h3>
+          <ul class="ticks no">
+            <li>Public: anyone who guesses the address reads the OTPs</li>
+            <li>No API; tests would have to click through its website</li>
+            <li>Ads, captchas and rate limits make tests flaky</li>
+            <li>Many apps block disposable email domains</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout info">
+        <span class="t">Yopmail for manual checks only</span>
+        <p>Fine for a quick manual look with throwaway data. Never for accounts or data you'd mind others seeing.</p>
+      </div>
+    </section>
+
+    <section id="setup">
+      <div class="sec-head">
+        <span class="kicker">Once per project</span>
+        <h2>Set up the test inbox</h2>
+        <p>The QA lead does this once and shares the settings with the team through the password manager.</p>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Create a dedicated Gmail account</h4>
+          <div class="detail"><p>For example <code>qa.prj.automation@gmail.com</code>. Never a personal mailbox: tests read and delete emails in it.</p></div>
+        </li>
+        <li>
+          <h4>Turn on 2-Step Verification</h4>
+          <div class="detail"><p>Google Account → Security → 2-Step Verification. Google requires it before it allows app passwords.</p></div>
+        </li>
+        <li>
+          <h4>Create an app password</h4>
+          <div class="detail"><p>Google Account → search "App passwords" → name it "QA automation" → copy the 16-character password. This is what the framework uses, never the normal password.</p></div>
+        </li>
+        <li>
+          <h4>Add the settings to the app's <code>.env</code></h4>
+          <div class="detail">
+            <div class="code"><span class="label">apps/&lt;app&gt;/.env (never committed)</span><pre>MAIL_USER=qa.prj.automation@gmail.com
+MAIL_PASSWORD=<span class="c">abcd efgh ijkl mnop</span>
+# optional:
+MAIL_WAIT_SECONDS=60                  <span class="c"># how long to wait for an email</span>
+MAIL_IMAP_HOST=imap.gmail.com         <span class="c"># Outlook / Microsoft 365: outlook.office365.com</span></pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Check the connection</h4>
+          <div class="detail">
+            <div class="code"><pre>npm run mail:check</pre></div>
+            <p>Logs in, lists the folders the tests will search (inbox, spam, All Mail) and shows a sample test address. It never prints the password.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section id="addresses">
+      <div class="sec-head">
+        <span class="kicker">Once per project</span>
+        <h2>Unique addresses with plus addressing</h2>
+        <p>Gmail delivers <code>name+anything@gmail.com</code> to <code>name@gmail.com</code>. Every test gets its own address, so tests never read each other's emails, even when they run in parallel.</p>
+      </div>
+      <div class="addr"><span class="u">qa.prj.automation</span><span class="p">+qa-auto</span><span class="l">-signup</span><span class="r">-k3x9</span>@gmail.com</div>
+      <div class="key">
+        <span><b class="u">mailbox name</b></span>
+        <span><b class="p">test data prefix</b> (TEST_DATA_PREFIX)</span>
+        <span><b class="l">label</b> from <code>newAddress('signup')</code></span>
+        <span><b class="r">random part</b></span>
+      </div>
+      <div class="callout warn">
+        <span class="t">If the app rejects "+" in email addresses</span>
+        <p>Some sign-up forms reject the <code>+</code> sign. Ask the developers to allow it (it is a valid address), at least on QA. Until then, those cases can't use unique addresses.</p>
+      </div>
+    </section>
+
+    <section id="patterns">
+      <div class="sec-head">
+        <span class="kicker">Write tests</span>
+        <h2>Code patterns</h2>
+        <p>Claude writes these for you with <code>/qa-automate</code>; this is what to expect when you review them. The example is a sign-up page with an OTP step.</p>
+      </div>
+
+      <h3>Email arrives and the right code is accepted</h3>
+      <div class="code"><pre>test.use({ role: null });   <span class="c">// sign-up starts logged out</span>
+
+test('TC-SIGNUP-04 | Correct OTP is accepted', { tag: ['@smoke', '@TC-SIGNUP-04'] }, async ({ signupPage, otpPage, mailbox }) => {
+  const email = mailbox.newAddress('signup');
+  await signupPage.register({ ...newUser, email });
+
+  const message = await mailbox.waitForEmail(email, { subject: 'verification code' });
+  await otpPage.enter(await mailbox.otpFrom(message));
+
+  await otpPage.expectVerified();
+});</pre></div>
+
+      <h3>Wrong code is rejected</h3>
+      <div class="code"><pre>const code = await mailbox.otpFrom(await mailbox.waitForEmail(email, { subject: 'verification code' }));
+const wrong = code.slice(0, -1) + ((Number(code.at(-1)) + 1) % 10);   <span class="c">// same length, one digit changed</span>
+await otpPage.enter(wrong);
+await otpPage.expectError('Invalid code. Please try again.');           <span class="c">// exact text from the requirement</span></pre></div>
+
+      <h3>Resend: the old code stops working, the new one works</h3>
+      <div class="code"><pre>const first = await mailbox.waitForEmail(email, { subject: 'verification code' });
+const firstCode = await mailbox.otpFrom(first);
+
+await otpPage.resend();
+const second = await mailbox.waitForEmail(email, { subject: 'verification code', newerThan: first });
+const secondCode = await mailbox.otpFrom(second);
+
+await otpPage.enter(firstCode);
+await otpPage.expectError('This code has expired. Request a new one.');
+await otpPage.enter(secondCode);
+await otpPage.expectVerified();</pre></div>
+
+      <h3>Email content</h3>
+      <div class="code"><pre>expect(message.from).toContain('PRJ');
+expect(message.subject).toBe('Your PRJ verification code');
+expect(message.text).toContain(`Hi ${newUser.firstName}`);
+expect(message.text).not.toMatch(/{{|}}|\bundefined\b|\bnull\b/);   <span class="c">// no broken template</span></pre></div>
+
+      <h3>Verification link instead of a code</h3>
+      <div class="code"><pre>const message = await mailbox.waitForEmail(email, { subject: 'Confirm your email' });
+await page.goto(await mailbox.linkFrom(message, '/verify'));    <span class="c">// picks the verify link, not "unsubscribe"</span></pre></div>
+
+      <h3>Codes that aren't 6 digits</h3>
+      <div class="code"><pre>await mailbox.otpFrom(message, { length: 4 });                       <span class="c">// 4-digit PIN</span>
+await mailbox.otpFrom(message, { pattern: /code: ([A-Z0-9]{8})/ });   <span class="c">// letters, dashes: the code in group 1</span></pre></div>
+
+      <div class="callout tip">
+        <span class="t">The email is in the report</span>
+        <p><code>waitForEmail</code> attaches every email it finds (sender, subject, text) to the Allure report, so a failure shows exactly what arrived.</p>
+      </div>
+      <div class="callout stop">
+        <span class="t">Never hard-code an OTP</span>
+        <p>Always read it from the email. The only exception: a fixed QA-only code the developers configured on the QA environment, read with <code>requireEnv('OTP_CODE')</code>, never written in a test file.</p>
+      </div>
+    </section>
+
+    <section id="whattotest">
+      <div class="sec-head">
+        <span class="kicker">Write tests</span>
+        <h2>What to test</h2>
+        <p>The full list with steps, expected results and how to automate each one is in <code>templates/otp-testcases.md</code>. Copy the rows that apply into the module's test-cases file and fill in the exact messages from the requirement.</p>
+      </div>
+      <div class="cases">
+        <div class="card"><span class="ids">TC-…-01 to 03</span><h3>Delivery</h3><ul><li>The email arrives within the agreed time</li><li>Right sender, subject, greeting, expiry text</li><li>No broken template placeholders</li><li>The code has the expected length and format</li></ul></div>
+        <div class="card"><span class="ids">TC-…-04 to 09</span><h3>Valid and invalid input</h3><ul><li>Correct code accepted</li><li>Wrong code rejected, with the exact message</li><li>Empty, too short or too long, letters</li><li>Pasted code with spaces</li></ul></div>
+        <div class="card"><span class="ids">TC-…-10 to 14</span><h3>Code lifecycle</h3><ul><li>Old code rejected after resend</li><li>Resend sends a new code; resend is limited</li><li>A code works only once</li><li>Expired code rejected</li></ul></div>
+        <div class="card"><span class="ids">TC-…-15 to 20</span><h3>Security, accessibility, links</h3><ul><li>Too many wrong attempts lock the code</li><li>Another account's code rejected</li><li>Code never in the URL or API response</li><li>OTP screen accessible; verify links work once</li></ul></div>
+      </div>
+      <div class="callout info">
+        <span class="t">Claude uses the template too</span>
+        <p>When a requirement has an OTP or email step, <code>/qa-testcases</code> covers these cases automatically. Review them like any other test cases.</p>
+      </div>
+    </section>
+
+    <section id="expiry">
+      <div class="sec-head">
+        <span class="kicker">Write tests</span>
+        <h2>Expiry and limits, without waiting</h2>
+        <p>An OTP that expires after 10 minutes can't be tested by waiting 10 minutes: the framework forbids sleeps, and the suite would crawl. Ask the developers for one of these on the QA environment.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Option</th><th>What the developers provide</th><th>Then</th></tr></thead>
+          <tbody>
+            <tr><td>Short expiry on QA</td><td>OTP expiry configurable, e.g. 30 seconds on QA</td><td>Automate the expired case with a web-first wait for the "expired" state</td></tr>
+            <tr><td>Lower limits on QA</td><td>Resend cooldown and max attempts configurable</td><td>Automate resend-limit and lock cases quickly</td></tr>
+            <tr><td>Test hook</td><td>A QA-only API to expire a code or reset attempts</td><td>Call it with <code>api</code> in the test, no waiting at all</td></tr>
+            <tr><td>None of these</td><td>Nothing</td><td>Keep the case <code>Automate: later</code> and test it by hand each release</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="try">
+      <div class="sec-head">
+        <span class="kicker">Practice</span>
+        <h2>Try the demo</h2>
+        <p>The example project has a demo "app" that sends real OTP emails to your test inbox and checks codes like a real verify screen. Nine working tests show every pattern above.</p>
+      </div>
+      <div class="code"><pre>npm run mail:check        <span class="c"># the saucedemo .env needs MAIL_USER / MAIL_PASSWORD</span>
+npm run demo:email        <span class="c"># runs TC-MAILDEMO-01 to 09</span>
+npm run report</pre></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Shows</th></tr></thead>
+          <tbody>
+            <tr><td>TC-MAILDEMO-01</td><td>Email arrives with the right content</td></tr>
+            <tr><td>TC-MAILDEMO-02</td><td>Reading the code, not the other numbers in the email</td></tr>
+            <tr><td>TC-MAILDEMO-03</td><td>Resend: the newest code is read (<code>newerThan</code>)</td></tr>
+            <tr><td>TC-MAILDEMO-04</td><td>Reading a verification link</td></tr>
+            <tr><td>TC-MAILDEMO-05</td><td>Correct code accepted</td></tr>
+            <tr><td>TC-MAILDEMO-06</td><td>Wrong code rejected</td></tr>
+            <tr><td>TC-MAILDEMO-07</td><td>Old code rejected after resend</td></tr>
+            <tr><td>TC-MAILDEMO-08</td><td>Code works only once</td></tr>
+            <tr><td>TC-MAILDEMO-09</td><td>Expired code rejected (demo uses a 0-second QA expiry)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Files: <code>apps/saucedemo/tests/api/demo/email-demo.spec.ts</code> and <code>apps/saucedemo/demo/demoAppMailer.ts</code>. The demo tests are tagged <code>@demo</code> and never run in normal suites.</p>
+    </section>
+
+    <section id="reference">
+      <div class="sec-head">
+        <span class="kicker">Help</span>
+        <h2>Quick reference: the <code>mailbox</code> fixture</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Call</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>mailbox.newAddress('signup')</code></td><td>A new unique address that arrives in the test inbox</td></tr>
+            <tr><td><code>mailbox.waitForEmail(address, { subject })</code></td><td>Waits (up to <code>MAIL_WAIT_SECONDS</code>) for the newest email to that address; checks inbox, spam and All Mail; attaches it to the report</td></tr>
+            <tr><td><code>{ newerThan: first }</code></td><td>Only an email that arrived after <code>first</code> (resend)</td></tr>
+            <tr><td><code>{ timeoutSeconds: 120 }</code></td><td>A longer wait for one slow email</td></tr>
+            <tr><td><code>mailbox.otpFrom(email)</code></td><td>The 6-digit code next to a word like "code" or "OTP"; <code>{ length }</code> or <code>{ pattern }</code> for other formats</td></tr>
+            <tr><td><code>mailbox.linkFrom(email, '/verify')</code></td><td>The first link whose address contains <code>/verify</code></td></tr>
+            <tr><td>(automatic)</td><td>After each test, its emails are moved to Trash</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="problems">
+      <div class="sec-head">
+        <span class="kicker">Help</span>
+        <h2>Common problems</h2>
+      </div>
+      <div class="faq">
+        <div class="qa-item"><h4><code>mail:check</code>: "Login FAILED"</h4><p><code>MAIL_PASSWORD</code> must be the 16-character app password, not the normal password, and 2-Step Verification must be on. Check <code>MAIL_USER</code> is the full address.</p></div>
+        <div class="qa-item"><h4>"No email to … arrived within 60 s"</h4><p>Check the address the app actually received (the attached steps show it), and that the <code>subject</code> filter matches words in the real subject. If the app is just slow, raise <code>MAIL_WAIT_SECONDS</code> or pass <code>{ timeoutSeconds }</code>. Spam is already searched.</p></div>
+        <div class="qa-item"><h4>"Several 6-digit numbers in email …"</h4><p>The email has other numbers (order IDs, phone numbers) and none next to a word like "code". Pass <code>{ pattern: /Your code is (\d{6})/ }</code> matching the real wording.</p></div>
+        <div class="qa-item"><h4>The test read the old code after resend</h4><p>Use <code>{ newerThan: first }</code> for the second email.</p></div>
+        <div class="qa-item"><h4>The sign-up form rejects the address</h4><p>The form doesn't accept <code>+</code>. See <a href="#addresses">Unique addresses</a>: ask the developers to allow it on QA.</p></div>
+        <div class="qa-item"><h4>Email tests fail only when many run at once</h4><p>Gmail limits simultaneous IMAP connections (about 15 per account). Run email-heavy suites with fewer workers, e.g. <code>--workers=4</code>.</p></div>
+      </div>
+    </section>
+
+    <footer>Related: <a href="team-setup.html">QA Team Setup</a> · <a href="sprint-qa-process.html">Sprint QA Process</a> · test cases: <code>templates/otp-testcases.md</code> · rules: <code>CLAUDE.md</code> (email flows).</footer>
+  </main>
+</div>
+<script>
+  document.querySelectorAll('.code').forEach((box) => {
+    const pre = box.querySelector('pre');
+    if (!pre) return;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'copy'; btn.textContent = 'Copy';
+    btn.setAttribute('aria-label', 'Copy to clipboard');
+    btn.addEventListener('click', () => {
+      const text = pre.innerText.split('\n').filter((l) => !/^\s*(…|#)/.test(l)).map((l) => l.replace(/\s+#.*$/, '')).join('\n').trim();
+      const done = () => { btn.textContent = 'Copied'; btn.classList.add('done'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Press Ctrl+C'; };
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+    });
+    const wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.replaceWith(wrap);
+    wrap.append(pre, btn);
+  });
+
+  const links = [...document.querySelectorAll('#toc a')];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        links.forEach((a) => a.classList.remove('active'));
+        const a = byId.get(e.target.id);
+        if (a) { a.classList.add('active'); if (window.matchMedia('(max-width: 900px)').matches) a.scrollIntoView({ block: 'nearest', inline: 'center' }); }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('main > section[id]').forEach((s) => obs.observe(s));
+  }
+</script>
+</body>
+</html>
