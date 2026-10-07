@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QA Team Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: same system as sprint-qa-process.html: contents rail on the left, one reading column. */
+  :root {
+    --bg: #ffffff; --surface: #f5f7fa; --raised: #ffffff;
+    --ink: #1b2430; --ink-2: #3a4553; --muted: #5f6b7a; --line: #dde2e9;
+    --brand: #1f4e79; --brand-soft: #e9f1f9;
+    --accent: #0f7b6c; --accent-soft: #e5f4f1;
+    --warn: #9a5b00; --warn-soft: #fdf3e2;
+    --danger: #a12828; --danger-soft: #fbeaea;
+    --code-bg: #f1f4f8; --code-ink: #1b2430; --code-comment: #6b7787;
+    --shadow: 0 1px 2px rgba(20, 35, 55, 0.06), 0 4px 14px rgba(20, 35, 55, 0.05);
+    --font-body: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151c; --surface: #161d26; --raised: #1a222d; --ink: #e4e9f0; --ink-2: #c4ccd7; --muted: #95a1b0;
+      --line: #2a3542; --brand: #8bbbe9; --brand-soft: #182739; --accent: #52c9b4; --accent-soft: #122d29;
+      --warn: #e8b468; --warn-soft: #30250f; --danger: #f08b8b; --danger-soft: #341818;
+      --code-bg: #19212b; --code-ink: #dfe6ee; --code-comment: #8d99a8; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10151c; --surface: #161d26; --raised: #1a222d; --ink: #e4e9f0; --ink-2: #c4ccd7; --muted: #95a1b0;
+    --line: #2a3542; --brand: #8bbbe9; --brand-soft: #182739; --accent: #52c9b4; --accent-soft: #122d29;
+    --warn: #e8b468; --warn-soft: #30250f; --danger: #f08b8b; --danger-soft: #341818;
+    --code-bg: #19212b; --code-ink: #dfe6ee; --code-comment: #8d99a8; --shadow: 0 1px 2px rgba(0, 0, 0, 0.3); color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  a { color: var(--brand); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  code, pre { font-family: var(--font-mono); }
+  code { font-size: 0.86em; background: var(--code-bg); color: var(--code-ink); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  p { margin: 0; }
+  ul, ol { margin: 0; padding-left: 1.3em; }
+  li + li { margin-top: 4px; }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.25; text-wrap: balance; }
+  strong, b { font-weight: 600; }
+
+  .page { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  .rail { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding-block: 40px 32px; }
+  .rail .brand { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; display: block; }
+  .rail nav { display: grid; gap: 2px; }
+  .rail .group { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+  .rail a { display: block; text-decoration: none; color: var(--ink-2); font-size: 0.9rem; padding: 5px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  .rail a:hover { background: var(--surface); color: var(--ink); }
+  .rail a.active { background: var(--brand-soft); color: var(--brand); border-left-color: var(--brand); font-weight: 500; }
+  main { min-width: 0; max-width: 780px; padding-block: 40px 96px; display: grid; gap: 72px; }
+  @media (max-width: 900px) {
+    .page { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 16px; }
+    .rail { position: sticky; top: 0; z-index: 5; max-height: none; padding: 10px 0; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
+    .rail .brand, .rail .group { display: none; }
+    .rail nav { display: flex; gap: 4px; width: max-content; }
+    .rail a { white-space: nowrap; border-left: 0; }
+    main { padding-block: 28px 72px; gap: 56px; }
+    body { font-size: 15.5px; }
+  }
+
+  .hero { display: grid; gap: 18px; }
+  .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .hero h1 { font-size: clamp(2rem, 4.4vw, 2.75rem); font-weight: 700; letter-spacing: -0.02em; }
+  .hero .lede { font-size: 1.15rem; color: var(--ink-2); max-width: 62ch; }
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+  .fact { padding: 14px 18px; display: grid; gap: 3px; border-left: 1px solid var(--line); min-width: 0; align-content: start; }
+  .fact:first-child { border-left: 0; }
+  .fact .k { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .fact .v { font-weight: 500; }
+  @media (max-width: 640px) {
+    .facts { grid-template-columns: minmax(0, 1fr); }
+    .fact { border-left: 0; border-top: 1px solid var(--line); }
+    .fact:first-child { border-top: 0; }
+  }
+
+  section { display: grid; gap: 20px; min-width: 0; }
+  .sec-head { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .sec-head .kicker { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .sec-head h2 { font-size: 1.65rem; font-weight: 700; color: var(--brand); letter-spacing: -0.01em; }
+  .sec-head p { color: var(--ink-2); font-size: 1.05rem; max-width: 64ch; }
+  h3 { font-size: 1.15rem; font-weight: 600; }
+
+  .diagram { border: 1px solid var(--line); border-radius: 10px; background: var(--raised); padding: 8px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 600px; height: auto; }
+  figure { margin: 0; display: grid; gap: 10px; }
+  figcaption { color: var(--muted); font-size: 0.9rem; }
+  .d-title { font: 600 13px var(--font-body); fill: var(--ink); }
+  .d-name { font: 600 13px var(--font-mono); fill: var(--ink); }
+  .d-sub { font: 400 11.5px var(--font-body); fill: var(--muted); }
+  .d-box { fill: var(--raised); stroke: var(--muted); stroke-width: 1.2; }
+  .d-repo { fill: var(--surface); stroke: var(--brand); stroke-width: 1.6; }
+  .d-core { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 1.4; }
+  .d-app { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .d-person { fill: var(--raised); stroke: var(--muted); stroke-width: 1.2; }
+  .d-line { fill: none; stroke: var(--muted); stroke-width: 1.25; }
+  .d-arrow { fill: var(--muted); }
+  .d-label { font: 400 11.5px var(--font-body); fill: var(--muted); }
+
+  .tag { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .tag.free { background: var(--accent-soft); color: var(--accent); }
+  .tag.paid { background: var(--warn-soft); color: var(--warn); }
+  .tag.lead { background: var(--brand-soft); color: var(--brand); }
+  .tag.qa { background: var(--accent-soft); color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 11px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; background: var(--surface); font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td { color: var(--ink-2); }
+  td:first-child { color: var(--ink); font-weight: 500; }
+
+  .installs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .installs { grid-template-columns: minmax(0, 1fr); } }
+  .install { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; background: var(--raised); box-shadow: var(--shadow); min-width: 0; }
+  .install b { font-size: 1rem; }
+  .install span { color: var(--ink-2); font-size: 0.9rem; }
+  .install .check { color: var(--muted); font-size: 0.82rem; }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: grid; }
+  .steps > li { counter-increment: st; position: relative; display: grid; gap: 10px; padding: 0 0 26px 48px; margin: 0; min-width: 0; }
+  .steps > li::before { content: counter(st); position: absolute; left: 0; top: -2px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 0.9rem; color: var(--brand); background: var(--brand-soft); border: 1.5px solid var(--brand); }
+  .steps > li::after { content: ""; position: absolute; left: 15.5px; top: 34px; bottom: 4px; width: 1.5px; background: var(--line); }
+  .steps > li:last-child { padding-bottom: 0; }
+  .steps > li:last-child::after { display: none; }
+  .steps h4 { font-size: 1.02rem; font-weight: 600; }
+  .steps .detail { display: grid; gap: 10px; color: var(--ink-2); min-width: 0; }
+
+  .code { position: relative; min-width: 0; }
+  .code .label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
+  .code .pre-wrap { position: relative; }
+  .code pre { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px 76px 14px 16px; overflow-x: auto; font-size: 0.84rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .code .c { color: var(--code-comment); }
+  .copy { position: absolute; right: 8px; top: 8px; font: 500 0.75rem var(--font-body); color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+  .copy:hover { color: var(--ink); border-color: var(--muted); }
+  .copy.done { color: var(--accent); border-color: var(--accent); }
+
+  .callout { border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; border: 1px solid; }
+  .callout .t { font-weight: 600; font-size: 0.95rem; }
+  .callout p, .callout li { font-size: 0.94rem; color: var(--ink-2); }
+  .callout.info { background: var(--brand-soft); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+  .callout.info .t { color: var(--brand); }
+  .callout.tip { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .callout.tip .t { color: var(--accent); }
+  .callout.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .callout.warn .t { color: var(--warn); }
+  .callout.stop { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+  .callout.stop .t { color: var(--danger); }
+
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; background: var(--raised); min-width: 0; }
+  .card ul { font-size: 0.93rem; color: var(--ink-2); }
+  .ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 0.93rem; color: var(--ink-2); }
+  .ticks li { margin: 0; padding-left: 24px; position: relative; }
+  .ticks li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 9px; height: 5px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
+  .ticks.no li::before { width: 10px; height: 2px; border: 0; background: var(--danger); transform: none; top: 0.72em; }
+
+  .faq { display: grid; gap: 12px; }
+  .qa-item { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; background: var(--raised); min-width: 0; }
+  .qa-item h4 { font-size: 1rem; font-weight: 600; }
+  .qa-item p { color: var(--ink-2); font-size: 0.94rem; }
+
+  .links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 760px) { .links { grid-template-columns: minmax(0, 1fr); } }
+  .links a { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; text-decoration: none; display: grid; gap: 4px; background: var(--raised); color: var(--ink); }
+  .links a:hover { border-color: var(--brand); }
+  .links a b { color: var(--brand); }
+  .links a span { color: var(--ink-2); font-size: 0.9rem; }
+  .links a code { justify-self: start; }
+
+  footer { color: var(--muted); font-size: 0.88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  @media print {
+    .rail, .copy { display: none; }
+    .page { grid-template-columns: minmax(0, 1fr); padding: 0; }
+    main { max-width: none; gap: 40px; padding-block: 0; }
+    .install, .card, .qa-item, .links a, .diagram { break-inside: avoid; box-shadow: none; }
+    .sec-head { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <aside class="rail" aria-label="Contents">
+    <span class="brand">QA Team Setup</span>
+    <nav id="toc">
+      <a href="#overview">Overview</a>
+      <a href="#how">How the team shares it</a>
+      <a href="#cost">What it costs</a>
+      <div class="group">Get started</div>
+      <a href="#install">1. Install the tools</a>
+      <a href="#setup">2. First-time setup</a>
+      <a href="#check">3. Check it works</a>
+      <div class="group">Every day</div>
+      <a href="#daily">Daily work</a>
+      <a href="#git">Sharing your work</a>
+      <a href="#roles">Lead vs team members</a>
+      <a href="#newproject">Adding a project</a>
+      <div class="group">Help</div>
+      <a href="#problems">Common problems</a>
+      <a href="#next">What to read next</a>
+    </nav>
+  </aside>
+
+  <main>
+
+    <section class="hero" id="overview">
+      <span class="eyebrow">QA Automation Framework</span>
+      <h1>QA Team Setup</h1>
+      <p class="lede">Everything a new QA team member needs to get the framework running on their machine and start working.
+      Everyone uses the same GitHub repository; there is nothing else to install or publish.</p>
+      <div class="facts">
+        <div class="fact"><span class="k">Time to set up</span><span class="v">About 30 minutes</span></div>
+        <div class="fact"><span class="k">Cost</span><span class="v">Free, except Claude</span></div>
+        <div class="fact"><span class="k">Projects</span><span class="v">All in one repo, one folder each</span></div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="sec-head">
+        <span class="kicker">The idea</span>
+        <h2>How the team shares the framework</h2>
+        <p>One repository holds the shared framework and every project. Each person clones it once; <code>git pull</code> brings everyone the latest framework fixes and tests.</p>
+      </div>
+      <figure>
+        <div class="diagram">
+          <svg viewBox="0 0 760 300" role="img" aria-label="One GitHub repository with the shared framework and one folder per project, cloned by every QA member">
+            <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="d-arrow" d="M0 0L10 5L0 10z"/></marker></defs>
+            <rect class="d-repo" x="24" y="24" width="440" height="252" rx="12"/>
+            <text class="d-title" x="44" y="52">GitHub: Automation-Framework</text>
+            <rect class="d-core" x="44" y="68" width="400" height="56" rx="8"/>
+            <text class="d-name" x="62" y="92">src/  templates/  .claude/</text>
+            <text class="d-sub" x="62" y="111">Shared framework and Claude commands. Same for every project.</text>
+            <text class="d-sub" x="44" y="148">apps/: one folder per project</text>
+            <rect class="d-app" x="44" y="160" width="124" height="96" rx="8"/>
+            <text class="d-name" x="106" y="196" text-anchor="middle">saucedemo/</text>
+            <text class="d-sub" x="106" y="215" text-anchor="middle">example</text>
+            <rect class="d-app" x="182" y="160" width="124" height="96" rx="8"/>
+            <text class="d-name" x="244" y="196" text-anchor="middle">customer-</text>
+            <text class="d-name" x="244" y="213" text-anchor="middle">portal/</text>
+            <text class="d-sub" x="244" y="232" text-anchor="middle">project A</text>
+            <rect class="d-app" x="320" y="160" width="124" height="96" rx="8"/>
+            <text class="d-name" x="382" y="196" text-anchor="middle">hr-app/</text>
+            <text class="d-sub" x="382" y="215" text-anchor="middle">project B</text>
+
+            <g class="d-line">
+              <path d="M464 74H560" marker-end="url(#arr)" marker-start="url(#arr)"/>
+              <path d="M464 150H560" marker-end="url(#arr)" marker-start="url(#arr)"/>
+              <path d="M464 226H560" marker-end="url(#arr)" marker-start="url(#arr)"/>
+            </g>
+            <text class="d-label" x="512" y="66" text-anchor="middle">pull / push</text>
+            <text class="d-label" x="512" y="142" text-anchor="middle">pull / push</text>
+            <text class="d-label" x="512" y="218" text-anchor="middle">pull / push</text>
+
+            <rect class="d-person" x="560" y="46" width="176" height="56" rx="8"/>
+            <text class="d-title" x="578" y="70">QA lead's laptop</text>
+            <text class="d-sub" x="578" y="88">APP=customer-portal</text>
+            <rect class="d-person" x="560" y="122" width="176" height="56" rx="8"/>
+            <text class="d-title" x="578" y="146">QA member 1</text>
+            <text class="d-sub" x="578" y="164">APP=customer-portal</text>
+            <rect class="d-person" x="560" y="198" width="176" height="56" rx="8"/>
+            <text class="d-title" x="578" y="222">QA member 2</text>
+            <text class="d-sub" x="578" y="240">APP=hr-app</text>
+          </svg>
+        </div>
+        <figcaption>Each person picks the project they work on with <code>APP=</code> in their own root <code>.env</code>. Passwords never go through GitHub.</figcaption>
+      </figure>
+    </section>
+
+    <section id="cost">
+      <div class="sec-head">
+        <span class="kicker">Money</span>
+        <h2>What it costs</h2>
+        <p>Only Claude is paid. Without it the team can still run, edit and report on tests; only the AI commands are missing.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Cost</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Framework, Playwright, Allure, Appium, Node.js</td><td><span class="tag free">Free</span></td><td>Open source</td></tr>
+            <tr><td>VS Code, Git</td><td><span class="tag free">Free</span></td><td></td></tr>
+            <tr><td>GitHub private repository</td><td><span class="tag free">Free</span></td><td>Each member needs a GitHub account with access to the repo</td></tr>
+            <tr><td>Claude Code (the <code>/qa-*</code> commands)</td><td><span class="tag paid">Paid</span></td><td>A Claude subscription per QA member who uses the AI commands</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="sec-head">
+        <span class="kicker">Step 1 · Once per machine</span>
+        <h2>Install the tools</h2>
+        <p>Install these four, plus access to the repository. Check each with the command shown.</p>
+      </div>
+      <div class="installs">
+        <div class="install"><b>Node.js 20 or newer</b><span>Runs the framework. nodejs.org, LTS version.</span><span class="check">Check: <code>node -v</code></span></div>
+        <div class="install"><b>Git</b><span>Gets and shares the code. git-scm.com.</span><span class="check">Check: <code>git --version</code></span></div>
+        <div class="install"><b>VS Code</b><span>The editor everyone uses. code.visualstudio.com.</span><span class="check">Check: it opens</span></div>
+        <div class="install"><b>Claude Code extension</b><span>In VS Code: Extensions → search "Claude Code" → Install, then sign in.</span><span class="check">Check: the Claude panel opens</span></div>
+      </div>
+      <div class="callout info">
+        <span class="t">Ask the QA lead for</span>
+        <ul>
+          <li>Access to <code>github.com/jibints-smb/Automation-Framework</code></li>
+          <li>The project's <code>.env</code> file (accounts and settings), through the password manager</li>
+          <li>Which project (<code>APP</code>) you'll work on</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="setup">
+      <div class="sec-head">
+        <span class="kicker">Step 2 · Once per machine</span>
+        <h2>First-time setup</h2>
+        <p>Run these in a terminal (in VS Code: Terminal → New Terminal). Commands are for Windows; on macOS / Linux use <code>cp</code> instead of <code>copy</code>.</p>
+      </div>
+      <ol class="steps">
+        <li>
+          <h4>Get the framework</h4>
+          <div class="detail">
+            <div class="code"><pre>git clone https://github.com/jibints-smb/Automation-Framework.git
+cd Automation-Framework</pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Install the packages and browsers</h4>
+          <div class="detail">
+            <div class="code"><pre>npm install --include=dev        <span class="c"># --include=dev matters on machines with NODE_ENV=production</span>
+npm run setup                    <span class="c"># downloads Chromium + WebKit for Playwright</span></pre></div>
+          </div>
+        </li>
+        <li>
+          <h4>Create your root settings file and pick the project</h4>
+          <div class="detail">
+            <div class="code"><pre>copy .env.example .env</pre></div>
+            <p>Open the new <code>.env</code> in the root folder and set the project you work on:</p>
+            <div class="code"><pre>APP=customer-portal              <span class="c"># folder name under apps/</span>
+TEST_ENV=qa</pre></div>
+            <p>This root file holds no passwords, only which project and environment you test.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Add the project's settings file</h4>
+          <div class="detail">
+            <p>Save the <code>.env</code> the QA lead gave you as <code>apps/customer-portal/.env</code>. It holds the QA test accounts, so it is never committed (Git ignores it).</p>
+          </div>
+        </li>
+        <li>
+          <h4>Open the folder in VS Code and turn on the browser tool</h4>
+          <div class="detail">
+            <p>File → Open Folder → <code>Automation-Framework</code> (the root folder, so Claude finds the <code>/qa-*</code> commands). Open the Claude panel; when Claude asks to use the <b>playwright</b> server, approve it. Type <code>/mcp</code> to see it listed.</p>
+            <div class="code"><span class="label">Only if /mcp doesn't list playwright</span><pre>claude mcp add playwright --scope user -- cmd /c npx -y @playwright/mcp@latest --isolated --output-dir=.playwright-mcp</pre></div>
+            <p>Then reload VS Code and start a new Claude conversation. On macOS / Linux drop <code>cmd /c</code>.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section id="check">
+      <div class="sec-head">
+        <span class="kicker">Step 3</span>
+        <h2>Check it works</h2>
+        <p>Three commands. If all three pass, you're ready.</p>
+      </div>
+      <div class="code"><pre>npm run auth          <span class="c"># logs in every role of your project; all must pass</span>
+npm run test:smoke    <span class="c"># the quick suite</span>
+npm run report        <span class="c"># opens the Allure report in your browser</span></pre></div>
+      <div class="callout tip">
+        <span class="t">No project yet?</span>
+        <p>Use the example project to check your setup. Its example settings file already holds the public demo accounts:</p>
+        <div class="code"><pre>copy apps\saucedemo\.env.example apps\saucedemo\.env
+<span class="c"># set APP=saucedemo in the root .env, then:</span>
+npm run auth
+npm run test:web</pre></div>
+      </div>
+    </section>
+
+    <section id="daily">
+      <div class="sec-head">
+        <span class="kicker">Every day</span>
+        <h2>Daily work</h2>
+        <p>Slash commands go in the Claude panel; <code>npm run</code> commands in the terminal.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>I want to…</th><th>Do this</th></tr></thead>
+          <tbody>
+            <tr><td>Start the day with the latest code</td><td><code>git pull</code></td></tr>
+            <tr><td>Make test cases from a story</td><td><code>/qa-testcases apps/&lt;app&gt;/requirements/web/&lt;file&gt;.md</code></td></tr>
+            <tr><td>Automate reviewed test cases</td><td><code>/qa-automate apps/&lt;app&gt;/test-cases/web/&lt;file&gt;.testcases.md</code></td></tr>
+            <tr><td>Fix failing tests</td><td><code>/qa-fix</code> (or <code>/qa-fix @smoke</code>, or a spec path)</td></tr>
+            <tr><td>Update tests after a story changed</td><td><code>npm run req:status</code> → <code>npm run req:diff -- &lt;md&gt;</code> → <code>/qa-update &lt;md&gt;</code></td></tr>
+            <tr><td>Run one spec while working</td><td><code>npx playwright test &lt;file&gt; --project=web-chrome</code></td></tr>
+            <tr><td>Run a suite</td><td><code>npm run test:smoke</code> · <code>npm run test:regression</code></td></tr>
+            <tr><td>See the report</td><td><code>npm run report</code> · all saved runs: <code>npm run reports</code></td></tr>
+            <tr><td>See which test cases aren't automated</td><td><code>npm run coverage:tc</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The sprint routine (planning, build day, sign-off) is in the <a href="sprint-qa-process.html">Sprint QA Process</a> page.</p>
+    </section>
+
+    <section id="git">
+      <div class="sec-head">
+        <span class="kicker">Every day</span>
+        <h2>Sharing your work</h2>
+        <p>Work on a branch and open a pull request, so someone reviews before it reaches <code>main</code>.</p>
+      </div>
+      <div class="code"><pre>git pull                                   <span class="c"># always start from the latest main</span>
+git switch -c prj-101-login                 <span class="c"># a branch per story or task</span>
+<span class="c">… work: requirements, test cases, tests …</span>
+git add apps/customer-portal
+git commit -m "PRJ-101 login: test cases and automation"
+git push -u origin prj-101-login            <span class="c"># then open a pull request on GitHub</span></pre></div>
+      <div class="two">
+        <div class="card">
+          <h3>Commit</h3>
+          <ul class="ticks">
+            <li>Requirements, test cases, models, pages, data, specs</li>
+            <li><code>requirements/.baseline/</code> (written by the commands)</li>
+            <li><code>sprints/</code> files and developer MDs</li>
+            <li>Approved screenshots in <code>screenshots/</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Never commit</h3>
+          <ul class="ticks no">
+            <li><code>.env</code> files (Git already ignores them)</li>
+            <li><code>.auth/</code> saved logins, or any zip of them</li>
+            <li>Reports and test results folders</li>
+            <li>Changes to <code>src/</code> without the lead's review</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="roles">
+      <div class="sec-head">
+        <span class="kicker">People</span>
+        <h2>QA lead vs team members</h2>
+      </div>
+      <div class="two">
+        <div class="card">
+          <span class="tag lead">QA lead / framework owner</span>
+          <ul>
+            <li>Gives repo access and shares <code>.env</code> files through the password manager</li>
+            <li>Creates new projects (<code>npm run new:app</code>) and the login setup</li>
+            <li>Reviews pull requests; merges to <code>main</code></li>
+            <li>Owns changes to <code>src/</code>, templates and <code>.claude/</code> commands</li>
+            <li>Records sign-off: <code>req:baseline --stage signed-off</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag qa">QA team member</span>
+          <ul>
+            <li>Writes requirement MDs and reviews test cases</li>
+            <li>Automates with <code>/qa-automate</code>, triages with <code>/qa-fix</code></li>
+            <li>Raises bugs in Jira, adds <code>knownBug</code> to tests</li>
+            <li>Works on branches, opens pull requests</li>
+            <li>Suggests framework changes to the lead instead of editing <code>src/</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="newproject">
+      <div class="sec-head">
+        <span class="kicker">Occasionally</span>
+        <h2>Adding a new project</h2>
+        <p>One person (usually the lead) does it once; everyone else just pulls.</p>
+      </div>
+      <ol class="steps">
+        <li><h4>Create and configure it</h4><div class="detail"><div class="code"><pre>npm run new:app -- customer-portal --platforms web</pre></div><p>Fill in <code>apps/customer-portal/app.config.ts</code> and <code>.env</code>, automate the login, run <code>npm run auth</code>. Details: <a href="sprint-qa-process.html#setup">Starting a new web app</a>.</p></div></li>
+        <li><h4>Share it</h4><div class="detail"><p>Commit and push (without the <code>.env</code>). Send the <code>.env</code> to the team through the password manager.</p></div></li>
+        <li><h4>Everyone else</h4><div class="detail"><p><code>git pull</code>, save the <code>.env</code> as <code>apps/customer-portal/.env</code>, set <code>APP=customer-portal</code>, run <code>npm run auth</code>.</p></div></li>
+      </ol>
+    </section>
+
+    <section id="problems">
+      <div class="sec-head">
+        <span class="kicker">Help</span>
+        <h2>Common problems</h2>
+      </div>
+      <div class="faq">
+        <div class="qa-item"><h4>"Cannot find module '@playwright/test'" or other missing packages</h4><p>The dev packages were skipped. Run <code>npm install --include=dev</code>.</p></div>
+        <div class="qa-item"><h4>"Executable doesn't exist" / browser not found</h4><p>Run <code>npm run setup</code> to download the browsers.</p></div>
+        <div class="qa-item"><h4>Tests run against the wrong project</h4><p>Check <code>APP=</code> in the root <code>.env</code>, or run with <code>APP=customer-portal</code> in front of the command.</p></div>
+        <div class="qa-item"><h4><code>npm run auth</code> fails</h4><p>Check the accounts in <code>apps/&lt;app&gt;/.env</code> (variable names must match <code>auth.roles</code> in <code>app.config.ts</code>), and that the QA site is up. Try logging in by hand with the same account.</p></div>
+        <div class="qa-item"><h4>The <code>/qa-*</code> commands don't appear in Claude</h4><p>VS Code must have the <b>root</b> <code>Automation-Framework</code> folder open, not a subfolder. Reload the window after <code>git pull</code>.</p></div>
+        <div class="qa-item"><h4>Claude can't open the browser</h4><p>Type <code>/mcp</code> in the Claude panel. If playwright isn't listed or not approved, use the command in step 2.5, reload VS Code and start a new conversation.</p></div>
+        <div class="qa-item"><h4><code>git pull</code> says my changes would be overwritten</h4><p>Commit your work on a branch first (see Sharing your work), then pull.</p></div>
+      </div>
+    </section>
+
+    <section id="next">
+      <div class="sec-head">
+        <span class="kicker">Next</span>
+        <h2>What to read next</h2>
+      </div>
+      <div class="links">
+        <a href="Getting-Started-Guide.pdf"><b>Getting Started Guide</b><span>How Playwright + Claude automation works, the framework's architecture, a full walkthrough.</span><code>docs/Getting-Started-Guide.pdf</code></a>
+        <a href="sprint-qa-process.html"><b>Sprint QA Process</b><span>Planning, build day, testing and sign-off for each sprint.</span><code>docs/sprint-qa-process.html</code></a>
+        <a href="QA-Automation-Guide.pdf"><b>QA Automation Guide</b><span>What a module MD must contain, test IDs, severity, re-testing.</span><code>docs/QA-Automation-Guide.pdf</code></a>
+      </div>
+    </section>
+
+    <footer>Questions or setup problems: ask the QA lead. Framework rules Claude follows: <code>CLAUDE.md</code>.</footer>
+  </main>
+</div>
+
+<script>
+  document.querySelectorAll('.code').forEach((box) => {
+    const pre = box.querySelector('pre');
+    if (!pre) return;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'copy'; btn.textContent = 'Copy';
+    btn.setAttribute('aria-label', 'Copy to clipboard');
+    btn.addEventListener('click', () => {
+      const text = pre.innerText.split('\n').filter((l) => !/^\s*(…|#)/.test(l)).map((l) => l.replace(/\s+#.*$/, '')).join('\n').trim();
+      const done = () => { btn.textContent = 'Copied'; btn.classList.add('done'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Press Ctrl+C'; };
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+    });
+    const wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.replaceWith(wrap);
+    wrap.append(pre, btn);
+  });
+
+  const links = [...document.querySelectorAll('#toc a')];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        links.forEach((a) => a.classList.remove('active'));
+        const a = byId.get(e.target.id);
+        if (a) { a.classList.add('active'); if (window.matchMedia('(max-width: 900px)').matches) a.scrollIntoView({ block: 'nearest', inline: 'center' }); }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('main > section[id]').forEach((s) => obs.observe(s));
+  }
+</script>
+</body>
+</html>

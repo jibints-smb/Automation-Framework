@@ -8,16 +8,19 @@ mobile), Claude Code with the Playwright MCP (test generation) and **Allure** re
 - **Markdown in, tests out.** A Jira story or developer module note becomes reviewed test cases, then
   automated tests with one test per test-case ID, all in one Allure report linked to Jira.
 
+**New QA team member? Set up your machine first:** [docs/team-setup.html](docs/team-setup.html) (PDF: [docs/QA-Team-Setup.pdf](docs/QA-Team-Setup.pdf)): install, clone,
+`.env` files, checking it works, daily commands, branches and pull requests, common problems (about 30 minutes).
+
 **New to the project? Start here:** [docs/Getting-Started-Guide.pdf](docs/Getting-Started-Guide.pdf):
 how Playwright + Claude AI automation works, setup from scratch, the framework's architecture and a full
 module walkthrough.
 
 **Process guide for developers and QA:** [docs/QA-Automation-Guide.pdf](docs/QA-Automation-Guide.pdf):
 the testing steps and exactly what a module MD file must contain. Edit the HTML files in `docs/` and run
-`npm run docs:pdf` to rebuild both PDFs.
+`npm run docs:pdf` to rebuild all four PDFs.
 
 **Working in sprints (QA team):** [docs/sprint-qa-process.md](docs/sprint-qa-process.md) (web version:
-[docs/sprint-qa-process.html](docs/sprint-qa-process.html)): sprint steps, build day, what developers send,
+[docs/sprint-qa-process.html](docs/sprint-qa-process.html), PDF: [docs/Sprint-QA-Process.pdf](docs/Sprint-QA-Process.pdf)): sprint steps, build day, what developers send,
 where files live. Templates: `templates/sprint.md`, `templates/dev-handover.md`.
 
 ---

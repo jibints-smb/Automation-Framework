@@ -303,8 +303,10 @@
 
   @media print {
     .rail, .copy, .check-foot .btn { display: none; }
-    .page { grid-template-columns: minmax(0, 1fr); }
-    main { max-width: none; gap: 40px; }
+    .page { grid-template-columns: minmax(0, 1fr); padding: 0; }
+    main { max-width: none; gap: 40px; padding-block: 0; }
+    .sec-head { break-after: avoid; }
+    .diagram, .weeks, .phase-meta, .tree { break-inside: avoid; }
     section { break-inside: auto; }
     .role, .hcard, .qa-item, .decide > div { break-inside: avoid; box-shadow: none; }
   }
@@ -1088,7 +1090,7 @@ ADMIN_PASSWORD=<span class="c">••••••••</span></pre></div>
     </section>
 
     <footer>
-      <span>Full details: <i>Getting Started Guide</i>, chapter 6 "Working in sprints" (<code>docs/Getting-Started-Guide.pdf</code>).</span>
+      <span>New to the team? <a href="team-setup.html">QA Team Setup</a>. Full details: <i>Getting Started Guide</i>, chapter 6 "Working in sprints" (<code>docs/Getting-Started-Guide.pdf</code>).</span>
       <span>Templates: <code>templates/sprint.md</code> · <code>templates/dev-handover.md</code> · <code>templates/requirement.md</code></span>
     </footer>
   </main>

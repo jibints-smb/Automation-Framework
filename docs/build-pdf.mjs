@@ -7,6 +7,8 @@ import { pathToFileURL } from 'node:url';
 const guides = [
   { source: 'docs/qa-automation-guide.html', output: 'docs/QA-Automation-Guide.pdf', title: 'Module Testing &amp; Automation Guide' },
   { source: 'docs/getting-started-guide.html', output: 'docs/Getting-Started-Guide.pdf', title: 'Getting Started Guide' },
+  { source: 'docs/sprint-qa-process.html', output: 'docs/Sprint-QA-Process.pdf', title: 'Sprint QA Process' },
+  { source: 'docs/team-setup.html', output: 'docs/QA-Team-Setup.pdf', title: 'QA Team Setup' },
 ];
 
 const footer = (title) => `
@@ -19,6 +21,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 for (const guide of guides) {
   await page.goto(pathToFileURL(path.resolve(guide.source)).href, { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready); // web fonts (Google Fonts) before printing
   await page.pdf({
     path: path.resolve(guide.output),
     format: 'A4',
