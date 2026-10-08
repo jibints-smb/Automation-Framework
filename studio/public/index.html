@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QA Studio · NewAgeSysIT</title>
+  <link rel="icon" href="/logo">
+  <link rel="stylesheet" href="/app.css">
+  <script defer src="/app.js"></script>
+  <script defer src="/alpine.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800" x-data="studio" x-cloak>
+<div class="flex min-h-screen">
+
+  <!-- ───────── sidebar ───────── -->
+  <aside class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
+    <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+      <img src="/logo" alt="NewAgeSysIT" class="h-9 max-w-37.5 object-contain">
+    </div>
+    <div class="px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-brand-500">QA Studio</div>
+    <nav class="flex flex-1 flex-col gap-1 px-3">
+      <template x-for="item in [
+        { id: 'home', label: 'Home', icon: 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10' },
+        { id: 'run', label: 'Run tests', icon: 'M6 4l14 8-14 8V4z' },
+        { id: 'reports', label: 'Reports', icon: 'M4 19V5m5 14V9m5 10v-6m5 6V7' },
+        { id: 'requirements', label: 'Requirements', icon: 'M7 3h7l5 5v13H7zM14 3v5h5M9 13h8M9 17h6' },
+        { id: 'testcases', label: 'Test cases', icon: 'M9 11l2 2 4-4M5 4h14v16H5z' },
+        { id: 'sprints', label: 'Sprints', icon: 'M8 3v3M16 3v3M4 8h16M5 5h14v15H5zM9 13l2 2 4-4' },
+        { id: 'apps', label: 'Apps', icon: 'M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v6H4zM13 14h7v6h-7z' },
+        { id: 'jobs', label: 'Activity', icon: 'M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { id: 'setup', label: 'Setup', icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z' },
+      ]" :key="item.id">
+        <a :href="`#/${item.id}`" class="nav-item" :class="page === item.id && 'nav-active'">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path :d="item.icon"/></svg>
+          <span x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+    <div class="border-t border-slate-200 p-4 text-xs text-slate-500">
+      <div class="font-semibold text-slate-700" x-text="ctx.qaName || 'Not set up yet'"></div>
+      <div x-text="ctx.qaEmail"></div>
+      <div class="mt-2">Runs on this computer only</div>
+    </div>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- ───────── header ───────── -->
+    <header class="sticky top-0 z-20 bg-linear-to-r from-brand-500 to-brand-700 text-white shadow-md">
+      <div class="flex flex-wrap items-center gap-3 px-6 py-3">
+        <div class="mr-auto">
+          <div class="text-lg font-semibold">QA Automation Framework</div>
+          <div class="text-xs text-white/80">NewAgeSysIT · plan, run and report tests without touching code</div>
+        </div>
+        <template x-for="chip in [['App', ctx.app || '—'], ['Environment', (ctx.environment || 'qa').toUpperCase()], ['Build', ctx.build || '—'], ['Sprint', ctx.sprint || '—']]">
+          <div class="rounded-lg border border-white/25 bg-white/10 px-3 py-1.5">
+            <div class="text-[10px] uppercase tracking-wider text-white/70" x-text="chip[0]"></div>
+            <div class="text-sm font-semibold" x-text="chip[1]"></div>
+          </div>
+        </template>
+        <button class="btn bg-white text-brand-700 hover:bg-brand-50" @click="startRun('smoke')" :disabled="job?.status === 'running' || !ctx.app">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z"/></svg> Run smoke
+        </button>
+      </div>
+      <!-- mobile navigation -->
+      <nav class="flex gap-1 overflow-x-auto px-4 pb-2 md:hidden">
+        <template x-for="id in ['home','run','reports','requirements','testcases','sprints','apps','jobs','setup']">
+          <a :href="`#/${id}`" class="whitespace-nowrap rounded-md px-3 py-1 text-xs font-semibold capitalize" :class="page === id ? 'bg-white text-brand-700' : 'text-white/90'" x-text="({ jobs: 'activity', testcases: 'test cases' })[id] ?? id"></a>
+        </template>
+      </nav>
+      <!-- a job running somewhere: always visible -->
+      <div x-show="job?.status === 'running' && page !== 'run'" class="flex items-center gap-3 bg-brand-900 px-6 py-1.5 text-xs">
+        <span class="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>
+        <span x-text="`${job?.title} running…`"></span>
+        <span x-show="progress.total" x-text="`${progress.done}/${progress.total}`"></span>
+        <a href="#/run" class="ml-auto font-semibold underline">Show</a>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8">
+
+      <!-- ═════════════ HOME ═════════════ -->
+      <section x-show="page === 'home'" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 class="h-page" x-text="ctx.qaName ? `Welcome back, ${ctx.qaName.split(' ')[0]}` : 'Welcome to QA Studio'"></h1>
+            <p class="muted">Your tests, reports and sprint at a glance.</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn-secondary" @click="startRun('regression')" :disabled="job?.status === 'running' || !ctx.app">Run regression</button>
+            <button class="btn-primary" @click="go('run')">Run tests…</button>
+          </div>
+        </div>
+
+        <template x-if="!ctx.app">
+          <div class="card card-pad border-amber-200 bg-amber-50">
+            <div class="h-card">Let's get you set up</div>
+            <p class="muted mt-1">Add your name and choose (or create) the app you test.</p>
+            <div class="mt-3 flex gap-2"><button class="btn-primary" @click="go('setup')">Open Setup</button><button class="btn-secondary" @click="go('apps')">Create an app</button></div>
+          </div>
+        </template>
+
+        <div class="grid gap-4 lg:grid-cols-3" x-show="ctx.app">
+          <!-- latest run -->
+          <div class="card card-pad lg:col-span-2">
+            <div class="flex items-center justify-between">
+              <div class="h-card">Latest run</div>
+              <span class="badge" :class="runStatus(ctx.latestRun).cls" x-text="runStatus(ctx.latestRun).text"></span>
+            </div>
+            <template x-if="ctx.latestRun">
+              <div class="mt-4 flex flex-wrap items-center gap-6">
+                <div class="relative grid h-28 w-28 place-items-center rounded-full" :style="`background: conic-gradient(#22c55e ${passRate(ctx.latestRun)}%, #f43f5e 0)`">
+                  <div class="grid h-20 w-20 place-items-center rounded-full bg-white text-xl font-bold text-brand-900" x-text="`${passRate(ctx.latestRun)}%`"></div>
+                </div>
+                <div class="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div class="stat"><b class="text-emerald-600" x-text="ctx.latestRun.passed"></b><span>passed</span></div>
+                  <div class="stat"><b class="text-rose-600" x-text="ctx.latestRun.failed"></b><span>failed</span></div>
+                  <div class="stat"><b class="text-sky-600" x-text="ctx.latestRun.pendingDecisions ?? 0"></b><span>PO pending</span></div>
+                  <div class="stat"><b class="text-violet-600" x-text="ctx.latestRun.knownBugs ?? 0"></b><span>known bugs</span></div>
+                </div>
+                <div class="w-full text-sm text-slate-500">
+                  <span x-text="fmtDate(ctx.latestRun.started)"></span> ·
+                  <span x-text="fmtDuration(ctx.latestRun.durationSec)"></span> ·
+                  tested by <b x-text="ctx.latestRun.testedBy || '—'"></b>
+                  <template x-if="ctx.latestRun.build"><span> · build <b x-text="ctx.latestRun.build"></b></span></template>
+                  <template x-if="ctx.latestRun.diff?.newFailures?.length"><span class="ml-2 badge-bad" x-text="`${ctx.latestRun.diff.newFailures.length} new failure(s)`"></span></template>
+                  <a class="ml-2 font-semibold text-brand-600 hover:underline" :href="`/reports/${ctx.app}/${ctx.latestRun.run}/${ctx.latestRun.report}`" target="_blank" x-show="ctx.latestRun.report">Open report ↗</a>
+                </div>
+              </div>
+            </template>
+            <p class="muted mt-3" x-show="!ctx.latestRun">No saved run yet for this app. Run the tests to see results here.</p>
+          </div>
+
+          <!-- needs attention -->
+          <div class="card card-pad">
+            <div class="h-card">Needs attention</div>
+            <ul class="mt-3 space-y-3 text-sm">
+              <li class="flex items-start gap-2"><span class="badge-warn" x-text="ctx.open?.changed?.length ?? 0"></span><span>requirements changed since QA processed them</span></li>
+              <li class="flex items-start gap-2"><span class="badge-info" x-text="ctx.open?.fresh?.length ?? 0"></span><span>requirements without test cases</span></li>
+              <li class="flex items-start gap-2"><span class="badge-bad" x-text="ctx.open?.criticalNotTested?.length ?? 0"></span><span>critical test cases not tested yet</span></li>
+              <li class="flex items-start gap-2"><span class="badge-warn" x-text="ctx.open?.differences ?? 0"></span><span x-text="`differences waiting for the PO${ctx.open?.latestSprint ? ` (sprint ${ctx.open.latestSprint})` : ''}`"></span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- recent runs -->
+        <div class="card" x-show="ctx.recentRuns?.length">
+          <div class="flex items-center justify-between px-5 pt-5"><div class="h-card">Recent runs</div><a href="#/reports" class="text-sm font-semibold text-brand-600 hover:underline">All reports →</a></div>
+          <div class="mt-3 overflow-x-auto">
+            <table class="data-table">
+              <thead><tr><th>When</th><th>Status</th><th>Passed</th><th>Failed</th><th>PO pending</th><th>Build</th><th>Tested by</th><th></th></tr></thead>
+              <tbody>
+                <template x-for="r in ctx.recentRuns" :key="r.run">
+                  <tr class="hover:bg-slate-50">
+                    <td x-text="fmtDate(r.started)"></td>
+                    <td><span :class="runStatus(r).cls" x-text="runStatus(r).text"></span></td>
+                    <td class="font-semibold text-emerald-600" x-text="r.passed"></td>
+                    <td class="font-semibold" :class="r.failed ? 'text-rose-600' : 'text-slate-400'" x-text="r.failed"></td>
+                    <td x-text="r.pendingDecisions ?? '—'"></td>
+                    <td x-text="r.build || '—'"></td>
+                    <td x-text="r.testedBy || '—'"></td>
+                    <td><a class="text-brand-600 hover:underline" :href="`/reports/${ctx.app}/${r.run}/${r.report}`" target="_blank" x-show="r.report">Report ↗</a></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════ SETUP ═════════════ -->
+      <section x-show="page === 'setup'" class="space-y-6">
+        <div><h1 class="h-page">Setup</h1><p class="muted">Your details and what you are testing. Saved in your own settings file (never shared).</p></div>
+        <div class="grid gap-6 lg:grid-cols-3">
+          <form class="card card-pad space-y-5 lg:col-span-2" @submit.prevent="saveSettings()">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <template x-for="s in settings" :key="s.key">
+                <div :class="['QA_NAME','QA_EMAIL','APP','TEST_ENV','BUILD_VERSION','SPRINT'].includes(s.key) ? '' : ''">
+                  <label class="label" :for="s.key"><span x-text="s.label"></span> <span class="text-rose-500" x-show="s.required">*</span></label>
+                  <template x-if="s.type === 'app'">
+                    <select class="input" :id="s.key" x-model="settingsForm[s.key]">
+                      <option value="">Choose an app…</option>
+                      <template x-for="a in ctx.apps"><option :value="a" x-text="a" :selected="a === settingsForm[s.key]"></option></template>
+                    </select>
+                  </template>
+                  <template x-if="s.type === 'select'">
+                    <select class="input" :id="s.key" x-model="settingsForm[s.key]">
+                      <option value="">(default)</option>
+                      <template x-for="o in s.options"><option :value="o" x-text="o" :selected="o === settingsForm[s.key]"></option></template>
+                    </select>
+                  </template>
+                  <template x-if="s.secret">
+                    <div class="flex gap-2">
+                      <input class="input" type="password" :id="s.key" autocomplete="off" x-model="secretForm[s.key]" :placeholder="s.set ? '•••••• (set, type to replace)' : 'not set'">
+                      <button type="button" class="btn-secondary btn-sm" x-show="s.set" @click="clearSecret(s.key)">Remove</button>
+                    </div>
+                  </template>
+                  <template x-if="!s.secret && !['app','select'].includes(s.type)">
+                    <input class="input" :id="s.key" :type="s.type === 'number' ? 'number' : s.type === 'email' ? 'email' : 'text'" x-model="settingsForm[s.key]" :required="s.required" :placeholder="s.placeholder || ''">
+                  </template>
+                  <p class="help" x-text="s.help"></p>
+                </div>
+              </template>
+            </div>
+            <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" class="btn-secondary" @click="loadSettings()">Undo changes</button>
+              <button class="btn-primary">Save settings</button>
+            </div>
+          </form>
+
+          <div class="card card-pad">
+            <div class="flex items-center justify-between">
+              <div class="h-card">System check</div>
+              <button class="btn-secondary btn-sm" @click="loadChecks()" :disabled="checking" x-text="checking ? 'Checking…' : 'Check again'"></button>
+            </div>
+            <ul class="mt-3 divide-y divide-slate-100">
+              <template x-for="c in checks" :key="c.name">
+                <li class="flex items-start gap-3 py-2.5">
+                  <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white"
+                        :class="{ ok: 'bg-emerald-500', warn: 'bg-amber-500', fail: 'bg-rose-500', info: 'bg-slate-400' }[c.status]"
+                        x-text="{ ok: '✓', warn: '!', fail: '✕', info: 'i' }[c.status]"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-sm font-medium" x-text="c.name"></div>
+                    <div class="truncate text-xs text-slate-500" :title="c.detail" x-text="c.detail"></div>
+                  </div>
+                  <button class="btn-secondary btn-sm" x-show="c.fix" @click="fix(c.fix)"
+                          x-text="{ 'install-browsers': 'Install', 'refresh-logins': 'Refresh', 'mail-check': 'Test', setup: 'Fix', 'app-settings': 'Open' }[c.fix]"></button>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════ APPS ═════════════ -->
+      <section x-show="page === 'apps'" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Apps</h1><p class="muted">Each application your team tests, with its URLs and test accounts.</p></div>
+          <button class="btn-primary" @click="showNewApp = true">+ New app</button>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <template x-for="a in apps" :key="a.app">
+            <div class="card card-pad flex flex-col gap-3" :class="ctx.app === a.app && 'ring-2 ring-brand-500'">
+              <div class="flex items-start justify-between gap-2">
+                <div><div class="h-card" x-text="a.name"></div><div class="text-xs text-slate-500" x-text="a.app"></div></div>
+                <span class="badge-info" x-show="ctx.app === a.app">Active</span>
+              </div>
+              <div class="flex flex-wrap gap-1"><template x-for="p in a.platforms"><span class="badge-muted" x-text="p"></span></template></div>
+              <div class="truncate text-sm text-slate-600" x-text="a.baseUrl || 'No URL set'"></div>
+              <div class="text-xs text-slate-500"><span x-text="`${a.testCases} test cases`"></span><template x-if="a.latestRun"><span x-text="` · last run ${fmtDate(a.latestRun.started)} (${a.latestRun.passed}/${a.latestRun.total} passed)`"></span></template></div>
+              <div class="mt-auto flex gap-2 pt-2">
+                <button class="btn-secondary btn-sm" @click="openApp(a.app)">Settings</button>
+                <button class="btn-secondary btn-sm" x-show="ctx.app !== a.app" @click="makeActive(a.app)">Make active</button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- app settings -->
+        <div class="card card-pad space-y-4" x-show="selectedApp">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="h-card" x-text="`${selectedApp?.name} · settings`"></div>
+              <p class="muted">URLs and test accounts for each environment. Passwords are never shown here: type a new one to replace it.</p>
+            </div>
+            <button class="btn-secondary btn-sm" @click="selectedApp = null">Close</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <template x-for="f in (selectedApp?.envFiles || []).filter(f => f !== '.env.example')">
+              <button class="btn-sm btn" :class="envFile === f ? 'bg-brand-500 text-white' : 'border border-slate-300 bg-white text-slate-700'" @click="envFile = f; loadEnv()"
+                      x-text="f === '.env' ? 'qa (.env)' : f.replace('.env.', '')"></button>
+            </template>
+            <form class="ml-auto flex gap-2" @submit.prevent="addEnvironment()">
+              <input class="input py-1.5" placeholder="new environment, e.g. staging" x-model="newEnvName">
+              <button class="btn-secondary btn-sm">Add</button>
+            </form>
+          </div>
+          <form @submit.prevent="saveEnv()" class="space-y-3">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <template x-for="s in visibleEnv()" :key="s.key">
+                <div>
+                  <label class="label"><span x-text="s.key"></span> <span class="badge-muted ml-1" x-show="s.secret">secret</span> <span class="badge-ok ml-1" x-show="s.secret && s.set">set</span></label>
+                  <input class="input" :type="s.secret ? 'password' : 'text'" autocomplete="off" x-model="envForm[s.key]" :placeholder="s.secret ? (s.set ? '•••••• (set, type to replace)' : 'not set') : (s.example || '')">
+                  <p class="help" x-text="s.comment" x-show="s.comment"></p>
+                </div>
+              </template>
+            </div>
+            <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+              <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" x-model="showAllEnv"> Show all settings</label>
+              <button class="btn-primary">Save <span x-text="envFile"></span></button>
+            </div>
+          </form>
+        </div>
+
+        <!-- new app dialog -->
+        <div x-show="showNewApp" class="fixed inset-0 z-40 grid place-items-center bg-brand-900/40 p-4" @keydown.escape.window="showNewApp = false">
+          <form class="card max-h-[90vh] w-full max-w-2xl overflow-auto p-6" @submit.prevent="createApp()" @click.outside="showNewApp = false">
+            <div class="h-page text-xl">New app</div>
+            <p class="muted mb-5">Creates the app's folders, settings and Sprint 01. Login steps and pages are added later by "Automate".</p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div><label class="label">App name *</label><input class="input" x-model="newApp.name" placeholder="customer-portal" pattern="[a-z][a-z0-9-]+" required><p class="help">lower case, digits and dashes</p></div>
+              <div><label class="label">QA URL</label><input class="input" type="url" x-model="newApp.baseUrl" placeholder="https://qa.example.com"></div>
+              <div class="sm:col-span-2"><label class="label">What is tested</label>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="p in [['web','Website'],['mobile-web','Website on phones'],['android','Android app'],['ios','iPhone app'],['api','API']]">
+                    <button type="button" class="btn-sm btn" :class="newApp.platforms.includes(p[0]) ? 'bg-brand-500 text-white' : 'border border-slate-300 bg-white'" @click="toggle(newApp.platforms, p[0])" x-text="p[1]"></button>
+                  </template>
+                </div>
+              </div>
+              <div class="sm:col-span-2" x-show="newApp.platforms.includes('web')"><label class="label">Browsers</label>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="b in ['chrome','firefox','safari','edge']">
+                    <button type="button" class="btn-sm btn capitalize" :class="newApp.browsers.includes(b) ? 'bg-brand-500 text-white' : 'border border-slate-300 bg-white'" @click="toggle(newApp.browsers, b)" x-text="b"></button>
+                  </template>
+                </div>
+              </div>
+              <div><label class="label">Test ID attribute</label><input class="input" x-model="newApp.testId"><p class="help">ask the developers (data-testid, data-qa, …)</p></div>
+              <div class="grid grid-cols-2 gap-2"><div><label class="label">Language</label><input class="input" x-model="newApp.locale" placeholder="en-GB"></div><div><label class="label">Time zone</label><input class="input" x-model="newApp.timezone" placeholder="Europe/London"></div></div>
+              <div class="sm:col-span-2">
+                <label class="label">Login roles (test accounts)</label>
+                <template x-for="(r, i) in newApp.roles" :key="i">
+                  <div class="mb-2 grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                    <input class="input" placeholder="role, e.g. admin" x-model="r.role" @blur="roleDefaults(r)">
+                    <input class="input" placeholder="ADMIN_EMAIL" x-model="r.usernameEnv">
+                    <input class="input" placeholder="ADMIN_PASSWORD" x-model="r.passwordEnv">
+                    <button type="button" class="btn-secondary btn-sm" @click="newApp.roles.splice(i, 1)">✕</button>
+                  </div>
+                </template>
+                <button type="button" class="btn-secondary btn-sm" @click="addRole()">+ Add role</button>
+                <p class="help">The accounts' emails and passwords are entered afterwards in the app's settings (never in code).</p>
+              </div>
+              <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" x-model="newApp.makeActive"> Make it my active app</label>
+            </div>
+            <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" @click="showNewApp = false">Cancel</button><button class="btn-primary">Create app</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ═════════════ REQUIREMENTS ═════════════ -->
+      <section x-show="page === 'requirements'" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Requirements</h1><p class="muted">One file per story. Changes since QA last processed them are flagged.</p></div>
+          <div class="flex flex-wrap gap-2">
+            <label class="btn-secondary cursor-pointer">
+              Upload developer MD
+              <input type="file" accept=".md" multiple class="hidden" @change="uploadDevMd($event)">
+            </label>
+            <button class="btn-primary" @click="showNewReq = true">+ New requirement</button>
+          </div>
+        </div>
+        <div class="card overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Jira</th><th>Requirement</th><th>QA stage</th><th>Status</th><th>Automated</th><th class="text-right">Actions</th></tr></thead>
+            <tbody>
+              <template x-for="r in reqs.requirements" :key="r.file">
+                <tr class="hover:bg-slate-50">
+                  <td class="font-semibold" x-text="r.jira"></td>
+                  <td><div class="font-medium" x-text="r.title"></div><div class="text-xs text-slate-500" x-text="r.key"></div></td>
+                  <td class="text-xs" x-text="r.stage ? `${r.stage.stage} · ${r.stage.date}${r.stage.by ? ` · ${r.stage.by}` : ''}` : 'not baselined'"></td>
+                  <td><span class="badge" :class="reqBadge(r.status)" x-text="r.status"></span></td>
+                  <td x-text="r.automated"></td>
+                  <td class="text-right">
+                    <div class="flex flex-wrap justify-end gap-1">
+                      <button class="btn-secondary btn-sm" @click="view(r.file)">View</button>
+                      <button class="btn-primary btn-sm" x-show="!r.testCaseFiles.length" @click="claude('qa-testcases', r.file)">Generate test cases</button>
+                      <button class="btn-primary btn-sm" x-show="r.changed" @click="claude('qa-update', r.file)">Update tests</button>
+                      <button class="btn-secondary btn-sm" x-show="r.testCaseFiles.length" @click="go('testcases')">Test cases</button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <p class="muted p-5" x-show="!reqs.requirements.length">No requirements yet. Create one from the template, or upload the developers' notes.</p>
+        </div>
+
+        <div class="card card-pad" x-show="reqs.fromDev.length">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="h-card mr-auto">Developer notes as received</div>
+            <label class="text-sm text-slate-600">Uploads go to sprint <input class="input ml-1 inline w-16 py-1" x-model="uploadSprint"></label>
+          </div>
+          <ul class="mt-3 divide-y divide-slate-100 text-sm">
+            <template x-for="f in reqs.fromDev" :key="f"><li class="flex items-center justify-between py-2"><span x-text="f.split('/sprints/')[1]"></span><button class="btn-secondary btn-sm" @click="view(f)">View</button></li></template>
+          </ul>
+          <p class="help">Merge each into its requirement file (keep the template, add a Change log row); the requirement then shows "changed" and "Update tests" updates only the affected tests.</p>
+        </div>
+
+        <div id="viewer" class="card card-pad space-y-3" x-show="viewer">
+          <div class="flex items-center justify-between gap-2"><div class="h-card truncate" x-text="viewer?.file"></div><button class="btn-secondary btn-sm" @click="viewer = null">Close</button></div>
+          <template x-if="viewer?.diff">
+            <details class="rounded-lg border border-amber-200 bg-amber-50 p-3" :open="!/No changes|No QA baseline/.test(viewer.diff)">
+              <summary class="cursor-pointer text-sm font-semibold text-amber-800">Changes since QA's last baseline</summary>
+              <pre class="mt-2 whitespace-pre-wrap text-xs text-slate-700" x-text="viewer.diff"></pre>
+            </details>
+          </template>
+          <pre class="max-h-128 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-800" x-text="viewer?.content"></pre>
+        </div>
+
+        <!-- new requirement dialog -->
+        <div x-show="showNewReq" class="fixed inset-0 z-40 grid place-items-center bg-brand-900/40 p-4" @keydown.escape.window="showNewReq = false">
+          <form class="card max-h-[90vh] w-full max-w-2xl overflow-auto p-6" @submit.prevent="createRequirement()" @click.outside="showNewReq = false">
+            <div class="h-page text-xl">New requirement</div>
+            <p class="muted mb-5">From the Jira story. Leave the text empty to start from the company template.</p>
+            <div class="grid gap-4 sm:grid-cols-3">
+              <div><label class="label">Jira key *</label><input class="input" x-model="newReq.jira" placeholder="BK-3" pattern="[A-Z][A-Z0-9]+-\d+" required></div>
+              <div><label class="label">Module *</label><input class="input" x-model="newReq.module" placeholder="user-list" pattern="[a-z][a-z0-9-]+" required></div>
+              <div><label class="label">Platform</label><select class="input" x-model="newReq.platform"><option>web</option><option>mobile</option><option>api</option></select></div>
+              <div class="sm:col-span-3"><label class="label">Story title</label><input class="input" x-model="newReq.title" placeholder="Super Admin manages users"></div>
+              <div class="sm:col-span-3"><label class="label">Text (optional: paste the story or developer notes)</label><textarea class="input h-48 font-mono text-xs" x-model="newReq.content"></textarea></div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" @click="showNewReq = false">Cancel</button><button class="btn-primary">Create</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ═════════════ TEST CASES ═════════════ -->
+      <section x-show="page === 'testcases'" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Test cases</h1><p class="muted">Reviewed test cases, whether each is automated, and its latest result.</p></div>
+          <div class="flex flex-wrap gap-2">
+            <a class="btn-secondary" :href="`/reports/${ctx.app}/traceability.html`" target="_blank">Traceability matrix ↗</a>
+            <button class="btn-secondary" @click="traceCheck()" :disabled="job?.status === 'running'">Check traceability</button>
+            <button class="btn-secondary" @click="claude('qa-fix')" :disabled="job?.status === 'running'">Fix failing tests</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div class="stat"><b x-text="tc.coverage.total ?? 0"></b><span>test cases</span></div>
+          <div class="stat"><b class="text-emerald-600" x-text="tc.coverage.automated ?? 0"></b><span>automated</span></div>
+          <div class="stat"><b :class="tc.coverage.missing ? 'text-rose-600' : ''" x-text="tc.coverage.missing ?? 0"></b><span>to automate</span></div>
+          <div class="stat"><b class="text-amber-600" x-text="tc.coverage.later ?? 0"></b><span>planned later</span></div>
+          <div class="stat"><b x-text="tc.coverage.manualOnly ?? 0"></b><span>manual only</span></div>
+          <div class="stat"><b class="text-brand-600" x-text="tc.coverage.total ? `${Math.round(tc.coverage.covered / tc.coverage.total * 100)}%` : '0%'"></b><span>covered (auto + manual)</span></div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <input class="input max-w-xs" placeholder="Filter: ID, title, priority…" x-model="tcFilter">
+          <select class="input max-w-48" x-model="tcResult">
+            <option value="">All results</option><option value="passed">Passed</option><option value="failed">Failed</option>
+            <option value="PO pending">PO pending</option><option value="known bug">Known bug</option><option value="none">Not tested</option>
+          </select>
+        </div>
+        <template x-for="file in tc.files" :key="file.file">
+          <div class="card">
+            <div class="flex flex-wrap items-center gap-3 p-5">
+              <div class="mr-auto">
+                <div class="h-card"><span x-text="file.header.jira"></span> · <span x-text="file.header.feature || file.file.split('/').pop()"></span></div>
+                <div class="text-xs text-slate-500" x-text="`${file.file} · spec: ${file.header.spec || '—'}`"></div>
+              </div>
+              <button class="btn-secondary btn-sm" @click="runStory(file.header.jira)" x-show="file.header.jira">Run this story</button>
+              <button class="btn-primary btn-sm" @click="claude('qa-automate', file.file)">Automate new cases</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Automate</th><th>Test</th><th>Latest result</th><th>Manual</th></tr></thead>
+                <tbody>
+                  <template x-for="c in filteredCases(file)" :key="c.id">
+                    <tr class="hover:bg-slate-50">
+                      <td class="whitespace-nowrap font-semibold" x-text="c.id"></td>
+                      <td><div x-text="c.title"></div><div class="text-xs text-slate-500" x-show="c.note" x-text="c.note"></div></td>
+                      <td><span class="badge" :class="['critical','blocker'].includes(c.priority) ? 'badge-bad' : 'badge-muted'" x-text="c.priority"></span></td>
+                      <td>
+                        <select class="input w-28 py-1 text-xs" :value="c.automate" @change="setAutomate(file, c, $event.target.value)">
+                          <option value="yes">yes</option><option value="later">later</option><option value="no">no (manual)</option><option value="retired">retired</option>
+                        </select>
+                      </td>
+                      <td class="text-center" x-text="c.hasTest ? '✓' : ''"></td>
+                      <td><span class="badge" :class="resultBadge(c.result)" x-text="c.result || '—'"></span></td>
+                      <td><span class="badge" :class="resultBadge(c.manual)" x-show="c.manual" x-text="c.manual"></span></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+      </section>
+
+      <!-- ═════════════ SPRINTS ═════════════ -->
+      <section x-show="page === 'sprints'" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Sprints</h1><p class="muted">The sprint tracker as forms: stories, builds, questions, PO decisions, bugs and manual results.</p></div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select class="input w-36" x-model="sprintNo" @change="openSprint(sprintNo)">
+              <template x-for="s in sprintList" :key="s.number"><option :value="s.number" x-text="`Sprint ${s.number}`" :selected="s.number === sprintNo"></option></template>
+            </select>
+            <form class="flex gap-2" @submit.prevent="startSprint()">
+              <input class="input w-20" x-model="newSprintNo" pattern="\d{1,3}" title="Sprint number">
+              <button class="btn-secondary">Start sprint</button>
+            </form>
+            <button class="btn-primary" @click="sprintReport()" :disabled="!sprint">Sign-off report</button>
+          </div>
+        </div>
+
+        <template x-if="sprint">
+          <div class="space-y-4">
+            <div class="card card-pad flex flex-wrap gap-6 text-sm">
+              <template x-for="k in ['dates','goal','environment','qa']">
+                <div x-show="sprint.info[k]"><div class="text-xs uppercase tracking-wide text-slate-500" x-text="k"></div><div class="font-medium" x-text="sprint.info[k]"></div></div>
+              </template>
+              <a class="ml-auto self-center font-semibold text-brand-600 hover:underline" :href="sprint.reportUrl" target="_blank" x-show="sprint.reportUrl">Last sign-off report ↗</a>
+            </div>
+            <pre class="whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-xs" x-show="sprintReportOutput" x-text="sprintReportOutput"></pre>
+
+            <div class="flex flex-wrap gap-1 border-b border-slate-200">
+              <template x-for="t in [['stories','Stories'],['manual','Manual results'],['differences','PO decisions'],['questions','Questions'],['builds','Builds'],['bugs','Bugs']]">
+                <button class="-mb-px border-b-2 px-4 py-2 text-sm font-semibold" :class="sprintTab === t[0] ? 'border-brand-500 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'" @click="sprintTab = t[0]" x-text="t[1]"></button>
+              </template>
+            </div>
+
+            <!-- stories + sign-off -->
+            <div class="card overflow-x-auto" x-show="sprintTab === 'stories'">
+              <table class="data-table">
+                <thead><tr><th>Jira</th><th>Story</th><th>Requirement</th><th>QA stage</th><th>Notes</th><th></th></tr></thead>
+                <tbody>
+                  <template x-for="s in sprintRows('stories')" :key="s.jira">
+                    <tr>
+                      <td class="font-semibold" x-text="s.jira"></td>
+                      <td x-text="s.story"></td>
+                      <td class="text-xs" x-text="s['requirement file']"></td>
+                      <td><span class="badge" :class="s.signedOff ? 'badge-ok' : 'badge-muted'" x-text="s.baseline || 'not baselined'"></span></td>
+                      <td class="max-w-md text-xs text-slate-600" x-text="s.notes"></td>
+                      <td class="whitespace-nowrap text-right">
+                        <button class="btn-secondary btn-sm" @click="runStory(s.jira)">Run</button>
+                        <button class="btn-primary btn-sm" :disabled="s.signedOff || !s['requirement file']" @click="signOff(s)" x-text="s.signedOff ? 'Signed off' : 'Sign off'"></button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <p class="muted p-5" x-show="!sprintRows('stories').length">No stories yet: add them to the Stories table of the sprint file.</p>
+            </div>
+
+            <!-- manual results -->
+            <div class="space-y-4" x-show="sprintTab === 'manual'">
+              <form class="card card-pad grid gap-3 md:grid-cols-6" @submit.prevent="addManualResult()">
+                <div class="md:col-span-2"><label class="label">Test case *</label>
+                  <input class="input" list="manual-ids" x-model="manualForm.id" placeholder="TC-LOGIN-26" required>
+                  <datalist id="manual-ids"><template x-for="c in manualCandidates()"><option :value="c.id" x-text="`${c.title} (${c.automate}, ${c.priority})`"></option></template></datalist></div>
+                <div><label class="label">Result *</label><select class="input" x-model="manualForm.result"><option value="pass">pass</option><option value="fail">fail</option><option value="blocked">blocked</option></select></div>
+                <div><label class="label">Build</label><input class="input" x-model="manualForm.build"></div>
+                <div><label class="label">Bug <span x-show="manualForm.result === 'fail'" class="text-rose-500">*</span></label><input class="input" x-model="manualForm.bug" placeholder="BK-45"></div>
+                <div class="md:col-span-5"><label class="label">Notes</label><input class="input" x-model="manualForm.notes" placeholder="what was checked, on which device…"></div>
+                <div class="flex items-end"><button class="btn-primary w-full">Record</button></div>
+              </form>
+              <div class="card overflow-x-auto">
+                <table class="data-table">
+                  <thead><tr><th>ID</th><th>Build</th><th>Result</th><th>Tested by</th><th>Date</th><th>Bug</th><th>Notes</th></tr></thead>
+                  <tbody>
+                    <template x-for="(r, i) in (sprint.manual.rows || []).filter(r => r.id)" :key="i">
+                      <tr><td class="font-semibold" x-text="r.id"></td><td x-text="r.build"></td><td><span class="badge" :class="resultBadge(r.result)" x-text="r.result"></span></td><td x-text="r['tested by']"></td><td x-text="r.date"></td><td x-text="r.bug"></td><td class="text-xs" x-text="r.notes"></td></tr>
+                    </template>
+                  </tbody>
+                </table>
+                <p class="muted p-5" x-show="!(sprint.manual.rows || []).filter(r => r.id).length">No manual results yet. Test the cases that can't be automated by hand and record them here.</p>
+              </div>
+            </div>
+
+            <!-- generic tracker tables: differences, questions, builds, bugs -->
+            <template x-for="t in [
+              { id: 'differences', edit: ['decision'], help: 'Decision: Closed · Accept (then Update tests) · the Jira bug key (then knownBug)' },
+              { id: 'questions', edit: ['answer', 'outcome'], help: 'Rows saying “Ask again” or “Not answered” count as open in the sign-off report.' },
+              { id: 'builds', edit: ['smoke'], help: 'One row per build received. Smoke: accepted / rejected.' },
+              { id: 'bugs', edit: ['status'], help: 'Bugs raised in Jira this sprint.' },
+            ]" :key="t.id">
+              <div class="space-y-3" x-show="sprintTab === t.id">
+                <div class="card overflow-x-auto">
+                  <table class="data-table">
+                    <thead><tr><template x-for="c in sprint.tables[t.id].columns"><th x-text="c"></th></template></tr></thead>
+                    <tbody>
+                      <template x-for="(row, i) in sprintRows(t.id)" :key="i">
+                        <tr>
+                          <template x-for="c in sprint.tables[t.id].columns">
+                            <td class="text-sm" :class="['jira', '#', 'date', 'jira bug', 'version'].includes(c) && 'whitespace-nowrap'">
+                              <template x-if="t.edit.includes(c)">
+                                <form class="flex min-w-48 gap-1" @submit.prevent="saveCell(t.id, row[{ differences: '#', questions: 'question', builds: 'date', bugs: 'jira bug' }[t.id]], c)">
+                                  <input class="input py-1 text-xs" x-model="cellEdits[cell(t.id, row[{ differences: '#', questions: 'question', builds: 'date', bugs: 'jira bug' }[t.id]], c, row[c])]">
+                                  <button class="btn-secondary btn-sm">Save</button>
+                                </form>
+                              </template>
+                              <span x-show="!t.edit.includes(c)" x-text="row[c]"></span>
+                            </td>
+                          </template>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+                <form class="card card-pad space-y-3" @submit.prevent="addSprintRow(t.id)">
+                  <div class="h-card">Add a row</div>
+                  <div class="grid gap-3 md:grid-cols-3">
+                    <template x-for="c in sprint.tables[t.id].columns">
+                      <div><label class="label" x-text="c"></label><input class="input" x-model="(rowForm[t.id] ??= {})[c]"></div>
+                    </template>
+                  </div>
+                  <div class="flex items-center justify-between"><p class="help" x-text="t.help"></p><button class="btn-primary">Add</button></div>
+                </form>
+              </div>
+            </template>
+          </div>
+        </template>
+        <div class="card card-pad" x-show="!sprintList.length"><div class="h-card">No sprint yet</div><p class="muted">Start sprint 01 with the button above.</p></div>
+      </section>
+
+      <!-- ═════════════ RUN TESTS ═════════════ -->
+      <section x-show="page === 'run'" class="space-y-6">
+        <div><h1 class="h-page">Run tests</h1><p class="muted" x-text="`App ${ctx.app || '—'}: choose what to run, then watch it live.`"></p></div>
+        <div class="grid gap-6 xl:grid-cols-3">
+          <form class="card card-pad space-y-4" @submit.prevent="startRun()">
+            <div>
+              <label class="label">What to run</label>
+              <div class="grid grid-cols-2 gap-2">
+                <template x-for="s in [['all','Everything'],['smoke','Smoke'],['regression','Regression'],['story','One story'],['sprint','Sprint'],['ids','Test case IDs'],['spec','Spec file'],['tag','Tag']]">
+                  <button type="button" class="btn-sm btn" :class="runForm.scope === s[0] ? 'bg-brand-500 text-white' : 'border border-slate-300 bg-white'" @click="runForm.scope = s[0]; runForm.value = ''" x-text="s[1]"></button>
+                </template>
+              </div>
+            </div>
+            <div x-show="runForm.scope === 'story'"><label class="label">Story</label>
+              <select class="input" x-model="runForm.value"><option value="">Choose…</option><template x-for="s in runOptions.stories"><option :value="s.jira" x-text="`${s.jira} · ${s.feature}`"></option></template></select></div>
+            <div x-show="runForm.scope === 'sprint'"><label class="label">Sprint</label>
+              <select class="input" x-model="runForm.value"><option value="">Choose…</option><template x-for="s in runOptions.sprints"><option :value="s" x-text="`Sprint ${s}`"></option></template></select></div>
+            <div x-show="runForm.scope === 'spec'"><label class="label">Spec file</label>
+              <select class="input" x-model="runForm.value"><option value="">Choose…</option><template x-for="s in runOptions.specs"><option :value="s" x-text="s.replace(`apps/${ctx.app}/tests/`, '')"></option></template></select></div>
+            <div x-show="runForm.scope === 'tag'"><label class="label">Tag</label>
+              <select class="input" x-model="runForm.value"><option value="">Choose…</option><template x-for="t in runOptions.tags"><option :value="t" x-text="t"></option></template></select></div>
+            <div x-show="runForm.scope === 'ids'"><label class="label">Test case IDs</label>
+              <input class="input" x-model="runForm.value" placeholder="TC-LOGIN-01, TC-FP-05" list="tc-ids">
+              <datalist id="tc-ids"><template x-for="t in runOptions.testCases"><option :value="t.id" x-text="t.title"></option></template></datalist></div>
+
+            <div><label class="label">Browsers / devices</label>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="p in runOptions.projects">
+                  <button type="button" class="btn-sm btn" :class="runForm.projects.includes(p) ? 'bg-brand-500 text-white' : 'border border-slate-300 bg-white'" @click="toggle(runForm.projects, p)" x-text="p"></button>
+                </template>
+              </div><p class="help">None selected = all of them.</p></div>
+            <div class="grid grid-cols-3 gap-2">
+              <div><label class="label">Environment</label><select class="input" x-model="runForm.environment"><template x-for="e in runOptions.environments"><option :value="e" x-text="e" :selected="e === runForm.environment"></option></template></select></div>
+              <div><label class="label">Build</label><input class="input" x-model="runForm.build" placeholder="v1.2.0"></div>
+              <div><label class="label">Sprint</label><input class="input" x-model="runForm.sprint" placeholder="01"></div>
+            </div>
+            <details class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <summary class="cursor-pointer font-medium text-slate-700">Advanced</summary>
+              <div class="mt-3 grid grid-cols-2 gap-2">
+                <div><label class="label">Parallel browsers</label><input class="input" type="number" min="1" max="16" x-model="runForm.workers" placeholder="auto"></div>
+                <div><label class="label">Retries</label><input class="input" type="number" min="0" max="3" x-model="runForm.retries" placeholder="default"></div>
+                <label class="col-span-2 flex items-center gap-2"><input type="checkbox" x-model="runForm.headed"> Show the browser while testing</label>
+              </div>
+            </details>
+            <button class="btn-primary w-full" :disabled="job?.status === 'running' || !ctx.app || (['story','sprint','spec','tag','ids'].includes(runForm.scope) && !runForm.value)">
+              <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z"/></svg> Start run
+            </button>
+          </form>
+
+          <div class="card card-pad space-y-4 xl:col-span-2">
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="h-card mr-auto" x-text="job ? job.title : 'Live output'"></div>
+              <span class="badge" :class="jobBadge(job?.status)" x-text="job?.status ?? 'idle'"></span>
+              <button class="btn-danger btn-sm" x-show="job?.status === 'running'" @click="stopJob()">Stop</button>
+            </div>
+            <div x-show="job" class="space-y-1">
+              <div class="flex justify-between text-xs text-slate-500"><span x-text="progress.total ? `${progress.done} of ${progress.total} tests done` : 'Starting…'"></span><span x-text="`${progressPct()}%`"></span></div>
+              <div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-brand-500 transition-all" :style="`width:${progressPct()}%`"></div></div>
+            </div>
+            <pre id="job-log" class="log"><template x-for="(line, i) in jobLines" :key="i"><div :class="/✘|\bfailed\b|Error/.test(line) ? 'text-rose-300' : /^\s+ok\b|passed/.test(line) ? 'text-emerald-300' : ''" x-text="line || ' '"></div></template><span x-show="!jobLines.length" class="text-slate-400">Start a run to see its output here.</span></pre>
+            <template x-if="lastRun">
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class="badge" :class="runStatus(lastRun).cls" x-text="runStatus(lastRun).text"></span>
+                  <span class="text-sm"><b x-text="lastRun.passed"></b> passed · <b x-text="lastRun.failed"></b> failed · <b x-text="lastRun.pendingDecisions ?? 0"></b> PO pending · <b x-text="lastRun.knownBugs ?? 0"></b> known bugs</span>
+                  <a class="btn-primary btn-sm ml-auto" :href="lastRun.reportUrl" target="_blank" x-show="lastRun.reportUrl">Open report ↗</a>
+                </div>
+                <template x-if="lastRun.diff?.newFailures?.length">
+                  <div class="mt-3 text-sm"><b class="text-rose-600">New failures since the previous run:</b>
+                    <ul class="mt-1 list-disc pl-5 text-slate-600"><template x-for="f in lastRun.diff.newFailures"><li x-text="f"></li></template></ul></div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════ REPORTS ═════════════ -->
+      <section x-show="page === 'reports'" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Reports</h1><p class="muted">Every saved run of this app. Reports open as single files you can send to developers.</p></div>
+          <button class="btn-secondary" @click="buildLiveReport()" :disabled="job?.status === 'running'">Build live Allure report</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="p in reports.pages.filter(p => p.exists)">
+            <a class="btn-secondary btn-sm" :href="p.url" target="_blank" x-text="`${p.name} ↗`"></a>
+          </template>
+        </div>
+        <div class="card">
+          <div class="p-4"><input class="input max-w-sm" placeholder="Filter by date, status, tester, build…" x-model="reportFilter"></div>
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead><tr><th>When</th><th>Status</th><th>Passed</th><th>Failed</th><th>Known</th><th>PO pending</th><th>vs previous</th><th>Build</th><th>Tested by</th><th>Duration</th><th></th></tr></thead>
+              <tbody>
+                <template x-for="r in filteredRuns()" :key="r.run">
+                  <tr class="cursor-pointer hover:bg-slate-50" @click="openRun(r)">
+                    <td x-text="fmtDate(r.started)"></td>
+                    <td><span :class="runStatus(r).cls" x-text="runStatus(r).text"></span></td>
+                    <td class="font-semibold text-emerald-600" x-text="r.passed"></td>
+                    <td class="font-semibold" :class="r.failed ? 'text-rose-600' : 'text-slate-400'" x-text="r.failed"></td>
+                    <td x-text="r.knownBugs ?? '—'"></td>
+                    <td x-text="r.pendingDecisions ?? '—'"></td>
+                    <td class="text-xs" x-text="r.diff ? [r.diff.newFailures.length ? `+${r.diff.newFailures.length} new` : '', r.diff.fixed.length ? `${r.diff.fixed.length} fixed` : ''].filter(Boolean).join(', ') || 'same' : '—'"></td>
+                    <td x-text="r.build || '—'"></td>
+                    <td x-text="r.testedBy || '—'"></td>
+                    <td x-text="fmtDuration(r.durationSec)"></td>
+                    <td><a class="font-semibold text-brand-600 hover:underline" :href="r.reportUrl" target="_blank" x-show="r.reportUrl" @click.stop>Open ↗</a></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <p class="muted p-5" x-show="!filteredRuns().length">No saved runs.</p>
+          </div>
+        </div>
+        <div class="card card-pad" x-show="selectedRun">
+          <div class="flex items-center justify-between">
+            <div class="h-card" x-text="`Run of ${fmtDate(selectedRun?.started)}`"></div>
+            <button class="btn-secondary btn-sm" @click="selectedRun = null">Close</button>
+          </div>
+          <div class="mt-2 text-sm text-slate-600"><code x-text="selectedRun?.command || '(all tests)'"></code></div>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <div class="mb-2 text-sm font-semibold">Videos of failures</div>
+              <p class="muted" x-show="!selectedRun?.evidence?.length">None (no failures, or evidence is off).</p>
+              <template x-for="e in (selectedRun?.evidence || []).filter(e => e.name.endsWith('.webm'))">
+                <div class="mb-3"><div class="mb-1 text-xs text-slate-500" x-text="e.name"></div><video class="w-full rounded-lg border border-slate-200" controls preload="none" :src="e.url"></video></div>
+              </template>
+            </div>
+            <div>
+              <div class="mb-2 text-sm font-semibold">Changes since the previous run</div>
+              <template x-if="selectedRun?.diff">
+                <div class="space-y-1 text-sm">
+                  <div><b x-text="selectedRun.diff.newFailures.length"></b> new failure(s) · <b x-text="selectedRun.diff.fixed.length"></b> fixed · <b x-text="selectedRun.diff.stillFailing"></b> still failing</div>
+                  <ul class="list-disc pl-5 text-rose-600"><template x-for="f in selectedRun.diff.newFailures"><li x-text="f"></li></template></ul>
+                </div>
+              </template>
+              <p class="muted" x-show="!selectedRun?.diff">No earlier run to compare with.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════ ACTIVITY (jobs) ═════════════ -->
+      <section x-show="page === 'jobs'" class="space-y-6">
+        <div><h1 class="h-page">Activity</h1><p class="muted">Everything started from QA Studio: test runs, reports, checks.</p></div>
+        <div class="grid gap-6 lg:grid-cols-5">
+          <div class="card lg:col-span-2">
+            <ul class="divide-y divide-slate-100">
+              <template x-for="j in jobs" :key="j.id">
+                <li class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50" @click="openJob(j.id)" :class="selectedJob?.id === j.id && 'bg-brand-50'">
+                  <span class="badge" :class="jobBadge(j.status)" x-text="j.status"></span>
+                  <div class="min-w-0 flex-1"><div class="truncate text-sm font-medium" x-text="j.title"></div><div class="text-xs text-slate-500" x-text="`${fmtDate(j.startedAt)} · ${j.by || '—'}`"></div></div>
+                </li>
+              </template>
+              <li class="muted p-4" x-show="!jobs.length">Nothing yet.</li>
+            </ul>
+          </div>
+          <div class="card card-pad lg:col-span-3" x-show="selectedJob">
+            <div class="mb-3 flex items-center gap-2">
+              <div class="h-card mr-auto" x-text="selectedJob?.title"></div>
+              <span class="badge" :class="jobBadge(selectedStatus())" x-text="selectedStatus()"></span>
+              <button class="btn-danger btn-sm" x-show="watching() && job.status === 'running'" @click="stopJob()">Stop</button>
+            </div>
+            <div class="mb-2 text-xs text-slate-500"><code x-text="selectedJob?.command"></code></div>
+            <pre class="log"><template x-for="(line, i) in jobOutput()" :key="i"><div x-text="line || ' '"></div></template></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- toasts -->
+<div class="fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2">
+  <template x-for="t in toasts" :key="t.id">
+    <div class="rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg" :class="t.kind === 'bad' ? 'bg-rose-600' : 'bg-brand-900'" x-text="t.message"></div>
+  </template>
+</div>
+</body>
+</html>

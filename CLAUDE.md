@@ -71,6 +71,7 @@ scripts/             new-app, tc-coverage, trace-check, sprint (new/report), run
                      req-track, claude-cmd, brand-report, redact-results
 .github/             CI workflow (checks on every PR, tests on demand), CODEOWNERS, PR template
 .githooks/           pre-commit: type check + lint (enabled by npm install)
+studio/              QA Studio (npm run studio): node:http server + api/*.mjs, Tailwind + Alpine.js pages in public/
 ```
 Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
 
@@ -133,6 +134,8 @@ Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
 - Never print or commit secrets from `.env` files (they hold QA test accounts only).
 
 ## Commands
+- `npm run studio`: QA Studio, the web UI of the framework on this computer (studio/: setup, apps, requirements, test
+  cases, sprints, runs, reports as forms; same files as the CLI). Keep its forms writing the same Markdown columns.
 - `npx tsc --noEmit`: type check (run after every change) · `npm run lint`: framework rules (no test.only, no waitForTimeout, fixtures imports)
 - `npx playwright test <file> --project=web-chrome`: run one spec
 - `npm run test:web` · `test:mobile-web` · `test:android` · `test:ios` · `test:api` · `test:smoke` · `test:regression`

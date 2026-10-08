@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "setup": "playwright install chromium webkit",
+    "studio": "node studio/server.mjs",
     "test": "playwright test",
     "test:web": "playwright test --project=web-*",
     "test:mobile-web": "playwright test --project=mobile-web-android --project=mobile-web-ios",
@@ -57,12 +58,14 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
+    "@tailwindcss/cli": "^4.3.3",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^26.6.4",
     "@types/nodemailer": "^8.0.2",
     "allure": "^3.20.0",
     "allure-js-commons": "^3.13.0",
     "allure-playwright": "^3.13.0",
+    "alpinejs": "^3.17.4",
     "dotenv": "^18.0.5",
     "imapflow": "^2.2.6",
     "mailparser": "^3.9.36",

@@ -1,5 +1,8 @@
 // Creates the folder skeleton for a new application under apps/<name>.
 // Usage: npm run new:app -- <name> [--platforms web,mobile-web,android,ios,api]
+//   optional (QA Studio's New app form fills them): --base-url <url> --test-id <attribute>
+//   --browsers chrome,firefox,safari,edge --locale en-GB --timezone Europe/London
+//   --roles admin:ADMIN_EMAIL:ADMIN_PASSWORD,user:USER_EMAIL:USER_PASSWORD   (first role = default)
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -7,6 +10,35 @@ const [name, ...rest] = process.argv.slice(2);
 const platformsArg = rest[rest.indexOf('--platforms') + 1];
 const platforms = rest.includes('--platforms') && platformsArg ? platformsArg.split(',') : ['web', 'mobile-web'];
 const valid = ['web', 'mobile-web', 'android', 'ios', 'api'];
+const flag = (name) => (rest.includes(`--${name}`) ? rest[rest.indexOf(`--${name}`) + 1] : undefined);
+const baseUrl = flag('base-url');
+const testId = flag('test-id');
+const browsers = flag('browsers')?.split(',').filter(Boolean);
+const locale = flag('locale');
+const timezone = flag('timezone');
+/** role:USERNAME_SETTING:PASSWORD_SETTING */
+const roles = (flag('roles') ?? '')
+  .split(',')
+  .filter(Boolean)
+  .map((r) => {
+    const [role, usernameEnv, passwordEnv] = r.split(':');
+    return { role, usernameEnv, passwordEnv };
+  });
+const badRole = roles.find((r) => !/^[a-z][a-zA-Z0-9]*$/.test(r.role ?? '') || !/^[A-Z][A-Z0-9_]*$/.test(r.usernameEnv ?? '') || !/^[A-Z][A-Z0-9_]*$/.test(r.passwordEnv ?? ''));
+if (badRole) {
+  console.error('--roles: role:USERNAME_SETTING:PASSWORD_SETTING, e.g. admin:ADMIN_EMAIL:ADMIN_PASSWORD (role in camelCase, settings in UPPER_CASE)');
+  process.exit(1);
+}
+if (baseUrl && !/^https?:\/\/[^\s'"]+$/.test(baseUrl)) {
+  console.error('--base-url must start with http:// or https://');
+  process.exit(1);
+}
+const unknownBrowser = browsers?.find((b) => !['chrome', 'firefox', 'safari', 'edge'].includes(b));
+if (unknownBrowser) {
+  console.error(`Unknown browser "${unknownBrowser}". Use: chrome, firefox, safari, edge`);
+  process.exit(1);
+}
+const safe = (v) => String(v).replace(/[^\w\-./:+]/g, '');
 
 if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
   console.error('Usage: npm run new:app -- <name> [--platforms web,mobile-web,android,ios,api]');
@@ -59,8 +91,10 @@ ${
   hasWeb
     ? `
   web: {
-    baseUrl: 'https://qa.example.com', // TODO: QA URL (BASE_URL in .env overrides it)
-    testIdAttribute: 'data-testid', // attribute your developers use for test IDs
+    baseUrl: '${baseUrl ? safe(baseUrl) : 'https://qa.example.com'}',${baseUrl ? '' : ' // TODO: QA URL'} // BASE_URL in .env overrides it
+    testIdAttribute: '${safe(testId || 'data-testid')}', // attribute your developers use for test IDs${
+      browsers?.length ? `\n    browsers: ${JSON.stringify(browsers).replace(/,/g, ', ').replace(/"/g, "'")},` : ''
+    }${locale ? `\n    locale: '${safe(locale)}',` : ''}${timezone ? `\n    timezoneId: '${safe(timezone)}',` : ''}
   },
 
   // Defaults for verify.accessible() / verify.performance() / verify.looksLike()
@@ -72,12 +106,13 @@ ${
 `
     : ''
 }
-  // Uncomment when the app has a login. Each role's account comes from .env.
+  // Uncomment when the login page exists (/qa-automate creates it). Each role's account comes from .env.
   // auth: {
-  //   defaultRole: 'user',
+  //   defaultRole: '${roles[0]?.role ?? 'user'}',
   //   roles: {
-  //     user: { usernameEnv: 'USER_USERNAME', passwordEnv: 'USER_PASSWORD' },
-  //     admin: { usernameEnv: 'ADMIN_USERNAME', passwordEnv: 'ADMIN_PASSWORD' },
+${(roles.length ? roles : [{ role: 'user', usernameEnv: 'USER_USERNAME', passwordEnv: 'USER_PASSWORD' }, { role: 'admin', usernameEnv: 'ADMIN_USERNAME', passwordEnv: 'ADMIN_PASSWORD' }])
+  .map((r) => `  //     ${r.role}: { usernameEnv: '${r.usernameEnv}', passwordEnv: '${r.passwordEnv}' },`)
+  .join('\n')}
   //   },${
     hasWeb
       ? `
@@ -132,8 +167,7 @@ export { expect } from '@core/fixtures';
 # QA test accounts only — never production credentials. Never commit .env files.
 ${hasWeb ? '\n# BASE_URL=\n# TEST_ID_ATTRIBUTE=\n' : ''}
 # Accounts per role (names used in app.config.ts → auth.roles)
-# USER_USERNAME=
-# USER_PASSWORD=
+${roles.length ? roles.map((r) => `${r.usernameEnv}=\n${r.passwordEnv}=`).join('\n') : '# USER_USERNAME=\n# USER_PASSWORD='}
 
 # API_BASE_URL=
 # API_TOKEN=

@@ -29,6 +29,32 @@ where files live. Templates: `templates/sprint.md`, `templates/dev-handover.md`.
 
 ---
 
+## QA Studio: the framework without code
+
+```bash
+npm install
+npm run studio          # opens QA Studio in your browser (keep the window open; Ctrl+C to stop)
+```
+
+Everything a QA does, as screens and forms, on your own computer only:
+
+| Screen | What you do there |
+| --- | --- |
+| **Setup** | Your name and email, active app, environment, build and sprint; System check (browsers, Claude, accounts, saved logins) with fix buttons |
+| **Apps** | Create an app (form), edit each environment's URLs and test accounts (passwords are write-only, never shown) |
+| **Requirements** | Status of every story (changed / needs test cases), new requirement from the template, upload developer notes, view changes since the baseline, **Generate test cases** / **Update tests** (Claude) |
+| **Test cases** | All test cases with their latest result, change Automate (yes / later / no / retired), coverage, traceability, **Automate new cases** / **Fix failing tests** (Claude) |
+| **Sprints** | Start a sprint, record manual test results, PO decisions, questions, builds and bugs, the sign-off report, and sign-off per story |
+| **Run tests** | Everything, smoke, regression, one story, a sprint, test-case IDs, a spec or a tag; browsers, environment, build; live output and Stop |
+| **Reports** | Every saved run (filter, compare with the previous run, failure videos), the live Allure report, flaky tests, traceability |
+| **Activity** | Every command started from the Studio, with its output |
+
+The Studio only reads and writes the same files as the command line (`.env`, Markdown, reports), so the CLI,
+Claude and git keep working exactly as described below. It listens on 127.0.0.1 only and opens with a one-time
+link from the terminal; secrets in `.env` files never reach the browser.
+
+---
+
 ## 1. Setup (once per machine)
 
 ```bash
