@@ -65,8 +65,34 @@ export const routes = [
     path: /^\/api\/requirements$/,
     handler: ({ query }) => {
       const app = requireApp(query.app || currentContext().app);
-      const fromDev = walk(`apps/${app}/sprints`, '.md').map(rel).filter((f) => f.includes('/from-dev/'));
-      return { app, requirements: requirements(app), fromDev };
+      const reqs = requirements(app);
+      const fromDev = walk(`apps/${app}/sprints`, '.md')
+        .map(rel)
+        .filter((f) => f.includes('/from-dev/'))
+        .map((file) => {
+          const m = file.match(/sprints\/sprint-(\d+)\/from-dev\/(\d{4}-\d{2}-\d{2})\/(.+)$/);
+          const text = fs.readFileSync(file, 'utf8');
+          // which story: the key in the file name, the file's own Jira row, or the module name matching a
+          // requirement (advertiser-accounts.md → BK-7-advertiser-accounts.md); never a key merely mentioned in the text
+          const name = path.basename(file);
+          const byModule = reqs.find((r) => path.basename(r.file).toLowerCase().endsWith(`-${name.toLowerCase()}`));
+          const jira =
+            name.match(/[A-Z][A-Z0-9]+-\d+/)?.[0] ??
+            text.match(/^\|\s*Jira(?: key)?\s*\|\s*([A-Z][A-Z0-9]+-\d+)\s*\|/im)?.[1] ??
+            byModule?.jira ??
+            '';
+          const requirement = reqs.find((r) => r.jira && r.jira === jira);
+          // merged = the requirement's change log names this delivery (from-dev/<date>)
+          const merged = !!requirement && fs.readFileSync(requirement.file, 'utf8').includes(`from-dev/${m?.[2]}`);
+          return { file, sprint: m?.[1] ?? '', date: m?.[2] ?? '', name: m?.[3] ?? path.basename(file), jira, requirement: requirement?.file ?? '', merged };
+        })
+        .sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+      for (const r of reqs) {
+        const notes = fromDev.filter((d) => d.requirement === r.file);
+        r.devNotes = notes.length;
+        r.unmerged = notes.filter((d) => !d.merged).length;
+      }
+      return { app, requirements: reqs, fromDev };
     },
   },
   {
@@ -198,18 +224,22 @@ export const routes = [
   // ───── Claude actions ─────
   {
     method: 'POST',
-    path: /^\/api\/claude\/(?<command>qa-testcases|qa-automate|qa-update|qa-fix)$/,
+    path: /^\/api\/claude\/(?<command>qa-testcases|qa-automate|qa-update|qa-fix|qa-merge)$/,
     handler: ({ params, body }) => {
       const app = requireApp(body.app || currentContext().app);
       const command = params.command;
       let target = '';
       if (command === 'qa-testcases' || command === 'qa-update') target = appFile(app, body.target, 'requirements');
       if (command === 'qa-automate') target = appFile(app, body.target, 'test-cases');
+      if (command === 'qa-merge') {
+        target = appFile(app, body.target, 'sprints');
+        if (!target.includes('/from-dev/')) throw bad('Choose a developer file (sprints/.../from-dev/)');
+      }
       if (command === 'qa-fix' && body.target) {
         target = String(body.target);
         if (!/^@[\w-]+$/.test(target)) target = appFile(app, target, 'tests', '.ts');
       }
-      const titles = { 'qa-testcases': 'Generate test cases', 'qa-automate': 'Automate test cases', 'qa-update': 'Update tests for a changed requirement', 'qa-fix': 'Investigate failing tests' };
+      const titles = { 'qa-testcases': 'Generate test cases', 'qa-automate': 'Automate test cases', 'qa-update': 'Update tests for a changed requirement', 'qa-fix': 'Investigate failing tests', 'qa-merge': 'Merge developer notes into the requirement' };
       return startJob({
         kind: 'claude',
         title: `${titles[command]}${target ? `: ${path.basename(target)}` : ''}`,

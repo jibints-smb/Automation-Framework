@@ -28,7 +28,9 @@ each test's Owner, the saved-runs list and `req:baseline` (falls back to the git
 - Build day: developers send one MD per story in their own format + build details + credentials
   (checklist: `templates/dev-handover.md`). Save their MDs unchanged in
   `sprints/sprint-<NN>/from-dev/<YYYY-MM-DD>/`; credentials only in `apps/<app>/.env`. Merge each dev MD into its
-  requirement file (keep the template structure, add a Change log row), then `req:status` → `req:diff` → `/qa-update`.
+  requirement file with `/qa-merge <dev md>` (keeps the template, story stays the expected result, build differences
+  become Dn rows, adds a Change log row naming from-dev/<date>), QA reviews it, then `req:diff` → `/qa-update`.
+  QA Studio → Requirements shows each dev MD as Merged / Not merged with the same actions.
 - Never organise `requirements/` or `test-cases/` by sprint (baselines are keyed by path); sprint bookkeeping
   goes in `sprints/sprint-<NN>.md` (template: `templates/sprint.md`; `sprint:report` reads its tables, keep the columns).
 - Cases that aren't automated are tested by hand and recorded in `sprint-<NN>/manual-results.md` (pass/fail/blocked).
@@ -147,7 +149,7 @@ Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
 - `npm run trace:check [-- <app>] [--strict]`: test cases vs. real tests (IDs, titles, tags, retired) + traceability
   matrix `reports/<app>/traceability.html/.csv` · `npm run sprint:new|sprint:report -- <NN>` ·
   `npm run test:story -- <JIRA>` / `test:sprint -- <NN>`: run one story's / one sprint's specs
-- `npm run qa:testcases -- <md>` · `qa:automate -- <testcases.md>` · `qa:fix -- [spec|@tag]` · `qa:update -- <md>`: the
+- `npm run qa:testcases -- <md>` · `qa:automate -- <testcases.md>` · `qa:fix -- [spec|@tag]` · `qa:update -- <md>` · `qa:merge -- <dev md>`: the
   /qa-* commands from the terminal via the Claude CLI (`scripts/claude-cmd.mjs`; `--chat` interactive, `--dry-run`)
 - `npm run new:app -- <name> --platforms web,android`: new application
 - `npm run report`: build and open the Allure report · `npm run reports`: every saved run (`reports/<app>/`, kept

@@ -76,6 +76,9 @@
       </div>
     </header>
 
+    <div x-show="restartNeeded" class="bg-amber-100 px-6 py-2 text-sm text-amber-900">
+      <b>QA Studio was updated.</b> Restart it to use the new version: press <b>Ctrl+C</b> in its terminal window, run <code>npm run studio</code> again, then reload this page.
+    </div>
     <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8">
 
       <!-- ═════════════ HOME ═════════════ -->
@@ -223,7 +226,7 @@
                     <div class="truncate text-xs text-slate-500" :title="c.detail" x-text="c.detail"></div>
                   </div>
                   <button class="btn-secondary btn-sm" x-show="c.fix" @click="fix(c.fix)"
-                          x-text="{ 'install-browsers': 'Install', 'refresh-logins': 'Refresh', 'mail-check': 'Test', setup: 'Fix', 'app-settings': 'Open' }[c.fix]"></button>
+                          x-text="{ 'install-browsers': 'Install', 'refresh-logins': 'Refresh', 'mail-check': 'Test', 'claude-check': 'Test', setup: 'Fix', 'app-settings': 'Open' }[c.fix]"></button>
                 </li>
               </template>
             </ul>
@@ -348,9 +351,24 @@
             <button class="btn-primary" @click="showNewReq = true">+ New requirement</button>
           </div>
         </div>
+        <ol class="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <template x-for="(s, i) in [
+            ['QA requirement', 'From the Jira story: requirements/ (the source of truth)'],
+            ['Test cases', 'Generate, then review them'],
+            ['Developer notes', 'Upload what developers send: kept unchanged in the sprint folder'],
+            ['Merge', 'Into the requirement: build differences become PO decisions'],
+            ['Update tests', 'Only the tests affected by the change'],
+            ['Run and sign off', 'Sprint report, then sign off each story'],
+          ]">
+            <li class="rounded-xl border border-slate-200 bg-white p-3">
+              <div class="flex items-center gap-2"><span class="grid h-6 w-6 place-items-center rounded-full bg-brand-500 text-xs font-bold text-white" x-text="i + 1"></span><span class="text-sm font-semibold text-brand-900" x-text="s[0]"></span></div>
+              <p class="mt-1 text-xs text-slate-500" x-text="s[1]"></p>
+            </li>
+          </template>
+        </ol>
         <div class="card overflow-x-auto">
           <table class="data-table">
-            <thead><tr><th>Jira</th><th>Requirement</th><th>QA stage</th><th>Status</th><th>Automated</th><th class="text-right">Actions</th></tr></thead>
+            <thead><tr><th>Jira</th><th>Requirement</th><th>QA stage</th><th>Status</th><th>Developer notes</th><th>Automated</th><th class="text-right">Actions</th></tr></thead>
             <tbody>
               <template x-for="r in reqs.requirements" :key="r.file">
                 <tr class="hover:bg-slate-50">
@@ -358,6 +376,10 @@
                   <td><div class="font-medium" x-text="r.title"></div><div class="text-xs text-slate-500" x-text="r.key"></div></td>
                   <td class="text-xs" x-text="r.stage ? `${r.stage.stage} · ${r.stage.date}${r.stage.by ? ` · ${r.stage.by}` : ''}` : 'not baselined'"></td>
                   <td><span class="badge" :class="reqBadge(r.status)" x-text="r.status"></span></td>
+                  <td class="text-xs">
+                    <span x-text="r.devNotes ? `${r.devNotes} received` : '—'"></span>
+                    <span class="badge-warn ml-1" x-show="r.unmerged" x-text="`${r.unmerged} to merge`"></span>
+                  </td>
                   <td x-text="r.automated"></td>
                   <td class="text-right">
                     <div class="flex flex-wrap justify-end gap-1">
@@ -374,15 +396,53 @@
           <p class="muted p-5" x-show="!reqs.requirements.length">No requirements yet. Create one from the template, or upload the developers' notes.</p>
         </div>
 
-        <div class="card card-pad" x-show="reqs.fromDev.length">
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="h-card mr-auto">Developer notes as received</div>
+        <div class="card">
+          <div class="flex flex-wrap items-center gap-3 p-5">
+            <div class="mr-auto">
+              <div class="h-card">Developer notes</div>
+              <p class="muted">Kept exactly as received in <code class="text-xs">sprints/sprint-NN/from-dev/&lt;date&gt;/</code>. Merge each into its story's requirement; never edit them.</p>
+            </div>
             <label class="text-sm text-slate-600">Uploads go to sprint <input class="input ml-1 inline w-16 py-1" x-model="uploadSprint"></label>
           </div>
-          <ul class="mt-3 divide-y divide-slate-100 text-sm">
-            <template x-for="f in reqs.fromDev" :key="f"><li class="flex items-center justify-between py-2"><span x-text="f.split('/sprints/')[1]"></span><button class="btn-secondary btn-sm" @click="view(f)">View</button></li></template>
-          </ul>
-          <p class="help">Merge each into its requirement file (keep the template, add a Change log row); the requirement then shows "changed" and "Update tests" updates only the affected tests.</p>
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead><tr><th>Received</th><th>Sprint</th><th>File</th><th>Story</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+              <tbody>
+                <template x-for="d in reqs.fromDev" :key="d.file">
+                  <tr class="hover:bg-slate-50">
+                    <td class="whitespace-nowrap" x-text="d.date"></td>
+                    <td x-text="d.sprint"></td>
+                    <td class="text-xs" x-text="d.name"></td>
+                    <td class="font-semibold" x-text="d.jira || '?'"></td>
+                    <td>
+                      <span class="badge-ok" x-show="d.merged">Merged</span>
+                      <span class="badge-warn" x-show="!d.merged && d.requirement">Not merged yet</span>
+                      <span class="badge-bad" x-show="!d.requirement">No requirement for this story</span>
+                    </td>
+                    <td class="text-right">
+                      <div class="flex flex-wrap justify-end gap-1">
+                        <button class="btn-secondary btn-sm" @click="view(d.file)">View</button>
+                        <button class="btn-secondary btn-sm" x-show="d.requirement" @click="compare(d)">Compare</button>
+                        <button class="btn-primary btn-sm" x-show="!d.merged && d.requirement" @click="claude('qa-merge', d.file)">Merge into requirement</button>
+                        <button class="btn-primary btn-sm" x-show="!d.requirement" @click="newRequirementFor(d.jira)">Create requirement</button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <p class="muted p-5" x-show="!reqs.fromDev.length">Nothing received yet. Use "Upload developer MD" when the developers deliver a build.</p>
+          </div>
+        </div>
+
+        <div id="compare" class="card card-pad space-y-3" x-show="compareView">
+          <div class="flex items-center justify-between gap-2"><div class="h-card">Developer notes vs QA requirement</div><button class="btn-secondary btn-sm" @click="compareView = null">Close</button></div>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <div><div class="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Developer notes (as received)</div>
+              <pre class="max-h-128 overflow-auto whitespace-pre-wrap rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5" x-text="compareView?.dev.content"></pre></div>
+            <div><div class="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-700">QA requirement (source of truth)</div>
+              <pre class="max-h-128 overflow-auto whitespace-pre-wrap rounded-xl border border-brand-200 bg-brand-50 p-4 text-xs leading-5" x-text="compareView?.req.content"></pre></div>
+          </div>
         </div>
 
         <div id="viewer" class="card card-pad space-y-3" x-show="viewer">
@@ -526,8 +586,23 @@
                   </template>
                 </tbody>
               </table>
-              <p class="muted p-5" x-show="!sprintRows('stories').length">No stories yet: add them to the Stories table of the sprint file.</p>
+              <p class="muted p-5" x-show="!sprintRows('stories').length">No stories yet: add the sprint's stories below.</p>
             </div>
+            <form class="card card-pad space-y-3" x-show="sprintTab === 'stories'" @submit.prevent="addStory()">
+              <div class="h-card">Add a story to this sprint</div>
+              <div class="grid gap-3 md:grid-cols-4">
+                <div><label class="label">Jira *</label><input class="input" x-model="storyForm.jira" placeholder="BK-3" pattern="[A-Z][A-Z0-9]+-\d+" required></div>
+                <div class="md:col-span-2"><label class="label">Story *</label><input class="input" x-model="storyForm.story" placeholder="Super Admin manages users" required></div>
+                <div><label class="label">Platform</label><select class="input" x-model="storyForm.platform"><option>web</option><option>mobile</option><option>api</option></select></div>
+                <div class="md:col-span-2"><label class="label">Requirement file</label>
+                  <select class="input" x-model="storyForm.requirement">
+                    <option value="">(not written yet)</option>
+                    <template x-for="r in reqs.requirements"><option :value="r.file.replace(`apps/${ctx.app}/`, '')" x-text="r.key"></option></template>
+                  </select></div>
+                <div class="md:col-span-2"><label class="label">Notes</label><input class="input" x-model="storyForm.notes"></div>
+              </div>
+              <div class="flex items-center justify-between"><p class="help">Write the requirement first (Requirements → New requirement); its test-cases file is filled in from it.</p><button class="btn-primary">Add story</button></div>
+            </form>
 
             <!-- manual results -->
             <div class="space-y-4" x-show="sprintTab === 'manual'">
@@ -588,7 +663,7 @@
                   <div class="h-card">Add a row</div>
                   <div class="grid gap-3 md:grid-cols-3">
                     <template x-for="c in sprint.tables[t.id].columns">
-                      <div><label class="label" x-text="c"></label><input class="input" x-model="(rowForm[t.id] ??= {})[c]"></div>
+                      <div><label class="label" x-text="c"></label><input class="input" x-model="rowForm[t.id][c]"></div>
                     </template>
                   </div>
                   <div class="flex items-center justify-between"><p class="help" x-text="t.help"></p><button class="btn-primary">Add</button></div>

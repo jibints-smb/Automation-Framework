@@ -29,6 +29,12 @@ export const SETTINGS = [
   { key: 'REPORT_ARCHIVE', label: 'Save every run', type: 'select', options: ['on', 'off'] },
   { key: 'REPORT_KEEP_DAYS', label: 'Keep saved runs (days)', help: '0 = forever', type: 'number', placeholder: '30 (default)' },
   { key: 'REPORT_KEEP_RUNS', label: 'Keep at most (runs per app)', help: '0 = no limit', type: 'number', placeholder: '50 (default)' },
+  {
+    key: 'NODE_EXTRA_CA_CERTS',
+    label: 'Company root certificate (only behind a company proxy)',
+    help: 'Path to the .pem file from IT, when Claude or tests fail with "self-signed certificate". Restart QA Studio after changing it.',
+    type: 'file',
+  },
   { key: 'REPORT_EVIDENCE', label: 'Evidence of failures', help: 'trace also records typed passwords: keep it inside the QA team.', type: 'select', options: ['video', 'trace', 'none'] },
 ];
 
@@ -45,6 +51,7 @@ function validate(def, value) {
   if (def.type === 'app' && !listApps().includes(v)) throw Object.assign(new Error(`Unknown app "${v}"`), { status: 400 });
   if (def.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw Object.assign(new Error(`${def.label}: not an email address`), { status: 400 });
   if (def.type === 'url' && !/^https?:\/\/\S+$/.test(v)) throw Object.assign(new Error(`${def.label}: must start with http:// or https://`), { status: 400 });
+  if (def.type === 'file' && !fs.existsSync(v)) throw Object.assign(new Error(`${def.label}: file not found: ${v}`), { status: 400 });
   if (def.type === 'number' && !/^\d{1,4}$/.test(v)) throw Object.assign(new Error(`${def.label}: a whole number`), { status: 400 });
   if (def.type === 'select' && !def.options.includes(v)) throw Object.assign(new Error(`${def.label}: one of ${def.options.join(', ')}`), { status: 400 });
   if (def.pattern && !new RegExp(def.pattern).test(v)) throw Object.assign(new Error(`${def.label}: invalid value`), { status: 400 });

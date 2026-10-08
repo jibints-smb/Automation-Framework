@@ -19,6 +19,8 @@ import {
   requirementHash,
   resolveApp,
   savedRuns,
+  testCasesSource,
+  walk,
 } from './lib.mjs';
 
 const [command, number, appHint] = process.argv.slice(2);
@@ -75,7 +77,9 @@ function sprintReport() {
 
   const rows = stories.map((s) => {
     const reqFile = s['requirement file'] ? path.join(appDir, s['requirement file']) : '';
-    const tcFile = s['test-cases file'] ? path.join(appDir, s['test-cases file']) : '';
+    // the Test-cases file column, or else the test-cases file whose Source row is this requirement
+    const linked = walk(path.join(appDir, 'test-cases'), '.testcases.md').find((f) => testCasesSource(f, appDir) === s['requirement file']);
+    const tcFile = s['test-cases file'] ? path.join(appDir, s['test-cases file']) : (linked ?? '');
     const key = (s['requirement file'] ?? '').replace(/^requirements\//, '');
     const base = baselines[key];
     const changed = base && reqFile && fs.existsSync(reqFile) && base.hash !== requirementHash(fs.readFileSync(reqFile, 'utf8'));

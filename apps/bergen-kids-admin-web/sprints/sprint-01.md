@@ -20,6 +20,7 @@
 | ------- | --------------------------- | -------- | --------------------------------------------- | -------------------------------------------- | ------- | --------- | ----- |
 | BK-1 | Super Admin login           | web      | requirements/web/BK-1-login.md             | test-cases/web/login.testcases.md            | cases (32) | 26/26 (20 pass; 6 fail on D1–D3) | D1–D3, D5 open; sign-out with "Keep me signed in" ticked sometimes keeps the session (to raise) |
 | BK-2 | Super Admin forgot password | web      | requirements/web/BK-2-forgot-password.md   | test-cases/web/forgot-password.testcases.md  | cases (46) | 31/31 (25 pass; 6 fail on D7–D11) | D6–D16 open; fixed code 1234; reset tests (TC-FP-35–37) wait for a 2nd admin account; the forgot-password API calls go from the browser (bergenapi…), so TC-FP-20/39 could be automated |
+| BK-7 | Super Admin can access advertiser account page and its features | web | requirements/web/BK-7-advertiser-accounts.md |  | drafted | 0/0 |  |
 
 ## Builds received
 <!-- One row per build. Smoke: npm run test:smoke on the build; "rejected" stops testing until a new build. -->
@@ -70,6 +71,9 @@
 | D14 | BK-2 | Reset signs out other sessions (new information) | Accept; the reset test runs last | |
 | D15 | BK-2 | Resend also disabled for 30 s when the screen opens | Accept | |
 | D16 | BK-2 | Unregistered email on the forgot screen shows "No admin account found with that email address." (found on staging; not in story or dev notes) | Security: reveals which emails are admins. Suggest a neutral message ("If this email is registered, a code has been sent") | |
+| D17 | BK-7 | Block dialog "<name> will lose access immediately. You can unblock them at any time." → build: "Block this account?" / "Blocking this advertiser account will immediately revoke the advertiser's access to the website and mobile app. Any live advertisements … hidden …", button "Block account" (staging 2026-10-08) | PO: fix build or story | |
+| D18 | BK-7 | Delete dialog "<name> will be permanently removed. This cannot be undone." → build: "Delete advertiser?" / "… permanently remove the account … pending advertisement requests … rejected & refunded …", button "Delete permanently" (staging 2026-10-08) | PO: fix build or story | |
+| D19 | BK-7 | Export as CSV → build downloads Excel "Advertiser_Accounts_<date>.xlsx", toast "Advertisers exported" (staging 2026-10-08) | PO: CSV or Excel? | |
 
 ## Bugs raised
 | Jira bug | Story | Severity | Status | Test (knownBug) |

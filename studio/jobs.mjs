@@ -4,6 +4,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { envValue } from './envfile.mjs';
 
 const require = createRequire(import.meta.url);
 const { loadSecrets, redactText } = require('../src/report/redact.cjs');
@@ -50,8 +51,8 @@ export function startJob({ kind, title, args, npm, env = {}, by = '', meta = {} 
   const id = `${Date.now().toString(36)}-${++counter}`;
   const command = npm ? `npm run ${npm}` : `node ${args.join(' ')}`;
   const child = npm
-    ? spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', npm], { cwd: process.cwd(), env: childEnv(env), shell: process.platform === 'win32' })
-    : spawn(process.execPath, args, { cwd: process.cwd(), env: childEnv(env) });
+    ? spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', npm], { cwd: process.cwd(), env: childEnv(env), shell: process.platform === 'win32', stdio: ['ignore', 'pipe', 'pipe'] })
+    : spawn(process.execPath, args, { cwd: process.cwd(), env: childEnv(env), stdio: ['ignore', 'pipe', 'pipe'] });
   /** @type {Job} */
   const job = { id, kind, title, command: redactText(command, secrets), status: 'running', startedAt: new Date().toISOString(), by, lines: [], listeners: new Set(), child, meta };
   jobs.set(id, job);
@@ -82,13 +83,29 @@ export function startJob({ kind, title, args, npm, env = {}, by = '', meta = {} 
 }
 
 function childEnv(extra) {
-  // no colours in the output; keep the user's environment (PATH, the framework's settings)
-  return { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1', ...extra };
+  // no colours in the output; keep the user's environment (PATH, the framework's settings), plus the company
+  // root certificate from Setup when the network needs one (Claude and the test browsers' API calls use it)
+  const ca = process.env.NODE_EXTRA_CA_CERTS || envValue('.env', 'NODE_EXTRA_CA_CERTS');
+  return { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1', ...(ca ? { NODE_EXTRA_CA_CERTS: ca } : {}), ...extra };
 }
+
+/** Errors a QA can't read on their own, with what to do (shown once per job). */
+const HINTS = [
+  {
+    match: /self[- ]signed certificate|unable to get local issuer certificate|certificate.*(proxy|corporate)/i,
+    text: '→ Your network inspects HTTPS (company proxy or antivirus). Ask IT for the company root certificate (.pem file), set its path in QA Studio → Setup → "Company root certificate", then restart QA Studio. Setup → System check → "Claude connection" tests it.',
+  },
+];
 
 function push(job, raw) {
   const line = redactText(raw, secrets);
   job.lines.push(line);
+  for (const hint of HINTS) {
+    if (hint.match.test(line) && !job.lines.includes(hint.text)) {
+      job.lines.push(hint.text);
+      for (const listener of job.listeners) listener({ type: 'line', line: hint.text });
+    }
+  }
   if (job.lines.length > MAX_LINES) job.lines.splice(0, job.lines.length - MAX_LINES);
   for (const listener of job.listeners) listener({ type: 'line', line });
 }

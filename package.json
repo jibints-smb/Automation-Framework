@@ -48,6 +48,7 @@
     "qa:automate": "node scripts/claude-cmd.mjs qa-automate",
     "qa:fix": "node scripts/claude-cmd.mjs qa-fix",
     "qa:update": "node scripts/claude-cmd.mjs qa-update",
+    "qa:merge": "node scripts/claude-cmd.mjs qa-merge",
     "docs:pdf": "node docs/build-pdf.mjs",
     "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks')}catch{}\""
   },

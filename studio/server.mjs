@@ -18,6 +18,20 @@ const { routes } = await import('./api/index.mjs');
 const { follow } = await import('./jobs.mjs');
 
 const PUBLIC = path.join(ROOT, 'studio', 'public');
+
+/**
+ * Fingerprint of the Studio's server code. Pages are read fresh on every request, but server code only at start:
+ * after a git pull or an update the page asks for a restart instead of mixing new pages with an old server.
+ */
+function codeFingerprint() {
+  const files = [path.join(ROOT, 'studio'), path.join(ROOT, 'studio', 'api'), path.join(ROOT, 'scripts')].flatMap((dir) =>
+    fs.readdirSync(dir).filter((f) => /\.(mjs|cjs)$/.test(f)).map((f) => path.join(dir, f)),
+  );
+  const hash = crypto.createHash('sha1');
+  for (const file of files.sort()) hash.update(file).update(fs.readFileSync(file));
+  return hash.digest('hex').slice(0, 12);
+}
+const STARTED_CODE = codeFingerprint();
 const TOKEN = crypto.randomBytes(24).toString('hex');
 const COOKIE = 'qa_studio';
 const args = process.argv.slice(2);
@@ -43,7 +57,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
     if (url.pathname.startsWith('/reports/')) return serveFile(res, path.join(ROOT, 'reports'), url.pathname.slice('/reports/'.length));
     if (url.pathname.startsWith('/live-report/')) return serveFile(res, path.join(ROOT, 'allure-report'), url.pathname.slice('/live-report/'.length) || 'index.html');
-    if (url.pathname === '/alpine.js') return serveFile(res, path.join(ROOT, 'node_modules', 'alpinejs', 'dist'), 'cdn.min.js');
+    // shipped with the Studio (studio/public/vendor): works even where npm skipped the dev dependencies
+    if (url.pathname === '/alpine.js') return serveFile(res, path.join(PUBLIC, 'vendor'), 'alpine.min.js');
     if (url.pathname === '/logo') return serveLogo(res);
     return serveFile(res, PUBLIC, url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
   } catch (error) {
@@ -60,6 +75,9 @@ async function api(req, res, url) {
     if (!stop) return res.end(`data: ${JSON.stringify({ type: 'end', missing: true })}\n\n`);
     req.on('close', stop);
     return;
+  }
+  if (url.pathname === '/api/health' && req.method === 'GET') {
+    return send(res, 200, JSON.stringify({ restartNeeded: codeFingerprint() !== STARTED_CODE }), 'application/json');
   }
   if (req.method !== 'GET' && req.headers['x-qa-studio'] !== '1') return send(res, 403, JSON.stringify({ error: 'Missing X-QA-Studio header' }), 'application/json');
 
@@ -127,11 +145,25 @@ function cookie(req, name) {
   return (req.headers.cookie ?? '').split(';').map((c) => c.trim().split('=')).find(([k]) => k === name)?.[1];
 }
 
-/** Tailwind CSS for the pages, compiled once at start (no build step to remember). */
+/**
+ * The pages' CSS. app.css is committed, so every machine has it; when the Tailwind CLI is installed (dev
+ * dependencies) it is rebuilt from tailwind.css at start, so style changes need no build step. A failed or
+ * impossible rebuild keeps the committed file.
+ */
 function buildCss() {
   const cli = path.join(ROOT, 'node_modules', '@tailwindcss', 'cli', 'dist', 'index.mjs');
-  const run = spawnSync(process.execPath, [cli, '-i', path.join(PUBLIC, 'tailwind.css'), '-o', path.join(PUBLIC, 'app.css'), '--minify'], { encoding: 'utf8' });
-  if (run.status !== 0) console.warn(`QA Studio: Tailwind build failed, pages may look unstyled.\n${run.stderr}`);
+  const css = path.join(PUBLIC, 'app.css');
+  if (!fs.existsSync(cli)) {
+    if (!fs.existsSync(css)) console.warn('QA Studio: studio/public/app.css is missing and Tailwind is not installed (npm install --include=dev): pages will look unstyled.');
+    return;
+  }
+  const tmp = path.join(PUBLIC, `app.${process.pid}.css`);
+  const run = spawnSync(process.execPath, [cli, '-i', path.join(PUBLIC, 'tailwind.css'), '-o', tmp, '--minify'], { encoding: 'utf8' });
+  if (run.status === 0 && fs.existsSync(tmp) && fs.statSync(tmp).size > 1000) fs.renameSync(tmp, css);
+  else {
+    fs.rmSync(tmp, { force: true });
+    console.warn(`QA Studio: Tailwind rebuild failed, using the committed app.css.\n${run.stderr ?? ''}`);
+  }
 }
 
 function openBrowser(url) {

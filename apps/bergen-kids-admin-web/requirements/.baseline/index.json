@@ -12,5 +12,22 @@
     "by": "QA Team",
     "note": "",
     "hash": "defe782611c0f7c5"
+  },
+  "web/BK-7-advertiser-accounts.md": {
+    "stage": "cases",
+    "date": "2026-10-08",
+    "by": "Jibin",
+    "note": "Test cases from QA's BK-7 spec (32 cases)",
+    "hash": "c88ebf8f32b54e63",
+    "history": [
+      {
+        "stage": "cases",
+        "date": "2026-10-08",
+        "by": "Jibin",
+        "note": "Test cases from QA's BK-7 spec (32 cases)",
+        "hash": "c88ebf8f32b54e63",
+        "at": "2026-10-08T14:14:29.295Z"
+      }
+    ]
   }
 }

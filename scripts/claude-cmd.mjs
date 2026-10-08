@@ -4,6 +4,8 @@
 //   npm run qa:automate  -- apps/<app>/test-cases/web/<file>.testcases.md
 //   npm run qa:fix       -- [spec path | @tag]
 //   npm run qa:update    -- apps/<app>/requirements/web/<file>.md
+//   npm run qa:merge     -- apps/<app>/sprints/sprint-NN/from-dev/<date>/<file>.md
+//   node scripts/claude-cmd.mjs check   is Claude reachable from here? (QA Studio → Setup → System check)
 //
 // Options (after the path):  --chat     open an interactive Claude session instead of a one-shot run
 //                            --dry-run  print the command without running it
@@ -19,6 +21,7 @@ const COMMANDS = {
   'qa-automate': { needsArg: true, hint: 'apps/<app>/test-cases/web/<file>.testcases.md' },
   'qa-update': { needsArg: true, hint: 'apps/<app>/requirements/web/<file>.md' },
   'qa-fix': { needsArg: false, hint: '[spec path | @tag]' },
+  'qa-merge': { needsArg: true, hint: 'apps/<app>/sprints/sprint-NN/from-dev/<date>/<file>.md' },
 };
 // One-shot runs can't stop to ask, so these are allowed up front: file edits (permission mode), the browser tool,
 // and the commands the /qa-* instructions run. Anything else is refused and Claude reports it.
@@ -45,6 +48,32 @@ const DISALLOWED_TOOLS = [
 ];
 
 const [command, ...rest] = process.argv.slice(2);
+
+// Behind a company proxy that inspects HTTPS, Claude needs the company's root certificate (from IT):
+// NODE_EXTRA_CA_CERTS in the root .env (QA Studio → Setup) is passed on to Claude.
+const rootEnv = fs.existsSync('.env') ? fs.readFileSync('.env', 'utf8') : '';
+const companyCa = process.env.NODE_EXTRA_CA_CERTS || rootEnv.match(/^NODE_EXTRA_CA_CERTS=(.+)$/m)?.[1].trim().replace(/^["']|["']$/g, '');
+const childEnv = { ...process.env, ...(companyCa ? { NODE_EXTRA_CA_CERTS: companyCa } : {}) };
+
+if (command === 'check') {
+  const claudeBin = findClaude();
+  const viaShell = /\.(cmd|bat)$/i.test(claudeBin);
+  const args = ['-p', 'Reply with just the word OK'];
+  const run = spawnSync(viaShell ? quote(claudeBin) : claudeBin, viaShell ? args.map(quote) : args, {
+    encoding: 'utf8',
+    shell: viaShell,
+    env: childEnv,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 120_000,
+  });
+  const out = `${run.stdout ?? ''}${run.stderr ?? ''}`.trim();
+  if (run.status === 0 && /\bOK\b/.test(out)) {
+    console.log(`Claude is reachable (${claudeBin}).`);
+    process.exit(0);
+  }
+  console.log(out || `Claude did not answer (${run.error?.message ?? `exit code ${run.status}`}).`);
+  process.exit(1);
+}
 const chat = rest.includes('--chat');
 const dryRun = rest.includes('--dry-run');
 const args = rest.filter((a) => a !== '--chat' && a !== '--dry-run');
@@ -73,8 +102,10 @@ console.log(chat ? `Opening Claude: ${prompt}` : `Running ${prompt}\nThis can ta
 // .cmd launchers (npm-installed CLI on Windows) only start through a shell; quote the arguments for it.
 const viaShell = /\.(cmd|bat)$/i.test(claude);
 const child = spawn(viaShell ? quote(claude) : claude, viaShell ? claudeArgs.map(quote) : claudeArgs, {
-  stdio: 'inherit',
+  // one-shot runs read nothing from the keyboard (otherwise Claude waits for input first)
+  stdio: chat ? 'inherit' : ['ignore', 'inherit', 'inherit'],
   shell: viaShell,
+  env: childEnv,
 });
 child.on('exit', (code) => process.exit(code ?? 1));
 child.on('error', (error) => fail(`Could not start Claude (${claude}): ${error.message}`));

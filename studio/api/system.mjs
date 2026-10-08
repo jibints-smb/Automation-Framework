@@ -37,6 +37,7 @@ export const routes = [
       add('Git', git.ok ? 'ok' : 'warn', git.ok ? git.out : 'Not found: needed to share work with the team');
       const claude = run('claude', ['--version']);
       add('Claude Code CLI', claude.ok ? 'ok' : 'warn', claude.ok ? claude.out.split('\n')[0] : 'Not found: needed for Generate test cases / Automate / Fix (install Claude Code)');
+      if (claude.ok) add('Claude connection', 'info', 'Test whether Claude can reach its service from QA Studio', 'claude-check');
       for (const b of browsers()) {
         add(`Browser: ${b.name}`, b.installed ? 'ok' : 'fail', b.installed ? 'Installed' : 'Not installed', b.installed ? undefined : 'install-browsers');
       }
@@ -75,6 +76,9 @@ export const routes = [
       }
       if (params.action === 'refresh-logins') {
         return startJob({ kind: 'test', title: 'Refresh saved logins', args: [PLAYWRIGHT, 'test', '--project=setup'], by });
+      }
+      if (params.action === 'claude-check') {
+        return startJob({ kind: 'system', title: 'Claude connection test', args: ['scripts/claude-cmd.mjs', 'check'], by });
       }
       if (params.action === 'mail-check') {
         return startJob({ kind: 'system', title: 'Check the test mailbox', args: ['scripts/mail-check.mjs'], by });

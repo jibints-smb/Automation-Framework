@@ -5,6 +5,7 @@
  *   import { test, expect } from '@apps/bergen-kids-admin-web/fixtures';
  */
 import { test as core } from '@core/fixtures';
+import { AdvertiserAccountsPage } from '@apps/bergen-kids-admin-web/pages/AdvertiserAccountsPage';
 import { CodeVerificationPage } from '@apps/bergen-kids-admin-web/pages/CodeVerificationPage';
 import { DashboardPage } from '@apps/bergen-kids-admin-web/pages/DashboardPage';
 import { ForgotPasswordPage } from '@apps/bergen-kids-admin-web/pages/ForgotPasswordPage';
@@ -18,6 +19,7 @@ type AppFixtures = {
   forgotPasswordPage: ForgotPasswordPage;
   codeVerificationPage: CodeVerificationPage;
   setPasswordPage: SetPasswordPage;
+  advertiserAccountsPage: AdvertiserAccountsPage;
 };
 
 export const test = core.extend<AppFixtures>({
@@ -35,6 +37,9 @@ export const test = core.extend<AppFixtures>({
   },
   setPasswordPage: async ({ page }, use) => {
     await use(new SetPasswordPage(page));
+  },
+  advertiserAccountsPage: async ({ page }, use) => {
+    await use(new AdvertiserAccountsPage(page));
   },
 });
 

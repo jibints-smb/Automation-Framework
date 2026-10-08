@@ -20,6 +20,7 @@ document.addEventListener('alpine:init', () => {
     page: 'home',
     ctx: {},
     toasts: [],
+    restartNeeded: false,
     loading: false,
     fmtDate,
     fmtDuration,
@@ -63,6 +64,7 @@ document.addEventListener('alpine:init', () => {
     // requirements
     reqs: { requirements: [], fromDev: [] },
     viewer: null,
+    compareView: null,
     showNewReq: false,
     newReq: { platform: 'web', jira: '', module: '', title: '', content: '' },
     uploadSprint: '',
@@ -74,8 +76,9 @@ document.addEventListener('alpine:init', () => {
     sprintTab: 'stories',
     newSprintNo: '',
     sprintReportOutput: '',
-    rowForm: {},
+    rowForm: { differences: {}, questions: {}, builds: {}, bugs: {} },
     manualForm: { id: '', result: 'pass', build: '', bug: '', notes: '' },
+    storyForm: { jira: '', story: '', platform: 'web', requirement: '', notes: '' },
     cellEdits: {},
 
     // test cases
@@ -85,6 +88,10 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       window.addEventListener('hashchange', () => this.route());
+      // the Studio's server code changed (git pull, update) since it started: ask for a restart
+      const checkHealth = () => api('GET', '/api/health').then((h) => (this.restartNeeded = h.restartNeeded)).catch(() => {});
+      checkHealth();
+      setInterval(checkHealth, 60_000);
       await this.loadContext();
       // first time: nobody set up yet → Setup
       if (!this.ctx.qaName || !this.ctx.app) location.hash = '#/setup';
@@ -110,7 +117,7 @@ document.addEventListener('alpine:init', () => {
         if (page === 'jobs') await this.loadJobs();
         if (page === 'requirements') await this.loadRequirements();
         if (page === 'testcases') await this.loadTestCases();
-        if (page === 'sprints') await this.loadSprints();
+        if (page === 'sprints') await Promise.all([this.loadSprints(), this.loadRequirements()]);
       } catch (e) {
         this.toast(e.message, 'bad');
       }
@@ -370,6 +377,23 @@ document.addEventListener('alpine:init', () => {
         this.toast(e.message, 'bad');
       }
     },
+    async compare(dev) {
+      try {
+        const [left, right] = await Promise.all([
+          api('GET', `/api/requirements/file?app=${this.ctx.app}&path=${encodeURIComponent(dev.file)}`),
+          api('GET', `/api/requirements/file?app=${this.ctx.app}&path=${encodeURIComponent(dev.requirement)}`),
+        ]);
+        this.viewer = null;
+        this.compareView = { dev: left, req: right };
+        this.$nextTick(() => document.getElementById('compare')?.scrollIntoView({ behavior: 'smooth' }));
+      } catch (e) {
+        this.toast(e.message, 'bad');
+      }
+    },
+    newRequirementFor(jira) {
+      this.newReq = { platform: 'web', jira, module: '', title: '', content: '' };
+      this.showNewReq = true;
+    },
     async createRequirement() {
       try {
         const result = await api('POST', '/api/requirements', { ...this.newReq, app: this.ctx.app });
@@ -387,7 +411,7 @@ document.addEventListener('alpine:init', () => {
       for (const file of files) {
         try {
           const result = await api('POST', '/api/requirements/upload', { app: this.ctx.app, sprint: this.uploadSprint, filename: file.name, content: await file.text() });
-          this.toast(`Saved ${result.file}`);
+          this.toast(`Saved ${result.file.split('/from-dev/')[1]}: next, Merge it into the story's requirement`);
         } catch (e) {
           this.toast(e.message, 'bad');
         }
@@ -396,7 +420,7 @@ document.addEventListener('alpine:init', () => {
       await this.loadRequirements();
     },
     async claude(command, target) {
-      const what = { 'qa-testcases': 'generate test cases for', 'qa-automate': 'automate', 'qa-update': 'update the tests for', 'qa-fix': 'investigate the failing tests of' }[command];
+      const what = { 'qa-testcases': 'generate test cases for', 'qa-automate': 'automate', 'qa-update': 'update the tests for', 'qa-fix': 'investigate the failing tests of', 'qa-merge': 'merge into its requirement the developer notes' }[command];
       if (!confirm(`Ask Claude to ${what} ${target ? target.split('/').pop() : 'this app'}? It edits files in the project; review the changes afterwards (git).`)) return;
       try {
         const job = await api('POST', `/api/claude/${command}`, { app: this.ctx.app, target });
@@ -455,9 +479,9 @@ document.addEventListener('alpine:init', () => {
       this.sprintList = data.sprints;
       if (!this.sprintNo || !this.sprintList.some((s) => s.number === this.sprintNo)) {
         const wanted = (this.ctx.sprint || '').padStart(2, '0');
-        this.sprintNo = this.sprintList.some((s) => s.number === wanted) ? wanted : (this.sprintList.at(-1)?.number ?? '');
+        this.sprintNo = this.sprintList.some((s) => s.number === wanted) ? wanted : (this.sprintList[this.sprintList.length - 1]?.number ?? '');
       }
-      const next = Number(this.sprintList.at(-1)?.number ?? 0) + 1;
+      const next = Number(this.sprintList[this.sprintList.length - 1]?.number ?? 0) + 1;
       this.newSprintNo = String(next).padStart(2, '0');
       if (this.sprintNo) await this.openSprint(this.sprintNo);
     },
@@ -487,7 +511,7 @@ document.addEventListener('alpine:init', () => {
     async addSprintRow(table) {
       try {
         await api('POST', `/api/sprints/${this.ctx.app}/${this.sprintNo}/rows`, { table, values: this.rowForm[table] ?? {} });
-        this.rowForm[table] = {};
+        this.rowForm = { ...this.rowForm, [table]: {} };
         this.toast('Added');
         await this.openSprint(this.sprintNo);
       } catch (e) {
@@ -508,6 +532,23 @@ document.addEventListener('alpine:init', () => {
       const id = `${table}|${key}|${column}`;
       if (!(id in this.cellEdits)) this.cellEdits[id] = current ?? '';
       return id;
+    },
+    async addStory() {
+      const f = this.storyForm;
+      // the test-cases file that belongs to the requirement (its Source row), when it exists already
+      const req = this.reqs.requirements.find((r) => r.file.endsWith(f.requirement) && f.requirement);
+      const testCases = req?.testCaseFiles?.[0]?.replace(`apps/${this.ctx.app}/`, '') ?? '';
+      try {
+        await api('POST', `/api/sprints/${this.ctx.app}/${this.sprintNo}/rows`, {
+          table: 'stories',
+          values: { jira: f.jira, story: f.story, platform: f.platform, 'requirement file': f.requirement, 'test-cases file': testCases, stage: req?.stage?.stage ?? 'drafted', automated: req?.automated ?? '0/0', notes: f.notes },
+        });
+        this.toast(`${f.jira} added to sprint ${this.sprintNo}`);
+        this.storyForm = { jira: '', story: '', platform: 'web', requirement: '', notes: '' };
+        await this.openSprint(this.sprintNo);
+      } catch (e) {
+        this.toast(e.message, 'bad');
+      }
     },
     async addManualResult() {
       try {

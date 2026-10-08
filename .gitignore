@@ -15,4 +15,3 @@ playwright/.cache/
 .claude/settings.local.json
 *.zip
 .qa-run.lock
-studio/public/app.css
