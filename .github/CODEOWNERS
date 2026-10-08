@@ -1,0 +1,14 @@
+# Who reviews what. Replace the placeholders with GitHub users or teams (@org/team).
+# The shared framework affects every QA team: changes need a framework owner's review.
+/src/                 @jibints-smb
+/scripts/             @jibints-smb
+/templates/           @jibints-smb
+/playwright.config.ts @jibints-smb
+/allurerc.mjs         @jibints-smb
+/CLAUDE.md            @jibints-smb
+/.claude/             @jibints-smb
+/.github/             @jibints-smb
+
+# Each application belongs to its QA team.
+/apps/bergen-kids-admin-web/  @jibints-smb
+/apps/saucedemo/              @jibints-smb

@@ -1,0 +1,104 @@
+# QA automation in GitHub Actions.
+#   checks  every pull request: type check, lint, test-case coverage and traceability (no app, no secrets needed)
+#   tests   on demand (Actions → "QA tests" → Run workflow) or nightly: runs an app's tests against an environment
+#
+# Secrets (Settings → Secrets and variables → Actions), one set per app:
+#   APP_ENV_<APP>   the whole apps/<app>/.env file (accounts, URLs, MAIL_*), e.g. APP_ENV_BERGEN_KIDS_ADMIN_WEB
+#                   (app name in upper case, "-" → "_"). Passwords stay in GitHub, never in the repository.
+#   NOTIFY_WEBHOOK  optional: Teams / Slack incoming-webhook URL for the run summary
+name: QA tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: App folder under apps/
+        required: true
+        default: bergen-kids-admin-web
+      test_env:
+        description: TEST_ENV (qa uses apps/<app>/.env; others need .env.<env> content in the secret)
+        default: qa
+      grep:
+        description: Only tests matching (e.g. @smoke); empty = all
+        default: ''
+      build_version:
+        description: Build under test (BUILD_VERSION)
+        default: ''
+      sprint:
+        description: Sprint number (SPRINT)
+        default: ''
+  # nightly regression: uncomment and set the app
+  # schedule:
+  #   - cron: '0 1 * * 1-5'
+
+concurrency:
+  group: qa-${{ github.workflow }}-${{ github.ref }}-${{ inputs.app }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - name: Coverage and traceability per app
+        run: |
+          for app in $(ls apps); do
+            [ -f "apps/$app/app.config.ts" ] || continue
+            echo "::group::$app"
+            APP=$app npm run coverage:tc -- $app --strict
+            APP=$app npm run trace:check -- $app --strict
+            echo "::endgroup::"
+          done
+
+  tests:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      APP: ${{ inputs.app || 'bergen-kids-admin-web' }}
+      TEST_ENV: ${{ inputs.test_env || 'qa' }}
+      BUILD_VERSION: ${{ inputs.build_version || format('ci-{0}', github.run_number) }}
+      SPRINT: ${{ inputs.sprint }}
+      QA_NAME: CI (${{ github.actor }})
+      NOTIFY_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK }}
+      REPORT_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npx playwright install --with-deps chromium webkit
+      - name: App settings from the secret
+        shell: bash
+        run: |
+          name="APP_ENV_$(echo "$APP" | tr 'a-z-' 'A-Z_')"
+          content=$(printenv "$name" || true)
+          if [ -z "$content" ]; then echo "::error::Secret $name is missing (the app's .env content)"; exit 1; fi
+          if [ "$TEST_ENV" = "qa" ]; then file="apps/$APP/.env"; else file="apps/$APP/.env.$TEST_ENV"; fi
+          printf '%s\n' "$content" > "$file"
+        env:
+          APP_ENV_BERGEN_KIDS_ADMIN_WEB: ${{ secrets.APP_ENV_BERGEN_KIDS_ADMIN_WEB }}
+          APP_ENV_SAUCEDEMO: ${{ secrets.APP_ENV_SAUCEDEMO }}
+      - name: Run tests
+        run: npx playwright test ${{ inputs.grep && format('--grep "{0}"', inputs.grep) || '' }}
+      - name: Upload the saved report (report.html, summary.json, videos of failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report-${{ env.APP }}-${{ github.run_number }}
+          path: |
+            reports/${{ env.APP }}/*/
+            test-results/junit.xml
+          retention-days: 30
+          if-no-files-found: warn

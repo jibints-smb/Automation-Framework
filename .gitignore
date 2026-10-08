@@ -14,3 +14,4 @@ playwright/.cache/
 !.env.example
 .claude/settings.local.json
 *.zip
+.qa-run.lock

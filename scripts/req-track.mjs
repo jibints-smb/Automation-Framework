@@ -2,14 +2,14 @@
 //
 //   npm run req:status [-- <app>]                       every module: stage, automation, CHANGED flag
 //   npm run req:diff -- <requirement.md>                what changed since QA's last baseline
-//   npm run req:baseline -- <requirement.md> --stage <cases|automated|signed-off> [--by "<name>"] [--note "<text>"]
+//   npm run req:baseline -- <requirement.md> --stage <cases|automated|signed-off> [--by "<name>", default QA_NAME] [--note "<text>"]
 //                                                       record the current version as processed by QA
 //
 // Baselines live in apps/<app>/requirements/.baseline/ (commit them): a copy of the MD file plus index.json.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { appCode, cells, isAutomated, parseCases, rel, resolveApp, testCasesSource, walk } from './lib.mjs';
+import { appCode, cells, isAutomated, latestResults, parseCases, readRootEnv, rel, requirementHash, resolveApp, testCasesSource, walk } from './lib.mjs';
 
 const STAGES = ['cases', 'automated', 'signed-off'];
 const STAGE_LABEL = { cases: 'Test cases written', automated: 'Automated', 'signed-off': 'Signed off' };
@@ -103,19 +103,61 @@ function baseline(file) {
   }
   const { appDir, key } = locate(file);
   const text = fs.readFileSync(file, 'utf8');
+  const index = readIndex(appDir);
+  // the QA recording it: --by, else QA_NAME (root .env)
+  const by = flag('by') ?? process.env.QA_NAME ?? readRootEnv('QA_NAME') ?? '';
+  if (stage === 'signed-off') checkSignOff(file, appDir, key, text, index[key], by);
+
   const target = path.join(appDir, 'requirements/.baseline', key);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, text);
-  const index = readIndex(appDir);
-  index[key] = {
-    stage,
-    date: new Date().toISOString().slice(0, 10),
-    by: flag('by') ?? '',
-    note: flag('note') ?? '',
-    hash: hashOf(text),
-  };
+  const now = new Date();
+  const entry = { stage, date: now.toISOString().slice(0, 10), by, note: flag('note') ?? '', hash: hashOf(text) };
+  // the latest entry on top (read by req:status), every earlier one kept in history
+  const history = [...(index[key]?.history ?? []), { ...entry, at: now.toISOString() }];
+  index[key] = { ...entry, history };
   fs.writeFileSync(indexPath(appDir), JSON.stringify(index, null, 2) + '\n');
-  console.log(`Baseline recorded: ${key} → ${STAGE_LABEL[stage]} (${index[key].date})`);
+  console.log(`Baseline recorded: ${key} → ${STAGE_LABEL[stage]} (${entry.date}${by ? `, ${by}` : ''})`);
+}
+
+/**
+ * Signing off says "this story is tested and done". Refused when that isn't true yet (--force overrides the
+ * test checks, never the name or AI checks):
+ *   - run by an AI assistant (only a QA signs off) · no real name (--by / QA_NAME, not "QA Team")
+ *   - the requirement changed after the last baseline (process it first: req:diff → /qa-update)
+ *   - an "Automate: yes" case has no test · a test failed, didn't run, or waits for a PO decision
+ */
+function checkSignOff(file, appDir, key, text, base, by) {
+  const refuse = (msg, overridable = true) => {
+    if (overridable && args.includes('--force')) return console.warn(`! ${msg} (--force: signed off anyway)`);
+    console.error(`Not signed off: ${msg}`);
+    process.exit(1);
+  };
+  if (process.env.CLAUDECODE) refuse('sign-off is a QA decision; run this command yourself, not through an AI assistant.', false);
+  if (!by || /^(qa|qa team|team|tester|test|admin)$/i.test(by.trim())) {
+    refuse('give your own name: --by "<name>" or QA_NAME in the root .env.', false);
+  }
+  if (base && base.hash !== hashOf(text)) {
+    refuse(`${key} changed after its "${STAGE_LABEL[base.stage]}" baseline (${base.date}). Process it first: npm run req:diff -- ${file}, /qa-update, then --stage automated.`);
+  }
+
+  const { app } = resolveApp(file);
+  const source = `requirements/${key}`;
+  const cases = walk(`${appDir}/test-cases`, '.testcases.md')
+    .filter((f) => testCasesSource(f, appDir) === source)
+    .flatMap(parseCases)
+    .filter((c) => c.automate === 'yes');
+  if (!cases.length) refuse(`no test cases are linked to ${source} (Source row of a test-cases file).`);
+  const code = appCode(appDir);
+  const missing = cases.filter((c) => !isAutomated(c.id, code)).map((c) => c.id);
+  if (missing.length) refuse(`not automated yet: ${missing.join(', ')}.`);
+  const results = latestResults(app);
+  const notRun = cases.filter((c) => !results.has(c.id)).map((c) => c.id);
+  const failed = cases.filter((c) => ['failed', 'skipped'].includes(results.get(c.id)?.result)).map((c) => c.id);
+  const pending = cases.filter((c) => results.get(c.id)?.result === 'PO pending').map((c) => c.id);
+  if (notRun.length) refuse(`no saved run has a result for: ${notRun.join(', ')}. Run the tests first.`);
+  if (failed.length) refuse(`failing or skipped in the latest run: ${failed.join(', ')}.`);
+  if (pending.length) refuse(`waiting for a PO decision: ${pending.join(', ')}.`);
 }
 
 // ───────────────────────────── requirement parsing ─────────────────────────────
@@ -269,10 +311,9 @@ function readIndex(appDir) {
   return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : {};
 }
 
-/** Hash of the meaningful content: ignores line endings, trailing spaces and HTML comments. */
+/** Hash of the meaningful content (shared with sprint:report): requirementHash in lib.mjs. */
 function hashOf(text) {
-  const normalized = text.replace(/\r/g, '').replace(/<!--[\s\S]*?-->/g, '').split('\n').map((l) => l.trimEnd()).join('\n').trim();
-  return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
+  return requirementHash(text);
 }
 
 function jiraKey(file) {

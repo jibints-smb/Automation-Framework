@@ -8,7 +8,7 @@
 
 | Item        | Value                                   |
 | ----------- | --------------------------------------- |
-| Source      | requirements/<JIRA-KEY>-<module>.md     |
+| Source      | requirements/<web|mobile|api>/<JIRA-KEY>-<module>.md |
 | Jira        | <JIRA-KEY>                              |
 | Epic        | <Epic>                                  |
 | Feature     | <Module>                                |
@@ -25,9 +25,9 @@
 | TC-<MOD>-02 |       | negative | normal   | @regression          | 1. ... | ...            | yes      |
 
 <!-- Type: positive, negative, boundary, ui, security, api, accessibility, visual, performance.
-     Extra tag for the last four: @api @a11y @visual @perf. Automate: yes / no (manual only) / later -->
+     Extra tag for the last four: @api @a11y @visual @perf. Automate: yes / no (manual only) / later / retired (removed from the requirement) -->
 
 ## Change history
-<!-- Added by /qa-update when the requirement changes. Never renumber IDs; retire removed cases with Automate: no. -->
+<!-- Added by /qa-update when the requirement changes. Never renumber IDs; retire removed cases with Automate: retired (and delete their test). -->
 | Date | Requirement change | Test cases |
 | ---- | ------------------ | ---------- |

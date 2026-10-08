@@ -17,6 +17,7 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { env, requireSettings } from '@core/config/env';
 import { uniqueId } from '@core/utils/random';
+import { redact } from '@core/utils/redact';
 import { step } from '@core/utils/step';
 
 export interface Email {
@@ -71,7 +72,8 @@ export class Mailbox {
         })
         .toBeTruthy();
       await test.info().attach(`Email: ${found!.subject}`, {
-        body: `From: ${found!.from}\nTo: ${found!.to}\nDate: ${found!.date.toISOString()}\nSubject: ${found!.subject}\n\n${found!.text}`,
+        // token-like link parameters are masked here; the test itself reads the real email
+        body: redact(`From: ${found!.from}\nTo: ${found!.to}\nDate: ${found!.date.toISOString()}\nSubject: ${found!.subject}\n\n${found!.text}`),
         contentType: 'text/plain',
       });
       return found!;

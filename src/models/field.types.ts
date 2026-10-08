@@ -74,6 +74,18 @@ export interface Field<L> {
   option?: (value: string) => L;
   /** Web only: CSS selector of the iframe that contains this field (payment widgets, embedded editors). */
   frame?: string;
+  /** Mask the value in reports (OTP, PIN, card number, security answer). Password fields always are. */
+  sensitive?: boolean;
+  /**
+   * Web only: find this field inside another one (a table row, a card, a dialog) instead of the whole page.
+   * With `hasText` on the parent this replaces most CSS/XPath, e.g. the Delete button of one row:
+   * @example deleteIn: (name: string) => ({ ...Users.deleteButton, within: { ...Users.row, hasText: name } })
+   */
+  within?: Field<L>;
+  /** Web only: keep only the matches that contain this text. */
+  hasText?: string | RegExp;
+  /** Web only: when several elements match, use this one (0 = first, -1 = last). */
+  nth?: number;
 }
 
 export type WebField = Field<WebLocator>;
@@ -109,6 +121,11 @@ export function defineWebFields<const M extends FieldMap<WebLocator>>(fields: M)
 /** Declare a mobile model. Keeps field types literal so `FormData` can be derived. */
 export function defineMobileFields<const M extends FieldMap<MobileLocator>>(fields: M): M {
   return fields;
+}
+
+/** True when the field's value must not appear in reports. */
+export function isSensitive(field: Field<unknown>): boolean {
+  return field.type === 'password' || field.sensitive === true;
 }
 
 /** Field types that hold a value and can be filled by `fillForm`. */

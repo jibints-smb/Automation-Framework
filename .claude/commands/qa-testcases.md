@@ -1,6 +1,6 @@
 ---
 description: Turn a Jira story / developer module MD into reviewed, structured test cases
-argument-hint: <path to apps/<app>/requirements/*.md>
+argument-hint: <path to apps/<app>/requirements/<web|mobile|api>/*.md>
 ---
 
 Create structured test cases from the requirement file: **$ARGUMENTS**
@@ -11,7 +11,7 @@ Create structured test cases from the requirement file: **$ARGUMENTS**
    messages, test IDs), actions and outcomes, messages, business rules, UI states, roles, APIs, test data.
 3. If the platform is web and a URL is known, you MAY use the Playwright MCP browser tools to open the page
    and confirm fields and messages exist (QA test accounts are in `apps/<app>/.env`; never print them).
-4. Write `apps/<app>/test-cases/<module>.testcases.md` following `templates/testcases.md` exactly:
+4. Write `apps/<app>/test-cases/<web|mobile|api>/<module>.testcases.md` (same platform folder as the requirement) following `templates/testcases.md` exactly:
    - IDs `TC-<MODULE>-<NN>` (short uppercase module code, numbered from 01; keep existing IDs if the file exists).
    - Cover every acceptance criterion with at least one positive case; add negative cases for every required
      field and validation rule, boundary cases (min-1, min, max, max+1) where rules give limits, cases for
@@ -26,7 +26,7 @@ Create structured test cases from the requirement file: **$ARGUMENTS**
      response time for every endpoint the requirement lists).
    - Tag the main happy path `@smoke`; everything else `@regression`.
    - Mark `Automate` as `no` for things that cannot be automated reliably (e.g. real SMS) and say why.
-5. The `Source` row must be the requirement path relative to the app folder (`requirements/<file>.md`); it
+5. The `Source` row must be the requirement path relative to the app folder (`requirements/<web|mobile|api>/<file>.md`, exactly as on disk); it
    links the two files for `npm run req:status`. Then record the baseline:
    `npm run req:baseline -- <requirement.md> --stage cases`.
    If test cases already exist for this requirement and it changed since, use `/qa-update` instead.

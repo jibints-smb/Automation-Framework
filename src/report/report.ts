@@ -11,6 +11,7 @@ import * as allure from 'allure-js-commons';
 import { settings } from '@core/config/app';
 import { env } from '@core/config/env';
 import { jiraUrl } from '@core/utils/allure';
+import { redact } from '@core/utils/redact';
 import {
   buildBugReport,
   causeLabel,
@@ -41,6 +42,8 @@ export async function startTestReport(testInfo: TestInfo, role: string | null): 
   if (tc) await allure.descriptionHtml(describeTestCase(tc));
   // excluded: shown in the report, but not part of the test's identity (keeps history intact)
   await allure.parameter('Logged in as', role ?? 'logged out', { excluded: true });
+  // the QA who ran it (QA_NAME): "Owner" in the test details, filterable in the report
+  await allure.owner(env.qa.name);
   return tc;
 }
 
@@ -56,21 +59,45 @@ export async function finishTestReport(testInfo: TestInfo, tc: TestCase | undefi
   // only when known; Allure shows "normal" for tests without one
   const severity = SEVERITY[tc?.priority ?? ''] ?? SEVERITY[log.story?.severity ?? ''];
   if (severity) await allure.severity(severity);
+  // knownBug / pendingDecision: listed in their own report categories and counted apart from passed tests
   if (log.knownBug) {
     await allure.issue(jiraUrl(log.knownBug.key), `Known bug ${log.knownBug.key}`);
     await allure.tag('known-bug');
+    await allure.label('known_bug', `${log.knownBug.key}${log.knownBug.summary ? `: ${log.knownBug.summary}` : ''}`);
+  }
+  if (log.pending) {
+    await allure.tag('pending-decision');
+    await allure.label('pending_decision', `${log.pending.id}: ${log.pending.reason}`);
   }
 
   // passed only on a retry: flaky (also listed across runs in reports/flaky.html)
   if (testInfo.retry > 0 && testInfo.status === testInfo.expectedStatus) await allure.tag('flaky');
 
-  const failed = testInfo.status !== testInfo.expectedStatus && testInfo.status !== 'skipped';
-  if (!failed) return;
+  // a knownBug / pendingDecision test that passes: the app now does what the test case says
+  const expectedToFail = log.knownBug ?? log.pending;
+  if (expectedToFail && testInfo.status === 'passed') {
+    const cause = resolvedCause(log);
+    await allure.label('cause', causeLabel(cause));
+    await allure.descriptionHtml(failureSummary(cause, {}) + (tc ? describeTestCase(tc) : ''));
+    return;
+  }
 
-  const raw = testInfo.errors.map((e) => e.message ?? e.value ?? '').filter(Boolean).join('\n\n') || 'Unknown error';
+  const raw = redact(testInfo.errors.map((e) => e.message ?? e.value ?? '').filter(Boolean).join('\n\n') || 'Unknown error');
   const error = parseError(raw);
   const step = failingStep(log.steps);
-  const cause = testCaseMismatch(error.expected, tc) ?? classifyFailure(error.message, step?.title);
+  // a known bug that fails somewhere else than the bug describes: report it, don't let the bug hide it
+  const failsAt = log.knownBug?.failsAt;
+  const differentFailure = !!failsAt && testInfo.status === 'failed' && !failsAt.test(`${raw}\n${step?.title ?? ''}`);
+  const failed = (testInfo.status !== testInfo.expectedStatus && testInfo.status !== 'skipped') || differentFailure;
+  if (!failed) return;
+
+  const cause = differentFailure
+    ? {
+        group: 'Known bug' as const,
+        name: `${log.knownBug!.key}: different failure`,
+        hint: `The test is marked with known bug ${log.knownBug!.key}, but it failed somewhere else (expected the error to match /${failsAt!.source}/). Check for a new problem below.`,
+      }
+    : (testCaseMismatch(error.expected, tc, error.message) ?? classifyFailure(error.message, step?.title));
   await allure.label('cause', causeLabel(cause));
 
   const report = buildBugReport({
@@ -91,6 +118,21 @@ export async function finishTestReport(testInfo: TestInfo, tc: TestCase | undefi
   await allure.descriptionHtml(summary + (tc ? describeTestCase(tc) : ''));
   await testInfo.attach('Bug report', { body: report.html, contentType: 'text/html' });
   await testInfo.attach('Bug report (text for Jira)', { body: report.text, contentType: 'text/plain' });
+}
+
+function resolvedCause(log: typeof runLog): FailureCause {
+  if (log.knownBug) {
+    return {
+      group: 'Known bug',
+      name: `${log.knownBug.key} appears fixed`,
+      hint: `The test passed although it is marked with known bug ${log.knownBug.key}. Check the bug in Jira; if it is fixed, remove knownBug(...) from the test.`,
+    };
+  }
+  return {
+    group: 'PO decision',
+    name: `${log.pending!.id} now matches the test case`,
+    hint: `The app now does what the test case expects (${log.pending!.id}: ${log.pending!.reason}). Remove pendingDecision(...) and update the sprint Differences table.`,
+  };
 }
 
 function describeTestCase(tc: TestCase): string {
@@ -116,7 +158,7 @@ function failureSummary(
     f.testCaseExpected ? `<li><b>Test case expected result:</b> ${esc(f.testCaseExpected)}</li>` : '',
     `<li><b>Actual:</b> ${esc(f.actual ?? '—')}</li>`,
     `</ul>`,
-    `<p><small>Full bug report, screenshot, video and trace are attached below.</small></p><hr>`,
+    `<p><small>The Bug report and screenshot are attached below; the video too in the live report. In a saved run, the video is in the run's evidence/ folder (named in the Bug report).</small></p><hr>`,
   ].join('');
 }
 

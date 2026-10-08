@@ -1,0 +1,9 @@
+# Normalise line endings in the repository (Windows and Linux CI see the same files).
+* text=auto
+
+# binary: never touched
+*.png binary
+*.jpg binary
+*.webm binary
+*.zip binary
+*.pdf binary

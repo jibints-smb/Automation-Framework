@@ -18,7 +18,9 @@ Investigate failing tests for: **$ARGUMENTS** (if empty, run `npx playwright tes
    - **Framework issue** (a generic action in `src/` doesn't handle this UI component): fix it in `src/` only
      if the fix is generic for every app, and run all apps' type check.
    - **Application bug** (behaviour differs from the test-cases MD / requirement): do not change the
-     expected result. Add `knownBug('<JIRA-BUG-KEY>', '<short summary>')` (from `@core/utils/allure`) as the first
-     line of the test (ask QA for the bug key if there is none yet) and add it to the summary.
+     expected result. Add `knownBug('<JIRA-BUG-KEY>', '<short summary>', { failsAt: /<part of the error>/ })`
+     (from `@core/utils/allure`) as the first line of the test and add it to the summary. No Jira key yet: if
+     the difference is in the sprint Differences table waiting for the PO, use `pendingDecision('<Dn>', '<summary>')`;
+     otherwise leave the test failing and list it for QA. Never invent a Jira key.
    - **Unclear requirement**: leave the test as is and ask.
 4. Re-run until the automation issues are gone. Report a table: test ID | cause | action taken.

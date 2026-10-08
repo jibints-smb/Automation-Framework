@@ -16,7 +16,9 @@ export interface RunLog {
   /** Set by storyInfo(); severity is applied at the end so a test case's own priority can win. */
   story?: { epic: string; feature: string; story: string; jira?: string; severity?: string };
   /** Set by knownBug(). */
-  knownBug?: { key: string; summary?: string };
+  knownBug?: { key: string; summary?: string; failsAt?: RegExp };
+  /** Set by pendingDecision(): a difference from the story waiting for a PO decision (sprint Differences table). */
+  pending?: { id: string; reason: string };
   /** Web: filled by the page fixture before the page closes. */
   web?: { url: string; browser: string; consoleErrors: string[]; failedRequests: string[] };
   /** Native app: filled by the driver fixture. */

@@ -65,8 +65,10 @@ A new `verify.looksLike` fails once per project with "no approved screenshot yet
 haven't looked at. An accessibility violation is a product finding: report it (and `knownBug` it), don't add
 the rule to `ignoreRules` unless QA says it is ticketed.
 Fix failures caused by the automation (locators, waits, data). If a failure looks like a real application
-bug, do not change the assertion: add `knownBug('<JIRA-BUG-KEY>', '<summary>')` (`@core/utils/allure`) as the
-first line of the test and report it.
+bug, do not change the assertion: add `knownBug('<JIRA-BUG-KEY>', '<summary>', { failsAt: /<error text>/ })`
+(`@core/utils/allure`) as the first line of the test and report it. A difference already in the sprint
+Differences table and waiting for the PO (no Jira key): `pendingDecision('<Dn>', '<summary>')`. Never invent a key.
+Fields holding an OTP, PIN or card number get `sensitive: true` in the model.
 Do not pass `--reporter` on the command line. Finally run `npm run coverage:tc -- <app>` and, when every
 automatable case passes, record the baseline: `npm run req:baseline -- <requirement.md> --stage automated`
 (the requirement is the `Source` in the test-cases file).

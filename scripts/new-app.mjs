@@ -30,11 +30,13 @@ const hasMobile = platforms.includes('android') || platforms.includes('ios');
 const hasApi = platforms.includes('api');
 const title = name.replace(/(^|-)(\w)/g, (_, dash, c) => (dash ? ' ' : '') + c.toUpperCase());
 
+// requirements/ and test-cases/ are split by platform like the real apps (requirements/web/BK-1-login.md)
+const kinds = [...(hasWeb ? ['web'] : []), ...(hasMobile ? ['mobile'] : []), ...(hasApi ? ['api'] : [])];
 const folders = [
-  'requirements',
-  'test-cases',
-  'sprints',
+  ...kinds.flatMap((k) => [`requirements/${k}`, `test-cases/${k}`]),
+  'sprints/sprint-01',
   'data',
+  ...(hasWeb || hasMobile ? ['screenshots'] : []),
   ...(hasWeb ? ['models/web', 'pages', 'tests/web'] : []),
   ...(hasMobile ? ['models/mobile', 'screens', 'tests/mobile'] : []),
   ...(hasApi ? ['models/api', 'tests/api'] : []),
@@ -163,11 +165,19 @@ IOS_BUNDLE_ID=
 for (const [file, content] of Object.entries(files)) fs.writeFileSync(path.join(dir, file), content);
 fs.copyFileSync(path.join(dir, '.env.example'), path.join(dir, '.env'));
 
+// the first sprint's tracker and manual-results file (npm run sprint:new -- <NN> for the next ones)
+const fill = (text) => text.replaceAll('<NN>', '01').replaceAll('<app>', name);
+fs.writeFileSync(path.join(dir, 'sprints/sprint-01.md'), fill(fs.readFileSync('templates/sprint.md', 'utf8')));
+fs.writeFileSync(path.join(dir, 'sprints/sprint-01/manual-results.md'), fill(fs.readFileSync('templates/manual-results.md', 'utf8')));
+fs.rmSync(path.join(dir, 'sprints/sprint-01/.gitkeep'), { force: true });
+
 console.log(`Created ${dir} (${platforms.join(', ')})
 
 Next steps:
-  1. Fill in ${dir}/app.config.ts (base URL, test-id attribute, login roles) and ${dir}/.env
-  2. Put module MD files in ${dir}/requirements/ (template: templates/requirement.md)
-  3. Run tests for this app:   set APP=${name} in the root .env, or  APP=${name} npm test
-  4. In Claude: /qa-testcases ${dir}/requirements/<file>.md  then  /qa-automate ...
-  5. Per sprint: copy templates/sprint.md to ${dir}/sprints/, send templates/dev-handover.md to the developers`);
+  1. Fill in ${dir}/app.config.ts (base URL, test-id attribute, login roles) and ${dir}/.env (accounts; never committed)
+  2. Make it the active app: APP=${name} in the root .env (also set QA_NAME, and BUILD_VERSION / SPRINT per build)
+     One command only:  PowerShell  $env:APP='${name}'; npm test    ·    Git Bash  APP=${name} npm test
+  3. Put each story's MD in ${dir}/requirements/${kinds[0] ?? 'web'}/<JIRA>-<module>.md (template: templates/requirement.md)
+  4. In Claude: /qa-testcases <requirement.md>  →  QA reviews  →  /qa-automate <testcases.md>
+  5. Sprint 01 is ready: ${dir}/sprints/sprint-01.md (+ sprint-01/manual-results.md); send templates/dev-handover.md
+     to the developers. At sprint end: npm run sprint:report -- 01`);

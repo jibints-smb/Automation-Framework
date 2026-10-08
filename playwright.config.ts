@@ -12,7 +12,7 @@
  * Approved screenshots for verify.looksLike() live in apps/<app>/screenshots/<project>-<os>/.
  */
 import path from 'node:path';
-import { defineConfig, devices, type Project } from '@playwright/test';
+import { defineConfig, devices, type PlaywrightTestOptions, type PlaywrightWorkerOptions, type Project } from '@playwright/test';
 import { app, settings } from './src/config/app';
 import { APP_DIR, env } from './src/config/env';
 import type { CoreOptions } from './src/fixtures';
@@ -26,12 +26,26 @@ const webProject = { testDir: webTests, dependencies: needsLogin ? ['setup'] : [
 const runDemos = process.argv.some((arg) => arg.includes('@demo'));
 const nativeProject = { testDir: mobileTests, fullyParallel: false, workers: 1, timeout: 120_000 };
 
-const projects: Project<CoreOptions>[] = [];
+const projects: Project<CoreOptions & PlaywrightTestOptions, PlaywrightWorkerOptions>[] = [];
 if (needsLogin && (app.platforms.includes('web') || app.platforms.includes('mobile-web'))) {
-  projects.push({ name: 'setup', testDir: './src/auth', testMatch: /auth\.setup\.ts/, use: { ...devices['Desktop Chrome'] } });
+  // no trace / video / screenshot: they would record the account passwords typed during login
+  projects.push({
+    name: 'setup',
+    testDir: './src/auth',
+    testMatch: /auth\.setup\.ts/,
+    use: { ...devices['Desktop Chrome'], trace: 'off', video: 'off', screenshot: 'off' },
+  });
 }
+const desktop = {
+  chrome: devices['Desktop Chrome'],
+  firefox: devices['Desktop Firefox'],
+  safari: devices['Desktop Safari'],
+  edge: { ...devices['Desktop Edge'], channel: 'msedge' },
+};
 if (app.platforms.includes('web')) {
-  projects.push({ name: 'web-chrome', ...webProject, use: { ...devices['Desktop Chrome'] } });
+  for (const browser of app.web?.browsers ?? ['chrome']) {
+    projects.push({ name: `web-${browser}`, ...webProject, use: { ...desktop[browser] } });
+  }
 }
 if (app.platforms.includes('mobile-web')) {
   projects.push({ name: 'mobile-web-android', ...webProject, use: { ...devices['Pixel 7'] } });
@@ -51,9 +65,9 @@ export default defineConfig<CoreOptions>({
   globalSetup: './src/config/global-setup.ts',
   fullyParallel: true,
   grepInvert: runDemos ? undefined : /@demo/,
-  forbidOnly: !!process.env.CI,
-  retries: env.run.retries ?? (process.env.CI ? 2 : 0),
-  workers: process.env.CI ? 2 : undefined,
+  forbidOnly: env.run.ci,
+  retries: env.run.retries ?? (env.run.ci ? 2 : 0),
+  workers: env.run.ci ? 2 : undefined,
   timeout: 60_000,
   expect: {
     timeout: 10_000,
@@ -76,12 +90,20 @@ export default defineConfig<CoreOptions>({
         environmentInfo: {
           Application: app.name,
           Environment: env.name,
+          'Tested by': env.qa.email ? `${env.qa.name} <${env.qa.email}>` : env.qa.name,
+          // only the ones that are set (BUILD_VERSION / RELEASE / SPRINT, git commit of the test code)
+          ...(env.build.version ? { Build: env.build.version } : {}),
+          ...(env.build.release ? { Release: env.build.release } : {}),
+          ...(env.build.sprint ? { Sprint: env.build.sprint } : {}),
+          ...(env.build.commit ? { 'Test code commit': env.build.commit } : {}),
           'Base URL': settings.baseUrl,
           'Node.js': process.version,
           OS: process.platform,
         },
       },
     ],
+    // CI dashboards (GitHub Actions, Azure DevOps, Jenkins) read JUnit XML
+    ...(env.run.ci ? [['junit', { outputFile: 'test-results/junit.xml' }] as const] : []),
     // must stay last: saves this run's report to reports/<app>/ after Allure has written its results
     ['./src/report/archive.ts'],
   ],
@@ -89,6 +111,10 @@ export default defineConfig<CoreOptions>({
   use: {
     baseURL: settings.baseUrl,
     testIdAttribute: settings.testIdAttribute,
+    // app.config.ts web: same language / time zone everywhere, self-signed QA certificates
+    ...(app.web?.locale ? { locale: app.web.locale } : {}),
+    ...(app.web?.timezoneId ? { timezoneId: app.web.timezoneId } : {}),
+    ...(app.web?.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

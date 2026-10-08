@@ -12,8 +12,8 @@ The developer updated the module requirement: **$ARGUMENTS**. Bring QA artefacts
    and update it:
    - **Added** field / AC / rule / message → new test cases with the next free IDs (never renumber existing IDs).
    - **Changed** rule or exact text → update the affected cases' steps and expected results; keep their IDs.
-   - **Removed** behaviour → set those cases' `Automate` to `no` with "(removed in <date> change)" in the title;
-     don't delete rows, so history stays traceable.
+   - **Removed** behaviour → set those cases' `Automate` to `retired` with "(removed in <date> change)" in the title;
+     don't delete rows, so history stays traceable, but delete their tests (`npm run trace:check` flags leftovers).
    - Priority/severity change → update tags/severity.
    - Add a line under a `## Change history` section at the end: date, summary of changes, affected IDs.
 3. Update the automation for those IDs only, following `/qa-automate` conventions: model fields and rules,

@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
-import type { WebField } from '@core/models/field.types';
+import { isSensitive, type WebField } from '@core/models/field.types';
 import type { PerformanceBudget } from '@core/config/app';
-import { step } from '@core/utils/step';
+import { mask, step } from '@core/utils/step';
 import { checkAccessibility, type AccessibilityOptions } from './accessibility';
 import { locateField } from './locator';
 import { checkPerformance, type PageLoadMetrics } from './performance';
@@ -11,60 +11,95 @@ import { checkPerformance, type PageLoadMetrics } from './performance';
  * Each check is a named report step, e.g. `Verify "Error message" has text "..."`.
  */
 export class WebAssertions {
-  constructor(private readonly page: Page) {}
+  private readonly expect: typeof expect;
+
+  constructor(
+    private readonly page: Page,
+    private readonly options: { soft?: boolean } = {},
+  ) {
+    this.expect = options.soft ? expect.soft : expect;
+  }
+
+  /**
+   * The same checks, but a failure doesn't stop the test: every failed soft check is reported at the end.
+   * For screens with many independent texts: `await this.verify.soft.text(F.title, '...')`.
+   */
+  get soft(): WebAssertions {
+    return new WebAssertions(this.page, { soft: true });
+  }
 
   async visible(field: WebField): Promise<void> {
-    await step(`Verify "${field.label}" is visible`, () => expect(locateField(this.page, field)).toBeVisible());
+    await step(`Verify "${field.label}" is visible`, () => this.expect(locateField(this.page, field)).toBeVisible());
   }
 
   async hidden(field: WebField): Promise<void> {
-    await step(`Verify "${field.label}" is hidden`, () => expect(locateField(this.page, field)).toBeHidden());
+    await step(`Verify "${field.label}" is hidden`, () => this.expect(locateField(this.page, field)).toBeHidden());
   }
 
   async text(field: WebField, expected: string | RegExp): Promise<void> {
     await step(`Verify "${field.label}" has text "${expected}"`, () =>
-      expect(locateField(this.page, field)).toHaveText(expected),
+      this.expect(locateField(this.page, field)).toHaveText(expected),
     );
   }
 
   async containsText(field: WebField, expected: string | RegExp): Promise<void> {
     await step(`Verify "${field.label}" contains "${expected}"`, () =>
-      expect(locateField(this.page, field)).toContainText(expected),
+      this.expect(locateField(this.page, field)).toContainText(expected),
     );
   }
 
   async value(field: WebField, expected: string | RegExp): Promise<void> {
-    await step(`Verify "${field.label}" has value "${expected}"`, () =>
-      expect(locateField(this.page, field)).toHaveValue(expected),
+    const shown = typeof expected === 'string' ? mask(expected, isSensitive(field)) : expected;
+    await step(`Verify "${field.label}" has value "${shown}"`, () =>
+      this.expect(locateField(this.page, field)).toHaveValue(expected),
+    );
+  }
+
+  /** E.g. a masked password (`type` = `password`), a placeholder, or a theme flag (`data-theme` on `html`). */
+  async attribute(field: WebField, name: string, expected: string | RegExp): Promise<void> {
+    await step(`Verify "${field.label}" has ${name} "${expected}"`, () =>
+      this.expect(locateField(this.page, field)).toHaveAttribute(name, expected),
+    );
+  }
+
+  /** Whether the page's localStorage holds `key` (e.g. a remembered login). Waits like the other checks. */
+  async storedItem(key: string, present = true): Promise<void> {
+    await step(`Verify localStorage ${present ? 'has' : 'has no'} "${key}"`, () =>
+      expect.poll(() => this.page.evaluate((k) => localStorage.getItem(k) !== null, key)).toBe(present),
     );
   }
 
   async count(field: WebField, expected: number): Promise<void> {
     await step(`Verify ${expected} x "${field.label}"`, () =>
-      expect(locateField(this.page, field)).toHaveCount(expected),
+      this.expect(locateField(this.page, field)).toHaveCount(expected),
     );
   }
 
-  async enabled(field: WebField, enabled = true): Promise<void> {
+  /** `timeout` (ms) for states that take longer than the default wait, e.g. a button enabled after a real countdown. */
+  async enabled(field: WebField, enabled = true, options: { timeout?: number } = {}): Promise<void> {
     await step(`Verify "${field.label}" is ${enabled ? 'enabled' : 'disabled'}`, () =>
       enabled
-        ? expect(locateField(this.page, field)).toBeEnabled()
-        : expect(locateField(this.page, field)).toBeDisabled(),
+        ? this.expect(locateField(this.page, field)).toBeEnabled(options)
+        : this.expect(locateField(this.page, field)).toBeDisabled(options),
     );
+  }
+
+  async focused(field: WebField): Promise<void> {
+    await step(`Verify "${field.label}" is focused`, () => this.expect(locateField(this.page, field)).toBeFocused());
   }
 
   async checked(field: WebField, checked = true): Promise<void> {
     await step(`Verify "${field.label}" is ${checked ? 'checked' : 'unchecked'}`, () =>
-      expect(locateField(this.page, field)).toBeChecked({ checked }),
+      this.expect(locateField(this.page, field)).toBeChecked({ checked }),
     );
   }
 
   async url(expected: string | RegExp): Promise<void> {
-    await step(`Verify URL matches "${expected}"`, () => expect(this.page).toHaveURL(expected));
+    await step(`Verify URL matches "${expected}"`, () => this.expect(this.page).toHaveURL(expected));
   }
 
   async title(expected: string | RegExp): Promise<void> {
-    await step(`Verify page title "${expected}"`, () => expect(this.page).toHaveTitle(expected));
+    await step(`Verify page title "${expected}"`, () => this.expect(this.page).toHaveTitle(expected));
   }
 
   /**
@@ -81,11 +116,12 @@ export class WebAssertions {
    */
   async looksLike(name: string, options: { field?: WebField; mask?: WebField[]; fullPage?: boolean; maxDiffRatio?: number } = {}): Promise<void> {
     const mask = options.mask?.map((f) => locateField(this.page, f));
-    const compare = { mask, maxDiffPixelRatio: options.maxDiffRatio };
+    // only when given: an explicit `undefined` would replace the configured tolerance with none
+    const compare = { mask, ...(options.maxDiffRatio !== undefined && { maxDiffPixelRatio: options.maxDiffRatio }) };
     await step(`Verify ${options.field ? `"${options.field.label}"` : 'page'} looks like "${name}"`, () =>
       options.field
-        ? expect(locateField(this.page, options.field)).toHaveScreenshot(`${name}.png`, compare)
-        : expect(this.page).toHaveScreenshot(`${name}.png`, { ...compare, fullPage: options.fullPage }),
+        ? this.expect(locateField(this.page, options.field)).toHaveScreenshot(`${name}.png`, compare)
+        : this.expect(this.page).toHaveScreenshot(`${name}.png`, { ...compare, fullPage: options.fullPage }),
     );
   }
 

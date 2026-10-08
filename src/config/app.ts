@@ -9,7 +9,7 @@ import path from 'node:path';
 import type { Page } from '@playwright/test';
 import type { Platform } from '../mobile/capabilities';
 import type { MobileDriver } from '../mobile/driver';
-import { APP_DIR, env } from './env';
+import { APP_DIR, env, requireEnv } from './env';
 
 /** `api`: tests/api, HTTP only (no browser or device). */
 export type PlatformName = 'web' | 'mobile-web' | 'android' | 'ios' | 'api';
@@ -31,6 +31,16 @@ export interface AppConfig {
     baseUrl: string;
     /** Attribute developers use for test IDs. Default: data-testid */
     testIdAttribute?: string;
+    /**
+     * Desktop browsers to test on: one project each (web-chrome, web-firefox, web-safari, web-edge).
+     * Default: ['chrome']. Firefox/Safari need `npx playwright install firefox webkit`; Edge needs Edge installed.
+     */
+    browsers?: ('chrome' | 'firefox' | 'safari' | 'edge')[];
+    /** Browser language and time zone, so dates/numbers look the same on every machine and in CI. */
+    locale?: string;
+    timezoneId?: string;
+    /** QA environments with a self-signed HTTPS certificate. */
+    ignoreHTTPSErrors?: boolean;
   };
 
   api?: {
@@ -110,6 +120,13 @@ export interface PerformanceBudget {
 export interface Credentials {
   username: string;
   password: string;
+}
+
+/** The username and password of a role from app.config.ts, read from the app .env. */
+export function credentialsFor(role: string): Credentials {
+  const account = app.auth?.roles[role];
+  if (!account) throw new Error(`Unknown role "${role}". Roles in app.config.ts: ${Object.keys(app.auth?.roles ?? {}).join(', ')}`);
+  return { username: requireEnv(account.usernameEnv), password: requireEnv(account.passwordEnv) };
 }
 
 export function defineApp(config: AppConfig): AppConfig {

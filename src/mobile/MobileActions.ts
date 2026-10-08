@@ -1,4 +1,4 @@
-import { isInputField, type FieldMap, type FormData, type MobileField, type MobileLocator } from '@core/models/field.types';
+import { isInputField, isSensitive, type FieldMap, type FormData, type MobileField, type MobileLocator } from '@core/models/field.types';
 import { mask, step } from '@core/utils/step';
 import type { Platform } from './capabilities';
 import type { MobileDriver } from './driver';
@@ -28,7 +28,7 @@ export class MobileActions {
   }
 
   async type(field: MobileField, value: string): Promise<void> {
-    const shown = mask(value, field.type === 'password');
+    const shown = mask(value, isSensitive(field));
     await step(`Type "${shown}" in "${field.label}"`, async () => {
       const el = await this.element(field);
       await el.clearValue();

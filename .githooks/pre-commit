@@ -1,0 +1,6 @@
+#!/bin/sh
+# Runs before every commit (enabled by npm install: git config core.hooksPath .githooks).
+# Skip once with: git commit --no-verify (CI runs the same checks on the pull request).
+echo "pre-commit: type check and lint..."
+npx tsc --noEmit || { echo "pre-commit: type errors, commit stopped (npx tsc --noEmit)"; exit 1; }
+npm run --silent lint || { echo "pre-commit: lint errors, commit stopped (npm run lint)"; exit 1; }

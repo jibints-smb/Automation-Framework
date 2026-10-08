@@ -1,5 +1,6 @@
 import type { APIRequestContext } from '@playwright/test';
 import { z, type ZodType } from 'zod';
+import { redact } from '@core/utils/redact';
 import { step } from '@core/utils/step';
 
 export interface ApiRequestOptions<T = unknown> {
@@ -17,7 +18,24 @@ export interface ApiRequestOptions<T = unknown> {
   schema?: ZodType<T>;
   /** Fail when the response takes longer than this many milliseconds. */
   maxMs?: number;
+  /** HTML form body (application/x-www-form-urlencoded), instead of `data`. */
+  form?: Record<string, string | number | boolean>;
+  /**
+   * Multipart body (file uploads), instead of `data`. Files: `{ name, mimeType, buffer }`.
+   * @example multipart: { title: 'Invoice', file: { name: 'a.pdf', mimeType: 'application/pdf', buffer } }
+   */
+  multipart?: Record<string, string | number | boolean | { name: string; mimeType: string; buffer: Buffer }>;
+  /** Give up after this many milliseconds (default: Playwright's 30 s). */
+  timeout?: number;
+  /**
+   * Try again this many times when the server is briefly unavailable (502 / 503 / 504 or no connection).
+   * For setup and cleanup calls on shaky QA servers; a check of the API itself should not retry.
+   */
+  retries?: number;
 }
+
+/** Statuses that mean "the server is briefly unavailable", worth another try. */
+const RETRY_STATUSES = [502, 503, 504];
 
 export interface ApiResponse<T> {
   status: number;
@@ -54,22 +72,43 @@ export class ApiClient {
     return this.send<T>('DELETE', url, options);
   }
 
+  /** The request, tried again (1 s, 2 s, ...) while the server answers 502/503/504 or can't be reached. */
+  private async fetchWithRetries<T>(method: string, url: string, options: ApiRequestOptions<T>) {
+    const retries = options.retries ?? 0;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const response = await this.request.fetch(url, {
+          method,
+          data: options.data,
+          form: options.form,
+          multipart: options.multipart,
+          params: options.params,
+          headers: options.headers,
+          timeout: options.timeout,
+        });
+        if (attempt < retries && RETRY_STATUSES.includes(response.status())) {
+          await delay(1000 * (attempt + 1));
+          continue;
+        }
+        return response;
+      } catch (error) {
+        if (attempt >= retries) throw error;
+        await delay(1000 * (attempt + 1));
+      }
+    }
+  }
+
   private send<T>(method: string, url: string, options: ApiRequestOptions<T> = {}): Promise<ApiResponse<T>> {
     return step(`API ${method} ${url}`, async () => {
       const started = Date.now();
-      const response = await this.request.fetch(url, {
-        method,
-        data: options.data,
-        params: options.params,
-        headers: options.headers,
-      });
+      const response = await this.fetchWithRetries(method, url, options);
       const text = await response.text();
       const ms = Date.now() - started;
       const status = response.status();
       const ok = options.expectStatus !== undefined ? status === options.expectStatus : response.ok();
       if (!ok) {
         const expected = options.expectStatus ?? '2xx';
-        throw new Error(`${method} ${url} returned ${status} (expected ${expected}): ${text.slice(0, 500)}`);
+        throw new Error(redact(`${method} ${url} returned ${status} (expected ${expected}): ${text.slice(0, 500)}`));
       }
       if (options.maxMs !== undefined && ms > options.maxMs) {
         throw new Error(`${method} ${url} took ${ms} ms (limit ${options.maxMs} ms)`);
@@ -85,6 +124,10 @@ export class ApiClient {
       return { status, headers: response.headers(), body: body as T, ms };
     });
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function parseBody(text: string): unknown {

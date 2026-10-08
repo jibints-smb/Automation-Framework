@@ -3,7 +3,9 @@
  * in apps/<name>/fixtures.ts, and specs import `test` from there.
  *
  * Options (set with `test.use({...})` or per project):
- *   role      which logged-in user the browser / native app starts as (null = logged out)
+ *   role        which logged-in user the browser / native app starts as (null = logged out)
+ *   freshLogin  log in for this test only instead of reusing the saved session: for tests that log out on the
+ *               server, change the password or end other sessions (they would break the shared session)
  *   platform  'android' | 'ios' for native app projects
  *
  * Fixtures:
@@ -15,8 +17,10 @@
  */
 import { test as base } from '@playwright/test';
 import { ApiClient } from '@core/api/ApiClient';
-import { app, settings } from '@core/config/app';
-import { requireEnv } from '@core/config/env';
+import fs from 'node:fs';
+import path from 'node:path';
+import { app, credentialsFor, settings } from '@core/config/app';
+import { ROOT_DIR, env } from '@core/config/env';
 import { authFile } from '@core/config/paths';
 import { getCapabilities, type Platform } from '@core/mobile/capabilities';
 import { Mailbox } from '@core/mail/Mailbox';
@@ -24,6 +28,7 @@ import { createDriver, type MobileDriver } from '@core/mobile/driver';
 import { finishTestReport, startTestReport } from '@core/report/report';
 import { runLog } from '@core/report/runLog';
 import { Cleanup } from '@core/utils/cleanup';
+import { redact } from '@core/utils/redact';
 import { step } from '@core/utils/step';
 
 const MAX_LOG_LINES = 30;
@@ -32,6 +37,7 @@ const IGNORED_REQUEST_ERRORS = /ERR_ABORTED|NS_BINDING_ABORTED|cancelled|aborted
 
 export type CoreOptions = {
   role: string | null;
+  freshLogin: boolean;
   platform: Platform;
 };
 
@@ -45,14 +51,36 @@ type CoreFixtures = {
 
 export const test = base.extend<CoreOptions & CoreFixtures>({
   role: [app.auth?.defaultRole ?? null, { option: true }],
+  freshLogin: [false, { option: true }],
   platform: ['android', { option: true }],
 
   /** Start the browser logged in as `role`, using the session saved by the auth setup. */
-  storageState: async ({ role, storageState }, use) => {
+  storageState: async ({ role, freshLogin, storageState, browser }, use) => {
     if (role && !app.auth?.roles[role]) {
       throw new Error(`Unknown role "${role}". Roles in app.config.ts: ${Object.keys(app.auth?.roles ?? {}).join(', ')}`);
     }
-    await use(role && app.auth?.login ? authFile(role) : storageState);
+    if (!role || !app.auth?.login) return use(storageState);
+
+    if (freshLogin) {
+      // this test's own session: logging out or changing the password here can't break the other tests
+      const context = await browser.newContext({ baseURL: settings.baseUrl });
+      try {
+        const page = await context.newPage();
+        await step(`Log in as ${role} (own session)`, () => app.auth!.login!(page, credentialsFor(role)));
+        return await use(await context.storageState({ indexedDB: true }));
+      } finally {
+        await context.close();
+      }
+    }
+
+    const file = authFile(role);
+    if (!fs.existsSync(file)) {
+      throw new Error(
+        `No saved login for role "${role}" (${path.relative(ROOT_DIR, file)}). Run the tests with their login setup ` +
+          '(e.g. npm run test:web, not --no-deps), or save the logins first: npm run auth',
+      );
+    }
+    await use(file);
   },
 
   /** Runs for every test: set up first, finished last, so it sees the final status and all diagnostics. */
@@ -69,7 +97,8 @@ export const test = base.extend<CoreOptions & CoreFixtures>({
   page: async ({ page }, use) => {
     const consoleErrors: string[] = [];
     const failedRequests: string[] = [];
-    const add = (list: string[], line: string) => list.length < MAX_LOG_LINES && list.push(line);
+    // tokens in URLs (reset links, ?code=) and secrets in console output are masked before they reach the report
+    const add = (list: string[], line: string) => list.length < MAX_LOG_LINES && list.push(redact(line));
 
     page.on('console', (msg) => msg.type() === 'error' && add(consoleErrors, msg.text()));
     page.on('pageerror', (err) => add(consoleErrors, `Uncaught ${err.name}: ${err.message}`));
@@ -83,7 +112,7 @@ export const test = base.extend<CoreOptions & CoreFixtures>({
 
     const browser = page.context().browser();
     runLog.web = {
-      url: page.isClosed() ? '' : page.url(),
+      url: page.isClosed() ? '' : redact(page.url()),
       browser: browser ? `${browser.browserType().name()} ${browser.version()}` : '',
       consoleErrors,
       failedRequests,
@@ -106,7 +135,8 @@ export const test = base.extend<CoreOptions & CoreFixtures>({
     await mailbox.close();
   },
 
-  cleanup: async ({}, use) => {
+  // depends on api, so the api client is closed only after the cleanup that uses it has run
+  cleanup: async ({ api: _api }, use) => {
     const cleanup = new Cleanup();
     await use(cleanup);
     await cleanup.runAll();
@@ -118,12 +148,15 @@ export const test = base.extend<CoreOptions & CoreFixtures>({
    */
   driver: async ({ platform, role }, use, testInfo) => {
     const capabilities = getCapabilities(platform);
-    testInfo.skip(
-      !capabilities,
-      platform === 'android'
-        ? 'Android app not configured: set ANDROID_APP or ANDROID_APP_PACKAGE in the app .env'
-        : 'iOS app not configured: set IOS_APP or IOS_BUNDLE_ID in the app .env',
-    );
+    if (!capabilities) {
+      const missing =
+        platform === 'android'
+          ? 'Android app not configured: set ANDROID_APP or ANDROID_APP_PACKAGE in the app .env'
+          : 'iOS app not configured: set IOS_APP or IOS_BUNDLE_ID in the app .env';
+      // locally a missing app just skips; in CI it is a forgotten secret and must not pass as a green build
+      if (env.run.ci) throw new Error(`${missing} (or as a CI secret)`);
+      testInfo.skip(true, missing);
+    }
 
     runLog.device = [capabilities!.platformName, capabilities!['appium:platformVersion'], `· ${capabilities!['appium:deviceName']}`]
       .filter(Boolean)
@@ -132,21 +165,22 @@ export const test = base.extend<CoreOptions & CoreFixtures>({
     try {
       const mobileLogin = app.mobile?.login;
       if (role && mobileLogin) {
-        const account = app.auth?.roles[role];
-        if (!account) throw new Error(`Unknown role "${role}". Roles in app.config.ts: ${Object.keys(app.auth?.roles ?? {}).join(', ')}`);
-        const credentials = { username: requireEnv(account.usernameEnv), password: requireEnv(account.passwordEnv) };
-        await step(`Log in as ${role}`, () => mobileLogin({ driver, platform }, credentials));
+        await step(`Log in as ${role}`, () => mobileLogin({ driver, platform }, credentialsFor(role)));
       }
       await use(driver);
     } finally {
+      // each step on its own: a crashed session must not hide the real error or leave the device locked
       if (testInfo.status !== testInfo.expectedStatus) {
-        await testInfo.attach('screenshot', {
-          body: Buffer.from(await driver.takeScreenshot(), 'base64'),
-          contentType: 'image/png',
-        });
-        await testInfo.attach('page-source', { body: await driver.getPageSource(), contentType: 'text/xml' });
+        await driver
+          .takeScreenshot()
+          .then((png) => testInfo.attach('screenshot', { body: Buffer.from(png, 'base64'), contentType: 'image/png' }))
+          .catch(() => undefined);
+        await driver
+          .getPageSource()
+          .then((xml) => testInfo.attach('page-source', { body: xml, contentType: 'text/xml' }))
+          .catch(() => undefined);
       }
-      await driver.deleteSession();
+      await driver.deleteSession().catch(() => undefined);
     }
   },
 });

@@ -1,5 +1,6 @@
 import { test } from '@playwright/test';
 import { recordStep } from '@core/report/runLog';
+import { redact } from './redact';
 
 /**
  * Wraps an action in a named step. Steps show up in the Allure report,
@@ -7,10 +8,12 @@ import { recordStep } from '@core/report/runLog';
  * `box: true` makes failures point at the calling test line, not inside the framework.
  */
 export function step<T>(title: string, body: () => Promise<T>): Promise<T> {
-  return test.step(title, () => recordStep(title, body), { box: true });
+  // secrets that reach a title (a URL with a token, a password from .env) are masked here
+  const safe = redact(title);
+  return test.step(safe, () => recordStep(safe, body), { box: true });
 }
 
-/** Hide secrets in step titles and logs. */
+/** Hide a sensitive value in step titles and logs (fixed mask: doesn't reveal the length). */
 export function mask(value: string, sensitive: boolean): string {
-  return sensitive ? '*'.repeat(Math.min(value.length, 8)) : value;
+  return sensitive ? '****' : value;
 }

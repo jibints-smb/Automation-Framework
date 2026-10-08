@@ -1,16 +1,11 @@
-import fs from 'node:fs';
 import { defineConfig } from 'allure';
-
-/** APP / TEST_ENV from the command line or the root .env, for the report title. */
-function setting(name, fallback) {
-  if (process.env[name]) return process.env[name];
-  const rootEnv = fs.existsSync('.env') ? fs.readFileSync('.env', 'utf8') : '';
-  return rootEnv.match(new RegExp(`^${name}=(.*)$`, 'm'))?.[1].trim() || fallback;
-}
+import { BRAND, LOGO, setting } from './src/report/brand.mjs';
 
 const app = setting('APP', 'app');
 const testEnv = setting('TEST_ENV', 'qa');
-const reportName = `${app} · ${testEnv.toUpperCase()} · Test report`;
+const reportName = `${BRAND.company} · ${app} · ${testEnv.toUpperCase()} · Test report`;
+/** Company colours are blue on white, so light theme only (colours and header bar: src/report/brand.mjs). */
+const look = { logo: LOGO, theme: 'light', reportLanguage: 'en' };
 
 /**
  * Failed tests are sorted by their likely cause. The framework sets a `cause` label on every failure
@@ -18,6 +13,25 @@ const reportName = `${app} · ${testEnv.toUpperCase()} · Test report`;
  * so developers open "Product bugs" and QA opens "Automation issues".
  */
 const categories = [
+  // knownBug() / pendingDecision() tests whose result changed: QA acts on these first
+  {
+    name: 'Known bug appears fixed: check Jira, remove knownBug',
+    matchers: { labels: { cause: /^Known bug: .* appears fixed/ } },
+    groupBy: [{ label: 'feature' }],
+    groupByMessage: false,
+    expand: true,
+  },
+  {
+    name: 'Known bug test failed somewhere else: possible new problem',
+    matchers: { labels: { cause: /^Known bug: .*different failure/ } },
+    groupByMessage: false,
+    expand: true,
+  },
+  {
+    name: 'App now matches the test case: remove pendingDecision',
+    matchers: { labels: { cause: /^PO decision:/ } },
+    groupByMessage: false,
+  },
   {
     name: 'Product bugs: app behaves differently from the test case',
     matchers: { labels: { cause: /^Product bug/ } },
@@ -37,7 +51,27 @@ const categories = [
     groupBy: [{ label: 'cause' }],
     groupByMessage: false,
   },
+  {
+    name: 'Needs triage: QA decides (app bug or changed locator)',
+    matchers: { labels: { cause: /^Needs triage/ } },
+    groupBy: [{ label: 'feature' }],
+    groupByMessage: false,
+  },
   { name: 'Other failures', matchers: { statuses: ['failed', 'broken'] }, groupByMessage: true },
+  // expected failures, shown so they are never mistaken for passed tests
+  {
+    name: 'Known bugs (ticketed, still failing)',
+    matchers: { labels: { known_bug: /.+/ } },
+    groupBy: [{ label: 'known_bug' }],
+    groupByMessage: false,
+  },
+  {
+    name: 'Waiting for PO decision',
+    matchers: { labels: { pending_decision: /.+/ } },
+    groupBy: [{ label: 'pending_decision' }],
+    groupByMessage: false,
+    expand: true,
+  },
   { name: 'Flaky: passed only after a retry', matchers: { flaky: true } },
 ];
 
@@ -56,24 +90,25 @@ const liveReport = defineConfig({
   plugins: {
     awesome: {
       options: {
+        ...look,
         reportName,
-        reportLanguage: 'en',
-        theme: 'auto',
         // tree on the left follows Jira: Epic → Feature → Story → test
         groupBy: ['epic', 'feature', 'story'],
       },
     },
     // charts for leads: status trend, severity, duration
-    dashboard: { options: { reportName: `${reportName} · Dashboard`, reportLanguage: 'en', theme: 'auto' } },
+    dashboard: { options: { ...look, reportName: `${reportName} · Dashboard` } },
   },
 });
 
 const archivedReport = defineConfig({
   name: archiveTitle,
+  // full runs share a trend/history per app and environment (set by archive.ts); partial runs have none
+  ...(process.env.ALLURE_ARCHIVE_HISTORY ? { historyPath: process.env.ALLURE_ARCHIVE_HISTORY } : {}),
   categories,
   plugins: {
     awesome: {
-      options: { reportName: archiveTitle, reportLanguage: 'en', theme: 'auto', groupBy: ['epic', 'feature', 'story'], singleFile: true },
+      options: { ...look, reportName: archiveTitle, groupBy: ['epic', 'feature', 'story'], singleFile: true },
     },
   },
 });

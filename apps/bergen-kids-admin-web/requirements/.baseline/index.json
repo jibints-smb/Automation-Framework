@@ -1,0 +1,16 @@
+{
+  "web/BK-1-login.md": {
+    "stage": "cases",
+    "date": "2026-10-07",
+    "by": "QA Team",
+    "note": "",
+    "hash": "b1b41a5c77007574"
+  },
+  "web/BK-2-forgot-password.md": {
+    "stage": "cases",
+    "date": "2026-10-07",
+    "by": "QA Team",
+    "note": "",
+    "hash": "defe782611c0f7c5"
+  }
+}

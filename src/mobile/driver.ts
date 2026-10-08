@@ -12,12 +12,14 @@ export async function createDriver(capabilities: Record<string, unknown>): Promi
       hostname: url.hostname,
       port: Number(url.port || 4723),
       path: url.pathname === '' ? '/' : url.pathname,
+      // device clouds (BrowserStack, Sauce Labs): APPIUM_URL=https://<user>:<key>@hub.browserstack.com/wd/hub
+      ...(url.username ? { user: decodeURIComponent(url.username), key: decodeURIComponent(url.password) } : {}),
       logLevel: 'warn',
       capabilities,
     });
   } catch (error) {
     throw new Error(
-      `Could not start an Appium session at ${env.mobile.appiumUrl}. ` +
+      `Could not start an Appium session at ${url.host}${url.pathname}. ` +
         'Check that `appium` is running, the device/emulator is connected (`adb devices`), and the app path in .env is correct.',
       { cause: error },
     );

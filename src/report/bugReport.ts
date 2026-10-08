@@ -4,10 +4,15 @@
  * data), where it failed, environment, browser console and failed API calls, and a Jira-ready text copy.
  */
 import type { TestInfo } from '@playwright/test';
+import { EVIDENCE_DIR, evidenceName } from './evidence';
 import type { RunLog, StepEntry } from './runLog';
 import type { TestCase } from './testCases';
 
-export type CauseGroup = 'Product bug' | 'Automation issue' | 'Environment';
+/**
+ * Product bug: for developers · Automation issue: QA fixes the test · Environment: re-run / check the server ·
+ * Needs triage: QA decides (could be either) · Known bug / PO decision: knownBug() / pendingDecision() tests.
+ */
+export type CauseGroup = 'Product bug' | 'Automation issue' | 'Environment' | 'Needs triage' | 'Known bug' | 'PO decision';
 
 export interface FailureCause {
   group: CauseGroup;
@@ -41,7 +46,14 @@ export function classifyFailure(message: string, failingStep = ''): FailureCause
   if (special) return special;
   if (verify && /is (visible|hidden|enabled|disabled|checked|unchecked)$|^Verify \d+ x /.test(failingStep)) {
     if (!/is (visible|hidden)$/.test(failingStep) && NOT_FOUND.test(message)) return elementNotFound();
-    return { group: 'Product bug', name: 'wrong element state', hint: 'An element is missing, shown, enabled or checked differently from the expected result.' };
+    if (/is visible$/.test(failingStep) && NOT_FOUND.test(message)) {
+      return {
+        group: 'Needs triage',
+        name: 'element not on the page',
+        hint: 'The element was not found. Either the app does not show it (product bug) or its test ID / locator changed (QA updates the model). Check the screenshot, then raise a bug or fix the model.',
+      };
+    }
+    return { group: 'Product bug', name: 'wrong element state', hint: 'An element is shown, hidden, enabled or checked differently from the expected result.' };
   }
   if (verify && NOT_FOUND.test(message)) return elementNotFound();
   if (/^Verify (URL|page title)/.test(failingStep)) {
@@ -67,6 +79,13 @@ function classifyCheck(message: string, failingStep: string): FailureCause | und
       group: 'Environment',
       name: 'email not delivered',
       hint: 'The app did not send the email in time (inbox, spam and All Mail were checked). Check the QA email service and re-run; if it never arrives after the action, it is a product bug.',
+    };
+  }
+  if (/^Wait until ".*" is gone/.test(failingStep)) {
+    return {
+      group: 'Environment',
+      name: 'loading took too long',
+      hint: 'A loading indicator (spinner, splash) stayed on screen past the limit: the environment was slow. Re-run; if it repeats, raise the slow load with the timings.',
     };
   }
   if (/^Read the (one-time code|link)/.test(failingStep)) {
@@ -158,10 +177,12 @@ export function failingStep(steps: StepEntry[]): StepEntry | undefined {
  * If the test case gives exact texts in quotes and the test checked none of them, the test itself is
  * wrong (old text, typo in test data), not the app.
  */
-export function testCaseMismatch(checked: string | undefined, tc: TestCase | undefined): FailureCause | undefined {
-  const value = unquote(checked);
-  const quoted = [...(tc?.expected ?? '').matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-  if (!value || !quoted.length || quoted.includes(value)) return undefined;
+export function testCaseMismatch(checked: string | undefined, tc: TestCase | undefined, message = ''): FailureCause | undefined {
+  // only exact text / value checks: substring, pattern, URL and count checks can't be compared with the test case
+  if (!/toHaveText|toHaveValue/.test(message) || /Expected (pattern|substring)/.test(message)) return undefined;
+  const value = norm(unquote(checked));
+  const quoted = [...(tc?.expected ?? '').matchAll(/"([^"]+)"/g)].map((m) => norm(m[1]));
+  if (!value || !quoted.length || quoted.some((q) => q === value || q.includes(value) || value.includes(q))) return undefined;
   return {
     group: 'Automation issue',
     name: 'test checks a different value than the test case',
@@ -170,6 +191,7 @@ export function testCaseMismatch(checked: string | undefined, tc: TestCase | und
 }
 
 const unquote = (s?: string) => s?.trim().replace(/^"(.*)"$/s, '$1');
+const norm = (s?: string) => (s ?? '').replace(/s+/g, ' ').trim().toLowerCase();
 
 export interface BugReportInput {
   testInfo: TestInfo;
@@ -193,6 +215,7 @@ export function buildBugReport(input: BugReportInput): { html: string; text: str
   const expected = error.expected ?? tc?.expected;
   const tcExpected = error.expected && tc?.expected ? tc.expected : undefined;
   const actual = error.received ?? firstLine(error.message);
+  const video = evidenceName(title, testInfo.project.name, testInfo.retry, '.webm');
   const bugTitle = `${feature ? `[${feature}] ` : ''}${tc?.title ?? title.replace(/^\s*TC-[A-Z0-9-]+\s*\|\s*/i, '')}${tc ? ` (${tc.id})` : ''}`;
 
   const facts: [string, string][] = [
@@ -221,7 +244,7 @@ export function buildBugReport(input: BugReportInput): { html: string; text: str
     ...(tcExpected ? [`Test case expected result: ${tcExpected}`] : []),
     `Actual: ${actual ?? '—'}`,
     '',
-    'Evidence: screenshot, video and trace are attached to this test in the Allure report.',
+    `Evidence: screenshot attached to this test in the report; video: ${video} (in the run's ${EVIDENCE_DIR}/ folder; attached to the test in the live report).`,
   ].join('\n');
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
@@ -257,7 +280,7 @@ ${list('Failed network requests (4xx / 5xx / no response)', log.web?.failedReque
 ${error.callLog ? `<details><summary>Playwright call log</summary><pre>${esc(error.callLog)}</pre></details>` : ''}
 
 <details><summary>Copy for Jira</summary><pre>${esc(text)}</pre></details>
-<p class="muted">Screenshot, video and trace (web) or screenshot and page source (mobile) are attached below this report.</p>
+<p class="muted">${log.device ? 'Screenshot and page source are attached below this report.' : `Screenshot attached below this report. Video: <b>${esc(video)}</b> in the run's ${EVIDENCE_DIR}/ folder (next to report.html), or attached below in the live report.`}</p>
 </body></html>`;
 
   return { html, text };
@@ -279,7 +302,8 @@ function list(title: string, items?: string[]): string {
 }
 
 const firstLine = (s: string) => s.split('\n')[0];
-const cssGroup = (g: CauseGroup) => (g === 'Product bug' ? 'bug' : g === 'Environment' ? 'env' : 'auto');
+const cssGroup = (g: CauseGroup) =>
+  g === 'Product bug' || g === 'Known bug' ? 'bug' : g === 'Environment' || g === 'PO decision' ? 'env' : 'auto';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 const CSS = `

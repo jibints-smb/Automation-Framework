@@ -3,7 +3,8 @@ import { env } from '@core/config/env';
 
 export type Platform = 'android' | 'ios';
 
-type Capabilities = Record<string, string | number | boolean>;
+/** Values can be nested objects for device clouds, e.g. 'bstack:options': { userName, buildName }. */
+type Capabilities = Record<string, unknown>;
 
 /** Drop empty values so Appium doesn't receive blank capabilities. */
 function compact(caps: Record<string, string | number | boolean | undefined>): Capabilities {
