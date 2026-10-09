@@ -12,11 +12,13 @@ import {
   parseCases,
   requirementHash,
   testCasesHeader,
+  testCasesPreconditions,
   testCasesSource,
   walk,
 } from '../../scripts/lib.mjs';
 import { currentContext, requireApp } from '../context.mjs';
 import { startJob } from '../jobs.mjs';
+import { devNotes, moduleOf, sprintsByJira } from '../areas.mjs';
 import { setCell } from '../markdown.mjs';
 
 const bad = (msg, status = 400) => Object.assign(new Error(msg), { status });
@@ -49,6 +51,8 @@ function requirements(app) {
         key,
         jira: text.match(/^\|\s*Jira\s*\|\s*([A-Z][A-Z0-9]+-\d+)/m)?.[1] ?? path.basename(f).match(/^[A-Z][A-Z0-9]+-\d+/)?.[0] ?? '',
         title: text.match(/^#\s+(.+)$/m)?.[1] ?? key,
+        platform: key.includes('/') ? key.split('/')[0] : '',
+        module: moduleOf(file),
         stage: base ? { stage: base.stage, date: base.date, by: base.by } : null,
         changed,
         status: !base ? (linked.length ? 'baseline missing' : 'needs test cases') : changed ? 'changed' : 'up to date',
@@ -66,31 +70,13 @@ export const routes = [
     handler: ({ query }) => {
       const app = requireApp(query.app || currentContext().app);
       const reqs = requirements(app);
-      const fromDev = walk(`apps/${app}/sprints`, '.md')
-        .map(rel)
-        .filter((f) => f.includes('/from-dev/'))
-        .map((file) => {
-          const m = file.match(/sprints\/sprint-(\d+)\/from-dev\/(\d{4}-\d{2}-\d{2})\/(.+)$/);
-          const text = fs.readFileSync(file, 'utf8');
-          // which story: the key in the file name, the file's own Jira row, or the module name matching a
-          // requirement (advertiser-accounts.md → BK-7-advertiser-accounts.md); never a key merely mentioned in the text
-          const name = path.basename(file);
-          const byModule = reqs.find((r) => path.basename(r.file).toLowerCase().endsWith(`-${name.toLowerCase()}`));
-          const jira =
-            name.match(/[A-Z][A-Z0-9]+-\d+/)?.[0] ??
-            text.match(/^\|\s*Jira(?: key)?\s*\|\s*([A-Z][A-Z0-9]+-\d+)\s*\|/im)?.[1] ??
-            byModule?.jira ??
-            '';
-          const requirement = reqs.find((r) => r.jira && r.jira === jira);
-          // merged = the requirement's change log names this delivery (from-dev/<date>)
-          const merged = !!requirement && fs.readFileSync(requirement.file, 'utf8').includes(`from-dev/${m?.[2]}`);
-          return { file, sprint: m?.[1] ?? '', date: m?.[2] ?? '', name: m?.[3] ?? path.basename(file), jira, requirement: requirement?.file ?? '', merged };
-        })
-        .sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+      const fromDev = devNotes(app, reqs);
+      const sprints = sprintsByJira(app, fromDev);
       for (const r of reqs) {
         const notes = fromDev.filter((d) => d.requirement === r.file);
         r.devNotes = notes.length;
         r.unmerged = notes.filter((d) => !d.merged).length;
+        r.sprints = sprints.get(r.jira) ?? [];
       }
       return { app, requirements: reqs, fromDev };
     },
@@ -164,6 +150,7 @@ export const routes = [
       const code = appCode(appDir);
       const automated = latestResults(app);
       const manual = manualResults(appDir);
+      const sprints = sprintsByJira(app, devNotes(app, requirements(app)));
       const files = walk(`${appDir}/test-cases`, '.testcases.md').map((f) => {
         const cases = parseCases(f).map((c) => {
           const auto = automated.get(c.id);
@@ -174,14 +161,32 @@ export const routes = [
             type: c.type,
             priority: c.priority,
             automate: c.automate,
+            tags: c.tags,
+            steps: c.steps,
+            expected: c.expected,
             hasTest: isAutomated(c.id, code),
             result: auto?.result ?? '',
             resultDate: auto?.started ?? '',
             note: auto?.note ?? '',
+            resultBuild: auto?.build ?? '',
+            resultEnv: auto?.environment ?? '',
             manual: man ? `${man.result} (${man.date})` : '',
+            // the test-case drawer: who tested it by hand, on which build, and the bug raised
+            manualDetail: man ? { result: man.result, date: man.date, by: man.by, build: man.build, bug: man.bug, notes: man.notes } : null,
           };
         });
-        return { file: rel(f), header: testCasesHeader(f), cases };
+        const header = testCasesHeader(f);
+        const folder = rel(f).replace(`${appDir}/test-cases/`, '');
+        return {
+          file: rel(f),
+          header,
+          preconditions: testCasesPreconditions(f),
+          // the folder (web / mobile / api, like requirements/); the header's Platform is free text ("android, ios")
+          platform: folder.includes('/') ? folder.split('/')[0] : header.platform || '',
+          module: moduleOf(f),
+          sprints: sprints.get(header.jira) ?? [],
+          cases,
+        };
       });
       const all = files.flatMap((f) => f.cases).filter((c) => c.automate !== 'retired');
       const yes = all.filter((c) => c.automate === 'yes');

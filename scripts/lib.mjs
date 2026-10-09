@@ -68,10 +68,37 @@ export function parseCases(file) {
       priority: (row[columns.indexOf('priority')] ?? '').toLowerCase(),
       /** yes · later · no (manual only) · retired (removed from the requirement, never deleted: IDs stay unique) */
       automate: (row[columns.indexOf('automate')] || 'yes').toLowerCase(),
+      tags: (row[columns.indexOf('tags')] ?? '').split(/\s+/).filter(Boolean),
+      steps: splitSteps(row[columns.indexOf('steps')] ?? ''),
+      expected: row[columns.indexOf('expected result')] ?? row[columns.indexOf('expected')] ?? '',
       file,
     });
   }
   return result;
+}
+
+/** "1. Enter user 2. Click Login" (or "<br>"-separated) → ["Enter user", "Click Login"] (as src/report/testCases.ts). */
+export function splitSteps(text) {
+  return String(text)
+    .split(/<br\s*\/?>|\s+(?=\d+[.)]\s)/i)
+    .map((s) => s.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+/** The "## Preconditions" bullet list of a test-cases file (shared by all its test cases). */
+export function testCasesPreconditions(file) {
+  const items = [];
+  let inside = false;
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const heading = line.match(/^#{2,}\s+(.*)$/);
+    if (heading) {
+      inside = /^precondition/i.test(heading[1].trim());
+      continue;
+    }
+    const item = inside && line.match(/^\s*[-*]\s+(.+)$/)?.[1];
+    if (item && item.trim() !== '...') items.push(item.trim());
+  }
+  return items;
 }
 
 /** The "Source" requirement path written in a test-cases file header (relative to the app folder). */

@@ -1,7 +1,10 @@
-/* QA Studio styles: compiled to app.css by the Studio at start (npm run studio). Only these two files are scanned. */
+/* QA Studio and QA Viewer styles: compiled to app.css at start (npm run studio / viewer). Only these files are scanned. */
 @import "tailwindcss" source(none);
 @source "./index.html";
 @source "./app.js";
+@source "./viewer.html";
+@source "./viewer.js";
+@source "./common.js";
 
 @theme {
   --color-brand-50: #eef1fd;
@@ -29,7 +32,7 @@
 @utility btn-secondary { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
 @utility btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
 @utility btn-sm { @apply px-3 py-1.5 text-xs; }
-@utility badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+@utility badge { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold; }
 @utility badge-ok { @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200; }
 @utility badge-bad { @apply badge bg-rose-50 text-rose-700 ring-1 ring-rose-200; }
 @utility badge-warn { @apply badge bg-amber-50 text-amber-700 ring-1 ring-amber-200; }
@@ -48,3 +51,27 @@
   & span { @apply text-xs text-slate-500; }
 }
 @utility log { @apply h-96 overflow-auto rounded-xl bg-brand-900 p-4 font-mono text-xs leading-5 text-slate-100; }
+/* Dropdowns: our own chevron with room around it (the browser's arrow sits on the edge and differs per browser) */
+select.input, select.select-chip {
+  appearance: none;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.5rem;
+  text-overflow: ellipsis;
+}
+select.input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+select.input:disabled { cursor: not-allowed; }
+/* small dropdowns in table rows (Automate) */
+select.input.text-xs { padding-right: 1.75rem; background-position: right 0.4rem center; background-size: 0.85rem 0.85rem; }
+/* on the blue header (QA Viewer's app picker) */
+select.select-chip {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0 center;
+  padding-right: 1.5rem;
+}
+/* QA Viewer: a command to type in the terminal or Claude Code, with a Copy button */
+@utility cmd { @apply flex min-w-0 items-center gap-2 rounded-lg bg-brand-900 py-1 pr-1 pl-3 font-mono text-xs text-slate-100; }

@@ -6,6 +6,7 @@
   "scripts": {
     "setup": "playwright install chromium webkit",
     "studio": "node studio/server.mjs",
+    "viewer": "node studio/server.mjs --viewer",
     "test": "playwright test",
     "test:web": "playwright test --project=web-*",
     "test:mobile-web": "playwright test --project=mobile-web-android --project=mobile-web-ios",

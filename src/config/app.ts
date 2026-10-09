@@ -60,6 +60,8 @@ export interface AppConfig {
     roles: Record<string, RoleAccount>;
     /** Log in on a fresh page and wait until logged in. Leave out for apps without a web login. */
     login?: (page: Page, credentials: Credentials) => Promise<void>;
+    /** URL of the login page: a logged-in test that fails there is reported as "session lost". */
+    loginUrl?: RegExp;
   };
 
   /** App defaults for the quality checks in `verify` (each call can override them). */

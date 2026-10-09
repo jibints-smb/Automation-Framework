@@ -73,7 +73,9 @@ scripts/             new-app, tc-coverage, trace-check, sprint (new/report), run
                      req-track, claude-cmd, brand-report, redact-results
 .github/             CI workflow (checks on every PR, tests on demand), CODEOWNERS, PR template
 .githooks/           pre-commit: type check + lint (enabled by npm install)
-studio/              QA Studio (npm run studio): node:http server + api/*.mjs, Tailwind + Alpine.js pages in public/
+studio/              QA Studio (npm run studio) and read-only QA Viewer (npm run viewer): node:http server + api/*.mjs,
+                     Tailwind + Alpine.js pages in public/ (index/app.js, viewer.*, common.js shared); areas.mjs:
+                     sprint / platform / module of any file, for the filter bar on every data page
 ```
 Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
 
@@ -111,6 +113,8 @@ Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
   `test.use({ role: null })` for logged out. Logins are saved per app, environment and role
   (`.auth/<app>/<env>/<role>.json`) and shared by all tests: a test that logs out on the server, changes the
   password or ends other sessions uses `test.use({ freshLogin: true })` (its own login, never shared).
+  Logins are redone at the start of every run: changed test credentials fail `log in as <role>` (all web tests
+  skipped) with a message naming the .env settings; `auth.loginUrl` reports a test that ends there as "session lost".
 - `TEST_ENV=<env>` needs `apps/<app>/.env.<env>` (a typo stops the run); app `.env` settings win over the root
   `.env`. One test run at a time per machine (a second run stops with a message; it would mix the reports).
 - Create test data through `api` and register removal with `cleanup.add(...)`; test error/empty states with `act.mockApi(...)`.
@@ -138,6 +142,8 @@ Imports: `@core/...` for the framework, `@apps/<app>/...` for app code.
 ## Commands
 - `npm run studio`: QA Studio, the web UI of the framework on this computer (studio/: setup, apps, requirements, test
   cases, sprints, runs, reports as forms; same files as the CLI). Keep its forms writing the same Markdown columns.
+- `npm run viewer`: QA Viewer, the same screens read-only (no actions; each shows the terminal / Claude Code command
+  to type instead). Same server with `--viewer` (port 4401): every non-GET request is refused. Pages: public/viewer.*
 - `npx tsc --noEmit`: type check (run after every change) · `npm run lint`: framework rules (no test.only, no waitForTimeout, fixtures imports)
 - `npx playwright test <file> --project=web-chrome`: run one spec
 - `npm run test:web` · `test:mobile-web` · `test:android` · `test:ios` · `test:api` · `test:smoke` · `test:regression`

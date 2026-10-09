@@ -339,15 +339,20 @@ export function readRunInfo(resultsDir = 'allure-results') {
   return info;
 }
 
-/** Brands a report: a folder (every index.html one level deep) or a single report.html. */
+/**
+ * Brands a report: a folder (every index.html one level deep) or a single report.html.
+ * The header's numbers come from the Allure results, or from `meta.run` / `build` / `sprint` (a saved run's summary).
+ */
 export function brandReport(target, meta = {}) {
+  const results = meta.resultsDir || 'allure-results';
   const info = {
     project: meta.project || setting('APP', 'app'),
     environment: (meta.environment || setting('TEST_ENV', 'qa')).toUpperCase(),
-    run: readRun(meta.resultsDir || 'allure-results'),
-    testedBy: meta.testedBy || readTestedBy(meta.resultsDir || 'allure-results'),
-    build: readRunInfo(meta.resultsDir || 'allure-results').Build || '',
-    sprint: readRunInfo(meta.resultsDir || 'allure-results').Sprint || '',
+    run: meta.run ?? readRun(results),
+    // '' = the run recorded no tester (an old saved run): show none rather than whoever runs this now
+    testedBy: meta.testedBy ?? readTestedBy(results),
+    build: meta.build ?? (readRunInfo(results).Build || ''),
+    sprint: meta.sprint ?? (readRunInfo(results).Sprint || ''),
   };
   const files = fs.statSync(target).isDirectory()
     ? [path.join(target, 'index.html'), ...fs.readdirSync(target).map((d) => path.join(target, d, 'index.html'))]

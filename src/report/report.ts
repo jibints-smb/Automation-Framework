@@ -8,7 +8,7 @@
  */
 import type { TestInfo } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import { settings } from '@core/config/app';
+import { app, settings } from '@core/config/app';
 import { env } from '@core/config/env';
 import { jiraUrl } from '@core/utils/allure';
 import { redact } from '@core/utils/redact';
@@ -97,7 +97,7 @@ export async function finishTestReport(testInfo: TestInfo, tc: TestCase | undefi
         name: `${log.knownBug!.key}: different failure`,
         hint: `The test is marked with known bug ${log.knownBug!.key}, but it failed somewhere else (expected the error to match /${failsAt!.source}/). Check for a new problem below.`,
       }
-    : (testCaseMismatch(error.expected, tc, error.message) ?? classifyFailure(error.message, step?.title));
+    : (sessionLost(log, role) ?? testCaseMismatch(error.expected, tc, error.message) ?? classifyFailure(error.message, step?.title));
   await allure.label('cause', causeLabel(cause));
 
   const report = buildBugReport({
@@ -118,6 +118,19 @@ export async function finishTestReport(testInfo: TestInfo, tc: TestCase | undefi
   await allure.descriptionHtml(summary + (tc ? describeTestCase(tc) : ''));
   await testInfo.attach('Bug report', { body: report.html, contentType: 'text/html' });
   await testInfo.attach('Bug report (text for Jira)', { body: report.text, contentType: 'text/plain' });
+}
+
+/** A logged-in test that ended on the login page: the saved session expired or the credentials changed. */
+function sessionLost(log: typeof runLog, role: string | null): FailureCause | undefined {
+  const loginUrl = app.auth?.loginUrl;
+  if (!role || !loginUrl || !log.web?.url || !loginUrl.test(log.web.url)) return undefined;
+  return {
+    group: 'Environment',
+    name: 'session lost (back on the login page)',
+    hint:
+      `The test started logged in as "${role}" but the app shows the login page: the session expired, was ended by the ` +
+      'server, or the test credentials changed. Check the role credentials in the app .env, run npm run auth, then re-run.',
+  };
 }
 
 function resolvedCause(log: typeof runLog): FailureCause {

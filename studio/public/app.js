@@ -1,29 +1,15 @@
 // QA Studio page logic (Alpine.js). One component on <body>; pages are sections shown by the URL hash (#/run).
+// api(), fmtDate/fmtDuration and the badge helpers (`shared`) are in common.js, shared with QA Viewer.
 const PAGES = ['home', 'setup', 'apps', 'requirements', 'testcases', 'sprints', 'run', 'reports', 'jobs'];
-
-async function api(method, url, body) {
-  const res = await fetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json', 'X-QA-Studio': '1' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
-  return data;
-}
-
-const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
-const fmtDuration = (sec) => (sec >= 3600 ? `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m` : sec >= 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec ?? 0}s`);
 
 document.addEventListener('alpine:init', () => {
   Alpine.data('studio', () => ({
+    ...shared,
     page: 'home',
     ctx: {},
     toasts: [],
     restartNeeded: false,
     loading: false,
-    fmtDate,
-    fmtDuration,
 
     // setup
     settings: [],
@@ -113,35 +99,21 @@ document.addEventListener('alpine:init', () => {
         if (page === 'setup') await Promise.all([this.loadSettings(), this.loadChecks()]);
         if (page === 'apps') await this.loadApps();
         if (page === 'run') await this.loadRunOptions();
+        // the filter bar needs the requirements and test cases (its values, and the module of a story / test case)
+        if (['reports', 'jobs', 'sprints'].includes(page) && this.ctx.app) await Promise.all([this.loadRequirements(), this.loadTestCases()]);
         if (page === 'reports') await this.loadReports();
         if (page === 'jobs') await this.loadJobs();
         if (page === 'requirements') await this.loadRequirements();
         if (page === 'testcases') await this.loadTestCases();
-        if (page === 'sprints') await Promise.all([this.loadSprints(), this.loadRequirements()]);
+        if (page === 'sprints') await this.loadSprints();
       } catch (e) {
         this.toast(e.message, 'bad');
       }
     },
 
-    toast(message, kind = 'ok') {
-      const id = Math.random();
-      this.toasts.push({ id, message, kind });
-      setTimeout(() => (this.toasts = this.toasts.filter((t) => t.id !== id)), kind === 'bad' ? 7000 : 3500);
-    },
-
     // ───── context / home ─────
     async loadContext() {
       this.ctx = await api('GET', '/api/context');
-    },
-    runStatus(run) {
-      if (!run) return { text: 'No runs yet', cls: 'badge-muted' };
-      if (run.setupFailed) return { text: 'Login setup failed', cls: 'badge-bad' };
-      return run.status === 'passed' ? { text: 'Passed', cls: 'badge-ok' } : run.status === 'interrupted' ? { text: 'Interrupted', cls: 'badge-warn' } : { text: 'Failed', cls: 'badge-bad' };
-    },
-    passRate(run) {
-      if (!run) return 0;
-      const counted = run.total - run.skipped - (run.knownBugs ?? 0) - (run.pendingDecisions ?? 0);
-      return counted > 0 ? Math.round((run.passed / counted) * 100) : 0;
     },
 
     // ───── setup ─────
@@ -276,6 +248,21 @@ document.addEventListener('alpine:init', () => {
       this.toast(`${app} is the active app`);
       await this.loadContext();
     },
+    // App field of the filter bar: the Studio works on the active app (runs, Claude actions), so choosing one makes it active
+    currentApp() {
+      return this.ctx.app;
+    },
+    async filterApp(app) {
+      if (app === this.ctx.app) return;
+      try {
+        await this.makeActive(app);
+        this.clearFilters(); // another app has other modules and sprints
+        this.viewer = this.compareView = null;
+        await this.load(this.page);
+      } catch (e) {
+        this.toast(e.message, 'bad');
+      }
+    },
 
     // ───── run tests ─────
     async loadRunOptions() {
@@ -346,7 +333,9 @@ document.addEventListener('alpine:init', () => {
     },
     filteredRuns() {
       const q = this.reportFilter.toLowerCase();
-      return this.reports.runs.filter((r) => !q || JSON.stringify([r.started, r.status, r.testedBy, r.build, r.sprint, r.environment, r.command]).toLowerCase().includes(q));
+      return this.reports.runs.filter(
+        (r) => this.matchesFilters(r) && (!q || JSON.stringify([r.started, r.status, r.testedBy, r.build, r.sprint, r.environment, r.command]).toLowerCase().includes(q)),
+      );
     },
     async openRun(run) {
       this.selectedRun = await api('GET', `/api/reports/${run.app}/${run.run}`);
@@ -365,9 +354,6 @@ document.addEventListener('alpine:init', () => {
     async loadRequirements() {
       this.reqs = await api('GET', `/api/requirements?app=${this.ctx.app}`);
       if (!this.uploadSprint) this.uploadSprint = this.ctx.sprint || this.ctx.open?.latestSprint || '01';
-    },
-    reqBadge(status) {
-      return { changed: 'badge-warn', 'needs test cases': 'badge-info', 'baseline missing': 'badge-warn', 'up to date': 'badge-ok' }[status] ?? 'badge-muted';
     },
     async view(file) {
       try {
@@ -441,12 +427,6 @@ document.addEventListener('alpine:init', () => {
       return file.cases.filter(
         (c) => (!q || `${c.id} ${c.title} ${c.priority} ${c.note}`.toLowerCase().includes(q)) && (!this.tcResult || (this.tcResult === 'none' ? !c.result && !c.manual : (c.result || c.manual).startsWith(this.tcResult))),
       );
-    },
-    resultBadge(result) {
-      if (!result) return 'badge-muted';
-      if (/^(passed|pass|manual pass)/.test(result)) return 'badge-ok';
-      if (/^(failed|fail|manual fail)/.test(result)) return 'badge-bad';
-      return 'badge-warn';
     },
     async setAutomate(file, c, value) {
       try {
@@ -589,7 +569,7 @@ document.addEventListener('alpine:init', () => {
 
     // ───── jobs ─────
     async loadJobs() {
-      this.jobs = await api('GET', '/api/jobs');
+      this.jobs = await api('GET', `/api/jobs${this.ctx.app ? `?app=${this.ctx.app}` : ''}`);
     },
     watching() {
       return !!(this.selectedJob && this.job && this.selectedJob.id === this.job.id);
@@ -605,11 +585,8 @@ document.addEventListener('alpine:init', () => {
       try {
         this.selectedJob = await api('GET', `/api/jobs/${id}`);
       } catch {
-        this.selectedJob = { ...this.jobs.find((j) => j.id === id), lines: ['(output of jobs from an earlier Studio session is not kept)'] };
+        this.selectedJob = { ...this.jobs.find((j) => j.id === id), lines: ['(the output of this job was not kept)'] };
       }
-    },
-    jobBadge(status) {
-      return { passed: 'badge-ok', failed: 'badge-bad', stopped: 'badge-warn', running: 'badge-info' }[status] ?? 'badge-muted';
     },
   }));
 });

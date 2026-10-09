@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QA Viewer · NewAgeSysIT</title>
+  <link rel="icon" href="/logo">
+  <link rel="stylesheet" href="/app.css">
+  <script defer src="/common.js"></script>
+  <script defer src="/viewer.js"></script>
+  <script defer src="/alpine.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800" x-data="viewer" x-cloak>
+<!-- .cmd blocks: a command to type (terminal or Claude Code chat) with a Copy button; the Viewer runs nothing itself -->
+<div class="flex min-h-screen">
+  <!-- ───────── sidebar ───────── -->
+  <aside class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
+    <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+      <img src="/logo" alt="NewAgeSysIT" class="h-9 max-w-37.5 object-contain">
+    </div>
+    <div class="px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-brand-500">QA Viewer · read only</div>
+    <nav class="flex flex-1 flex-col gap-1 px-3">
+      <template x-for="item in [
+        { id: 'home', label: 'Home', icon: 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10' },
+        { id: 'reports', label: 'Reports', icon: 'M4 19V5m5 14V9m5 10v-6m5 6V7' },
+        { id: 'requirements', label: 'Requirements', icon: 'M7 3h7l5 5v13H7zM14 3v5h5M9 13h8M9 17h6' },
+        { id: 'testcases', label: 'Test cases', icon: 'M9 11l2 2 4-4M5 4h14v16H5z' },
+        { id: 'sprints', label: 'Sprints', icon: 'M8 3v3M16 3v3M4 8h16M5 5h14v15H5zM9 13l2 2 4-4' },
+        { id: 'apps', label: 'Apps', icon: 'M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v6H4zM13 14h7v6h-7z' },
+        { id: 'activity', label: 'Activity', icon: 'M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { id: 'logs', label: 'Logs', icon: 'M4 6h16M4 10h16M4 14h10M4 18h7' },
+      ]" :key="item.id">
+        <a :href="`#/${item.id}`" class="nav-item" :class="page === item.id && 'nav-active'">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path :d="item.icon"/></svg>
+          <span x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+    <div class="border-t border-slate-200 p-4 text-xs text-slate-500">
+      <div class="font-semibold text-slate-700" x-text="ctx.qaName || 'QA_NAME not set'"></div>
+      <div x-text="ctx.qaEmail"></div>
+      <div class="mt-2">Shows data only. Do the work in the terminal or Claude Code: every screen shows the command.</div>
+    </div>
+  </aside>
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- ───────── header ───────── -->
+    <header class="sticky top-0 z-20 bg-linear-to-r from-brand-500 to-brand-700 text-white shadow-md">
+      <div class="flex flex-wrap items-center gap-3 px-4 py-3 md:px-6">
+        <div class="mr-auto">
+          <div class="text-lg font-semibold">QA Automation Framework</div>
+          <div class="text-xs text-white/80">NewAgeSysIT · QA Viewer: see everything, do it yourself in the terminal and Claude Code</div>
+        </div>
+        <label class="rounded-lg border border-white/25 bg-white/10 px-3 py-1.5">
+          <span class="block text-[10px] uppercase tracking-wider text-white/70">App</span>
+          <select class="select-chip bg-transparent text-sm font-semibold outline-none" :value="app" @change="switchApp($event.target.value)">
+            <template x-for="a in ctx.apps || []" :key="a"><option class="text-slate-800" :value="a" :selected="a === app" x-text="a + (a === ctx.app ? ' (active)' : '')"></option></template>
+          </select>
+        </label>
+        <template x-for="chip in [['Environment', (ctx.environment || 'qa').toUpperCase()], ['Build', ctx.build || '—'], ['Sprint', ctx.sprint || '—']]">
+          <div class="rounded-lg border border-white/25 bg-white/10 px-3 py-1.5">
+            <div class="text-[10px] uppercase tracking-wider text-white/70" x-text="chip[0]"></div>
+            <div class="text-sm font-semibold" x-text="chip[1]"></div>
+          </div>
+        </template>
+      </div>
+      <!-- mobile navigation -->
+      <nav class="flex gap-1 overflow-x-auto px-4 pb-2 md:hidden">
+        <template x-for="id in ['home','reports','requirements','testcases','sprints','apps','activity','logs']">
+          <a :href="`#/${id}`" class="whitespace-nowrap rounded-md px-3 py-1 text-xs font-semibold capitalize" :class="page === id ? 'bg-white text-brand-700' : 'text-white/90'" x-text="id === 'testcases' ? 'test cases' : id"></a>
+        </template>
+      </nav>
+      <div x-show="activity.running" class="flex items-center gap-3 bg-brand-900 px-6 py-1.5 text-xs">
+        <span class="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>
+        <span x-text="`A test run is in progress (${activity.running?.app}, started ${activity.running?.started})`"></span>
+      </div>
+    </header>
+    <div x-show="restartNeeded" class="bg-amber-100 px-6 py-2 text-sm text-amber-900">
+      <b>QA Viewer was updated.</b> Restart it: press <b>Ctrl+C</b> in its terminal window, run <code>npm run viewer</code> again, then reload this page.
+    </div>
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8">
+      <div class="card card-pad border-amber-200 bg-amber-50" x-show="ctx.apps && !app">
+        <div class="h-card">No app yet</div>
+        <p class="muted mt-1">Create one in the terminal, then set <code>APP=&lt;name&gt;</code> in the root .env:</p>
+        <div class="mt-3 max-w-xl"><div class="cmd"><code class="flex-1 break-all py-1">npm run new:app -- my-app --platforms web</code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy('npm run new:app -- my-app --platforms web')" x-text="copied === 'npm run new:app -- my-app --platforms web' ? 'Copied' : 'Copy'"></button></div></div>
+      </div>
+
+      <!-- ═════════════ HOME ═════════════ -->
+      <section x-show="page === 'home' && app" class="space-y-6">
+        <div>
+          <h1 class="h-page" x-text="ctx.qaName ? `Hello, ${ctx.qaName.split(' ')[0]}` : 'QA Viewer'"></h1>
+          <p class="muted">Where the app stands, and the commands for what to do next.</p>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-3">
+          <div class="card card-pad lg:col-span-2">
+            <div class="flex items-center justify-between">
+              <div class="h-card">Latest run</div>
+              <span class="badge" :class="runStatus(latestRun()).cls" x-text="runStatus(latestRun()).text"></span>
+            </div>
+            <template x-if="latestRun()">
+              <div class="mt-4 flex flex-wrap items-center gap-6">
+                <div class="relative grid h-28 w-28 place-items-center rounded-full" :style="`background: conic-gradient(#22c55e ${passRate(latestRun())}%, #f43f5e 0)`">
+                  <div class="grid h-20 w-20 place-items-center rounded-full bg-white text-xl font-bold text-brand-900" x-text="`${passRate(latestRun())}%`"></div>
+                </div>
+                <div class="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div class="stat"><b class="text-emerald-600" x-text="latestRun().passed"></b><span>passed</span></div>
+                  <div class="stat"><b class="text-rose-600" x-text="latestRun().failed"></b><span>failed</span></div>
+                  <div class="stat"><b class="text-sky-600" x-text="latestRun().pendingDecisions ?? 0"></b><span>PO pending</span></div>
+                  <div class="stat"><b class="text-violet-600" x-text="latestRun().knownBugs ?? 0"></b><span>known bugs</span></div>
+                </div>
+                <div class="w-full text-sm text-slate-500">
+                  <span x-text="fmtDate(latestRun().started)"></span> ·
+                  <span x-text="fmtDuration(latestRun().durationSec)"></span> ·
+                  tested by <b x-text="latestRun().testedBy || '—'"></b>
+                  <template x-if="latestRun().build"><span> · build <b x-text="latestRun().build"></b></span></template>
+                  <a class="ml-2 font-semibold text-brand-600 hover:underline" :href="latestRun().reportUrl" target="_blank" x-show="latestRun().reportUrl">Open report ↗</a>
+                </div>
+              </div>
+            </template>
+            <p class="muted mt-3" x-show="!latestRun()">No saved run yet for this app.</p>
+          </div>
+
+          <div class="card card-pad">
+            <div class="h-card">Numbers</div>
+            <ul class="mt-3 space-y-3 text-sm">
+              <li class="flex items-start gap-2"><span class="badge-info" x-text="reqs.requirements.length"></span><span>requirements</span></li>
+              <li class="flex items-start gap-2"><span class="badge-warn" x-text="reqs.requirements.filter(r => r.changed).length"></span><span>requirements changed since QA processed them</span></li>
+              <li class="flex items-start gap-2"><span class="badge-warn" x-text="reqs.fromDev.filter(d => !d.merged).length"></span><span>developer MDs not merged</span></li>
+              <li class="flex items-start gap-2"><span class="badge-ok" x-text="`${tc.coverage.automated ?? 0}/${tc.coverage.total ?? 0}`"></span><span>test cases automated</span></li>
+              <li class="flex items-start gap-2"><span class="badge-muted" x-text="tc.coverage.manualOnly ?? 0"></span><span>manual-only test cases</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="h-card">What to do next</div>
+          <p class="muted">Type these yourself. Commands with <code>/qa-…</code> go in the Claude Code chat; the others in the terminal (project folder).</p>
+          <ul class="mt-4 space-y-4">
+            <template x-for="(s, i) in nextSteps()" :key="i">
+              <li>
+                <div class="mb-1 text-sm font-medium text-slate-700" x-text="s.why"></div>
+                <div class="space-y-1">
+                  <template x-for="c in s.cmds" :key="c">
+                    <div class="cmd"><span class="text-[10px] uppercase text-slate-400" x-text="c.startsWith('/') ? 'claude' : 'terminal'"></span><code class="flex-1 break-all py-1" x-text="c"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(c)" x-text="copied === c ? 'Copied' : 'Copy'"></button></div>
+                  </template>
+                </div>
+              </li>
+            </template>
+            <li class="muted" x-show="!nextSteps().length">Nothing waiting. Run the regression when a new build arrives: <code>npm run test:regression</code></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between px-5 pt-5"><div class="h-card">Recent activity</div><a href="#/activity" class="text-sm font-semibold text-brand-600 hover:underline">All activity →</a></div>
+          <ul class="mt-3 divide-y divide-slate-100">
+            <template x-for="(a, i) in activity.items.slice(0, 8)" :key="i">
+              <li class="flex cursor-pointer items-start gap-3 px-5 py-3 hover:bg-slate-50" @click="openItem(a)">
+                <span class="badge shrink-0" :class="kindBadge(a.kind)" x-text="kindLabel(a.kind)"></span>
+                <div class="min-w-0 flex-1"><div class="text-sm font-medium" x-text="a.title"></div><div class="truncate text-xs text-slate-500" x-text="a.detail"></div></div>
+                <div class="shrink-0 text-right text-xs text-slate-500"><div x-text="fmtDate(a.at)"></div><div x-text="a.who"></div></div>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ═════════════ APPS ═════════════ -->
+      <section x-show="page === 'apps'" class="space-y-6">
+        <div><h1 class="h-page">Apps</h1><p class="muted">Each application the team tests. The active app is <code>APP</code> in the root .env.</p></div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <template x-for="a in apps" :key="a.app">
+            <div class="card card-pad flex flex-col gap-3" :class="app === a.app && 'ring-2 ring-brand-500'">
+              <div class="flex items-start justify-between gap-2">
+                <div><div class="h-card" x-text="a.name"></div><div class="text-xs text-slate-500" x-text="a.app"></div></div>
+                <span class="badge-info" x-show="ctx.app === a.app">Active</span>
+              </div>
+              <div class="flex flex-wrap gap-1"><template x-for="p in a.projects"><span class="badge-muted" x-text="p"></span></template></div>
+              <div class="truncate text-sm text-slate-600" x-text="a.baseUrl || 'No URL set'"></div>
+              <div class="text-xs text-slate-500">
+                <div x-text="`Roles: ${a.roles.map(r => r.role + (r.role === a.defaultRole ? ' (default)' : '')).join(', ') || '—'}`"></div>
+                <div x-text="`Environments: ${a.envFiles.filter(f => f !== '.env.example').map(f => f === '.env' ? 'qa' : f.replace('.env.', '')).join(', ') || '—'}`"></div>
+                <div x-text="`Test IDs: ${a.testIdAttribute}`"></div>
+                <div><span x-text="`${a.testCases} test cases`"></span><template x-if="a.latestRun"><span x-text="` · last run ${fmtDate(a.latestRun.started)} (${a.latestRun.passed}/${a.latestRun.total} passed)`"></span></template></div>
+              </div>
+              <div class="mt-auto space-y-1 pt-2">
+                <template x-for="c in [`code apps/${a.app}/app.config.ts`, `npm run auth`]" :key="c">
+                  <div class="cmd"><code class="flex-1 break-all py-1" x-text="c"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(c)" x-text="copied === c ? 'Copied' : 'Copy'"></button></div>
+                </template>
+                <button class="text-xs font-semibold text-brand-600 hover:underline" x-show="app !== a.app" @click="switchApp(a.app)">View this app here</button>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="card card-pad space-y-2">
+          <div class="h-card">How to</div>
+          <template x-for="h in [
+            ['Create an app', 'npm run new:app -- customer-portal --platforms web,android'],
+            ['Make an app active (root .env)', 'APP=customer-portal'],
+            ['Accounts and URLs (never commit them)', `code apps/${app}/.env`],
+            ['Test the email inbox login', 'npm run mail:check'],
+          ]">
+            <div class="grid items-center gap-1 sm:grid-cols-[16rem_1fr]"><span class="text-sm text-slate-600" x-text="h[0]"></span><div class="cmd"><code class="flex-1 break-all py-1" x-text="h[1]"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(h[1])" x-text="copied === h[1] ? 'Copied' : 'Copy'"></button></div></div>
+          </template>
+        </div>
+      </section>
+
+      <!-- ═════════════ REQUIREMENTS ═════════════ -->
+      <section x-show="page === 'requirements' && app" class="space-y-6">
+        <div><h1 class="h-page">Requirements</h1><p class="muted">One file per story. Changes since QA last processed them are flagged.</p></div>
+        <!-- app / sprint / platform / module filter (common.js): the same bar on every data page, kept between pages -->
+        <div class="card card-pad flex flex-wrap items-end gap-3">
+          <div><label class="label">App</label>
+            <select class="input w-56" @change="filterApp($event.target.value)">
+              <template x-for="a in ctx.apps || []" :key="a"><option :value="a" :selected="a === currentApp()" x-text="a"></option></template>
+            </select></div>
+          <div x-show="page !== 'sprints'"><label class="label">Sprint</label>
+            <select class="input w-40" x-model="filters.sprint" @change="onFilterChange('sprint')">
+              <option value="">All sprints</option>
+              <template x-for="s in filterOptions().sprints" :key="s"><option :value="s" :selected="s === filters.sprint" x-text="`Sprint ${s}`"></option></template>
+              <option value="none" :selected="filters.sprint === 'none'">Not in a sprint</option>
+            </select></div>
+          <div><label class="label">Platform</label>
+            <select class="input w-40" x-model="filters.platform" @change="onFilterChange('platform')">
+              <option value="">All platforms</option>
+              <template x-for="p in filterOptions().platforms" :key="p"><option :value="p" :selected="p === filters.platform" x-text="p"></option></template>
+            </select></div>
+          <div><label class="label">Module</label>
+            <select class="input w-52" x-model="filters.module" @change="onFilterChange('module')">
+              <option value="">All modules</option>
+              <template x-for="m in filterOptions().modules" :key="m"><option :value="m" :selected="m === filters.module" x-text="m"></option></template>
+            </select></div>
+          <button class="btn-secondary btn-sm mb-1" x-show="filtersActive()" @click="clearFilters()">Clear filters</button>
+          <span class="muted mb-2 ml-auto" x-show="filtersActive()" x-text="filterSummary()"></span>
+        </div>
+        <ol class="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <template x-for="(s, i) in [
+            ['QA requirement', 'templates/requirement.md → requirements/<web|mobile>/<JIRA>-<module>.md'],
+            ['Test cases', '/qa-testcases <requirement.md>, then review'],
+            ['Developer notes', 'Save unchanged in sprints/sprint-NN/from-dev/<date>/'],
+            ['Merge', '/qa-merge <dev md>'],
+            ['Update tests', 'npm run req:diff -- <md> → /qa-update <md>'],
+            ['Run and sign off', 'npm run sprint:report -- <NN>, then req:baseline --stage signed-off'],
+          ]">
+            <li class="rounded-xl border border-slate-200 bg-white p-3">
+              <div class="flex items-center gap-2"><span class="grid h-6 w-6 place-items-center rounded-full bg-brand-500 text-xs font-bold text-white" x-text="i + 1"></span><span class="text-sm font-semibold text-brand-900" x-text="s[0]"></span></div>
+              <p class="mt-1 wrap-break-word font-mono text-[11px] text-slate-500" x-text="s[1]"></p>
+            </li>
+          </template>
+        </ol>
+        <div class="card overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Jira</th><th>Requirement</th><th>QA stage</th><th>Status</th><th>Developer notes</th><th>Automated</th><th>Next command</th></tr></thead>
+            <tbody>
+              <template x-for="r in filteredReqs()" :key="r.file">
+                <tr class="hover:bg-slate-50">
+                  <td class="whitespace-nowrap font-semibold" x-text="r.jira"></td>
+                  <td><button class="text-left font-medium text-brand-700 hover:underline" @click="view(r.file)" x-text="r.title"></button><div class="text-xs text-slate-500" x-text="r.key"></div></td>
+                  <td class="text-xs" x-text="r.stage ? `${r.stage.stage} · ${r.stage.date}${r.stage.by ? ` · ${r.stage.by}` : ''}` : 'not baselined'"></td>
+                  <td><span class="badge" :class="reqBadge(r.status)" x-text="r.status"></span></td>
+                  <td class="text-xs">
+                    <span x-text="r.devNotes ? `${r.devNotes} received` : '—'"></span>
+                    <span class="badge-warn ml-1" x-show="r.unmerged" x-text="`${r.unmerged} to merge`"></span>
+                  </td>
+                  <td x-text="r.automated"></td>
+                  <td class="min-w-72 space-y-1">
+                    <template x-for="c in (r.changed ? [`npm run req:diff -- ${r.file}`, `/qa-update ${r.file}`] : !r.testCaseFiles.length ? [`/qa-testcases ${r.file}`] : [])" :key="c">
+                      <div class="cmd"><code class="flex-1 break-all py-1" x-text="c"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(c)" x-text="copied === c ? 'Copied' : 'Copy'"></button></div>
+                    </template>
+                    <span class="text-xs text-slate-400" x-show="!r.changed && r.testCaseFiles.length">nothing to do</span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <p class="muted p-5" x-show="filtersActive() && reqs.requirements.length && !filteredReqs().length">No requirement matches the filter.</p>
+          <p class="muted p-5" x-show="!reqs.requirements.length">No requirements yet. Copy <code>templates/requirement.md</code> to <code x-text="`apps/${app}/requirements/web/<JIRA>-<module>.md`"></code>.</p>
+        </div>
+
+        <div class="card">
+          <div class="p-5">
+            <div class="h-card">Developer notes</div>
+            <p class="muted">Kept exactly as received in <code class="text-xs">sprints/sprint-NN/from-dev/&lt;date&gt;/</code>. Merge each into its story's requirement; never edit them.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead><tr><th>Received</th><th>Sprint</th><th>File</th><th>Story</th><th>Status</th><th>Look / next command</th></tr></thead>
+              <tbody>
+                <template x-for="d in filteredDevNotes()" :key="d.file">
+                  <tr class="hover:bg-slate-50">
+                    <td class="whitespace-nowrap" x-text="d.date"></td>
+                    <td x-text="d.sprint"></td>
+                    <td class="text-xs"><button class="text-left text-brand-700 hover:underline" @click="view(d.file)" x-text="d.name"></button></td>
+                    <td class="font-semibold" x-text="d.jira || '?'"></td>
+                    <td>
+                      <span class="badge-ok" x-show="d.merged">Merged</span>
+                      <span class="badge-warn" x-show="!d.merged && d.requirement">Not merged yet</span>
+                      <span class="badge-bad" x-show="!d.requirement">No requirement for this story</span>
+                    </td>
+                    <td class="min-w-72 space-y-1">
+                      <button class="btn-secondary btn-sm" x-show="d.requirement" @click="compare(d)">Compare with requirement</button>
+                      <template x-if="!d.merged && d.requirement">
+                        <div class="cmd"><code class="flex-1 break-all py-1" x-text="`/qa-merge ${d.file}`"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(`/qa-merge ${d.file}`)" x-text="copied === `/qa-merge ${d.file}` ? 'Copied' : 'Copy'"></button></div>
+                      </template>
+                      <span class="text-xs text-slate-500" x-show="!d.requirement">Write the requirement from templates/requirement.md first.</span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <p class="muted p-5" x-show="filtersActive() && reqs.fromDev.length && !filteredDevNotes().length">No developer MD matches the filter.</p>
+            <p class="muted p-5" x-show="!reqs.fromDev.length">Nothing received yet.</p>
+          </div>
+        </div>
+
+        <div id="compare" class="card card-pad space-y-3" x-show="compareView">
+          <div class="flex items-center justify-between gap-2"><div class="h-card">Developer notes vs QA requirement</div><button class="btn-secondary btn-sm" @click="compareView = null">Close</button></div>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <div><div class="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Developer notes (as received)</div>
+              <pre class="max-h-128 overflow-auto whitespace-pre-wrap rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5" x-text="compareView?.dev.content"></pre></div>
+            <div><div class="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-700">QA requirement (source of truth)</div>
+              <pre class="max-h-128 overflow-auto whitespace-pre-wrap rounded-xl border border-brand-200 bg-brand-50 p-4 text-xs leading-5" x-text="compareView?.req.content"></pre></div>
+          </div>
+        </div>
+
+        <div id="viewer" class="card card-pad space-y-3" x-show="viewer">
+          <div class="flex items-center justify-between gap-2"><div class="h-card truncate" x-text="viewer?.file"></div><button class="btn-secondary btn-sm" @click="viewer = null">Close</button></div>
+          <template x-if="viewer?.diff">
+            <details class="rounded-lg border border-amber-200 bg-amber-50 p-3" :open="!/No changes|No QA baseline/.test(viewer.diff)">
+              <summary class="cursor-pointer text-sm font-semibold text-amber-800">Changes since QA's last baseline</summary>
+              <pre class="mt-2 whitespace-pre-wrap text-xs text-slate-700" x-text="viewer.diff"></pre>
+            </details>
+          </template>
+          <pre class="max-h-128 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-800" x-text="viewer?.content"></pre>
+        </div>
+      </section>
+
+      <!-- ═════════════ TEST CASES ═════════════ -->
+      <section x-show="page === 'testcases' && app" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Test cases</h1><p class="muted">Reviewed test cases, whether each is automated, and its latest result.</p></div>
+          <a class="btn-secondary" :href="`/reports/${app}/traceability.html`" target="_blank">Traceability matrix ↗</a>
+        </div>
+        <!-- app / sprint / platform / module filter (common.js): the same bar on every data page, kept between pages -->
+        <div class="card card-pad flex flex-wrap items-end gap-3">
+          <div><label class="label">App</label>
+            <select class="input w-56" @change="filterApp($event.target.value)">
+              <template x-for="a in ctx.apps || []" :key="a"><option :value="a" :selected="a === currentApp()" x-text="a"></option></template>
+            </select></div>
+          <div x-show="page !== 'sprints'"><label class="label">Sprint</label>
+            <select class="input w-40" x-model="filters.sprint" @change="onFilterChange('sprint')">
+              <option value="">All sprints</option>
+              <template x-for="s in filterOptions().sprints" :key="s"><option :value="s" :selected="s === filters.sprint" x-text="`Sprint ${s}`"></option></template>
+              <option value="none" :selected="filters.sprint === 'none'">Not in a sprint</option>
+            </select></div>
+          <div><label class="label">Platform</label>
+            <select class="input w-40" x-model="filters.platform" @change="onFilterChange('platform')">
+              <option value="">All platforms</option>
+              <template x-for="p in filterOptions().platforms" :key="p"><option :value="p" :selected="p === filters.platform" x-text="p"></option></template>
+            </select></div>
+          <div><label class="label">Module</label>
+            <select class="input w-52" x-model="filters.module" @change="onFilterChange('module')">
+              <option value="">All modules</option>
+              <template x-for="m in filterOptions().modules" :key="m"><option :value="m" :selected="m === filters.module" x-text="m"></option></template>
+            </select></div>
+          <button class="btn-secondary btn-sm mb-1" x-show="filtersActive()" @click="clearFilters()">Clear filters</button>
+          <span class="muted mb-2 ml-auto" x-show="filtersActive()" x-text="filterSummary()"></span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div class="stat"><b x-text="coverage().total ?? 0"></b><span>test cases</span></div>
+          <div class="stat"><b class="text-emerald-600" x-text="coverage().automated ?? 0"></b><span>automated</span></div>
+          <div class="stat"><b :class="coverage().missing ? 'text-rose-600' : ''" x-text="coverage().missing ?? 0"></b><span>to automate</span></div>
+          <div class="stat"><b class="text-amber-600" x-text="coverage().later ?? 0"></b><span>planned later</span></div>
+          <div class="stat"><b x-text="coverage().manualOnly ?? 0"></b><span>manual only</span></div>
+          <div class="stat"><b class="text-brand-600" x-text="coverage().total ? `${Math.round(coverage().covered / coverage().total * 100)}%` : '0%'"></b><span>covered (auto + manual)</span></div>
+        </div>
+        <div class="grid gap-2 md:grid-cols-3">
+          <template x-for="h in [['Which IDs are not automated', 'npm run coverage:tc'], ['Test cases vs. real tests', 'npm run trace:check'], ['Investigate failing tests', '/qa-fix']]">
+            <div><div class="mb-1 text-xs text-slate-500" x-text="h[0]"></div><div class="cmd"><code class="flex-1 break-all py-1" x-text="h[1]"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(h[1])" x-text="copied === h[1] ? 'Copied' : 'Copy'"></button></div></div>
+          </template>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <input class="input max-w-xs" placeholder="Filter: ID, title, priority…" x-model="tcFilter">
+          <select class="input max-w-48" x-model="tcResult">
+            <option value="">All results</option><option value="passed">Passed</option><option value="failed">Failed</option>
+            <option value="PO pending">PO pending</option><option value="known bug">Known bug</option><option value="none">Not tested</option>
+          </select>
+        </div>
+        <div class="card card-pad muted" x-show="filtersActive() && tc.files.length && !filteredFiles().length">No test-cases file matches the filter.</div>
+        <template x-for="file in filteredFiles()" :key="file.file">
+          <div class="card">
+            <div class="space-y-3 p-5">
+              <div>
+                <div class="h-card"><span x-text="file.header.jira"></span> · <span x-text="file.header.feature || file.file.split('/').pop()"></span></div>
+                <div class="text-xs text-slate-500" x-text="`${file.file} · spec: ${file.header.spec || '—'}`"></div>
+              </div>
+              <div class="grid gap-2 md:grid-cols-2">
+                <template x-for="c in [file.header.jira && `npm run test:story -- ${file.header.jira}`, `/qa-automate ${file.file}`].filter(Boolean)" :key="c">
+                  <div class="cmd"><code class="flex-1 break-all py-1" x-text="c"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(c)" x-text="copied === c ? 'Copied' : 'Copy'"></button></div>
+                </template>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead><tr><th>ID</th><th>Title</th><th>Priority</th><th>Automate</th><th>Test</th><th>Latest result</th><th>Manual</th><th>Run one</th></tr></thead>
+                <tbody>
+                  <template x-for="c in filteredCases(file)" :key="c.id">
+                    <tr class="cursor-pointer hover:bg-brand-50" :class="drawer?.c.id === c.id && 'bg-brand-50'" @click="openCase(file, c)" title="Open the whole test case">
+                      <td class="whitespace-nowrap font-semibold" x-text="c.id"></td>
+                      <td><div x-text="c.title"></div><div class="text-xs text-slate-500" x-show="c.note" x-text="c.note"></div></td>
+                      <td><span class="badge" :class="['critical','blocker'].includes(c.priority) ? 'badge-bad' : 'badge-muted'" x-text="c.priority"></span></td>
+                      <td><span class="badge" :class="automateBadge(c.automate)" x-text="c.automate"></span></td>
+                      <td class="text-center" x-text="c.hasTest ? '✓' : ''"></td>
+                      <td><span class="badge" :class="resultBadge(c.result)" x-text="c.result || '—'"></span></td>
+                      <td><span class="badge" :class="resultBadge(c.manual)" x-show="c.manual" x-text="c.manual"></span></td>
+                      <td>
+                        <button class="whitespace-nowrap font-mono text-xs text-brand-600 hover:underline" x-show="c.hasTest" @click.stop="copy(`npx playwright test -g &quot;${c.id} &quot;`)"
+                                x-text="copied === `npx playwright test -g &quot;${c.id} &quot;` ? 'Copied' : 'Copy command'" :title="`npx playwright test -g &quot;${c.id} &quot;`"></button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+      </section>
+
+      <!-- ═════════════ SPRINTS ═════════════ -->
+      <section x-show="page === 'sprints' && app" class="space-y-6">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h1 class="h-page">Sprints</h1><p class="muted">The sprint tracker: stories, builds, questions, PO decisions, bugs and manual results.</p></div>
+          <select class="input w-36" x-model="sprintNo" @change="openSprint(sprintNo)">
+            <template x-for="s in sprintList" :key="s.number"><option :value="s.number" x-text="`Sprint ${s.number}`" :selected="s.number === sprintNo"></option></template>
+          </select>
+        </div>
+        <!-- app / sprint / platform / module filter (common.js): the same bar on every data page, kept between pages -->
+        <div class="card card-pad flex flex-wrap items-end gap-3">
+          <div><label class="label">App</label>
+            <select class="input w-56" @change="filterApp($event.target.value)">
+              <template x-for="a in ctx.apps || []" :key="a"><option :value="a" :selected="a === currentApp()" x-text="a"></option></template>
+            </select></div>
+          <div x-show="page !== 'sprints'"><label class="label">Sprint</label>
+            <select class="input w-40" x-model="filters.sprint" @change="onFilterChange('sprint')">
+              <option value="">All sprints</option>
+              <template x-for="s in filterOptions().sprints" :key="s"><option :value="s" :selected="s === filters.sprint" x-text="`Sprint ${s}`"></option></template>
+              <option value="none" :selected="filters.sprint === 'none'">Not in a sprint</option>
+            </select></div>
+          <div><label class="label">Platform</label>
+            <select class="input w-40" x-model="filters.platform" @change="onFilterChange('platform')">
+              <option value="">All platforms</option>
+              <template x-for="p in filterOptions().platforms" :key="p"><option :value="p" :selected="p === filters.platform" x-text="p"></option></template>
+            </select></div>
+          <div><label class="label">Module</label>
+            <select class="input w-52" x-model="filters.module" @change="onFilterChange('module')">
+              <option value="">All modules</option>
+              <template x-for="m in filterOptions().modules" :key="m"><option :value="m" :selected="m === filters.module" x-text="m"></option></template>
+            </select></div>
+          <button class="btn-secondary btn-sm mb-1" x-show="filtersActive()" @click="clearFilters()">Clear filters</button>
+          <span class="muted mb-2 ml-auto" x-show="filtersActive()" x-text="filterSummary()"></span>
+        </div>
+
+        <template x-if="sprint">
+          <div class="space-y-4">
+            <div class="card card-pad flex flex-wrap gap-6 text-sm">
+              <template x-for="k in ['dates','goal','environment','qa']">
+                <div x-show="sprint.info[k]"><div class="text-xs uppercase tracking-wide text-slate-500" x-text="k"></div><div class="font-medium" x-text="sprint.info[k]"></div></div>
+              </template>
+              <a class="ml-auto self-center font-semibold text-brand-600 hover:underline" :href="sprint.reportUrl" target="_blank" x-show="sprint.reportUrl">Last sign-off report ↗</a>
+            </div>
+            <div class="grid gap-2 md:grid-cols-3">
+              <template x-for="h in [
+                ['Sign-off report for the PO', `npm run sprint:report -- ${sprintNo}`],
+                ['Run the whole sprint', `npm run test:sprint -- ${sprintNo}`],
+                ['Edit the tracker', `code apps/${app}/sprints/sprint-${sprintNo}.md`],
+              ]">
+                <div><div class="mb-1 text-xs text-slate-500" x-text="h[0]"></div><div class="cmd"><code class="flex-1 break-all py-1" x-text="h[1]"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(h[1])" x-text="copied === h[1] ? 'Copied' : 'Copy'"></button></div></div>
+              </template>
+            </div>
+
+            <div class="flex flex-wrap gap-1 border-b border-slate-200">
+              <template x-for="t in [['stories','Stories'],['manual','Manual results'],['differences','PO decisions'],['questions','Questions'],['builds','Builds'],['bugs','Bugs']]">
+                <button class="-mb-px border-b-2 px-4 py-2 text-sm font-semibold" :class="sprintTab === t[0] ? 'border-brand-500 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'" @click="sprintTab = t[0]" x-text="t[1]"></button>
+              </template>
+            </div>
+
+            <div class="card overflow-x-auto" x-show="sprintTab === 'stories'">
+              <table class="data-table">
+                <thead><tr><th>Jira</th><th>Story</th><th>Requirement</th><th>Automated</th><th>QA stage</th><th>Notes</th><th>Run / sign off</th></tr></thead>
+                <tbody>
+                  <template x-for="s in filteredSprintRows('stories')" :key="s.jira">
+                    <tr>
+                      <td class="whitespace-nowrap font-semibold" x-text="s.jira"></td>
+                      <td x-text="s.story"></td>
+                      <td class="text-xs" x-text="s['requirement file']"></td>
+                      <td class="text-xs" x-text="s.automated"></td>
+                      <td><span class="badge" :class="s.signedOff ? 'badge-ok' : 'badge-muted'" x-text="s.baseline || 'not baselined'"></span></td>
+                      <td class="max-w-md text-xs text-slate-600" x-text="s.notes"></td>
+                      <td class="min-w-80 space-y-1">
+                        <template x-for="c in [`npm run test:story -- ${s.jira}`, !s.signedOff && s['requirement file'] && signOffCmd(s)].filter(Boolean)" :key="c">
+                          <div class="cmd"><code class="flex-1 break-all py-1" x-text="c"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(c)" x-text="copied === c ? 'Copied' : 'Copy'"></button></div>
+                        </template>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <p class="muted p-5" x-show="!filteredSprintRows('stories').length">No stories in this sprint's tracker yet.</p>
+              <p class="help px-5 pb-4">Sign-off is refused while a test fails, waits for the PO, or the requirement changed. Only QA signs off.</p>
+            </div>
+
+            <div class="card overflow-x-auto" x-show="sprintTab === 'manual'">
+              <table class="data-table">
+                <thead><tr><th>ID</th><th>Build</th><th>Result</th><th>Tested by</th><th>Date</th><th>Bug</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <template x-for="(r, i) in filteredSprintRows('manual')" :key="i">
+                    <tr><td class="font-semibold" x-text="r.id"></td><td x-text="r.build"></td><td><span class="badge" :class="resultBadge(r.result)" x-text="r.result"></span></td><td x-text="r['tested by']"></td><td x-text="r.date"></td><td x-text="r.bug"></td><td class="text-xs" x-text="r.notes"></td></tr>
+                  </template>
+                </tbody>
+              </table>
+              <p class="muted p-5" x-show="!filteredSprintRows('manual').length">No manual results yet.</p>
+              <p class="help px-5 pb-4" x-text="`Record results in apps/${app}/sprints/sprint-${sprintNo}/manual-results.md (one row per test: pass / fail / blocked).`"></p>
+            </div>
+
+            <template x-for="t in ['differences', 'questions', 'builds', 'bugs']" :key="t">
+              <div class="card overflow-x-auto" x-show="sprintTab === t">
+                <table class="data-table">
+                  <thead><tr><template x-for="c in sprint.tables[t].columns"><th x-text="c"></th></template></tr></thead>
+                  <tbody>
+                    <template x-for="(row, i) in filteredSprintRows(t)" :key="i">
+                      <tr><template x-for="c in sprint.tables[t].columns"><td class="text-sm" :class="['jira', '#', 'date', 'jira bug', 'version'].includes(c) && 'whitespace-nowrap'" x-text="row[c]"></td></template></tr>
+                    </template>
+                  </tbody>
+                </table>
+                <p class="muted p-5" x-show="!filteredSprintRows(t).length">Nothing here yet.</p>
+              </div>
+            </template>
+          </div>
+        </template>
+        <div class="card card-pad" x-show="!sprintList.length">
+          <div class="h-card">No sprint yet</div>
+          <p class="muted">Start one in the terminal: <code>npm run sprint:new -- 01</code>, then set <code>SPRINT=01</code> in the root .env.</p>
+        </div>
+      </section>
+
+      <!-- ═════════════ REPORTS ═════════════ -->
+      <section x-show="page === 'reports' && app" class="space-y-6">
+        <div><h1 class="h-page">Reports</h1><p class="muted">Every saved run of this app, from the terminal or QA Studio. Reports open as single files you can send to developers.</p></div>
+        <!-- app / sprint / platform / module filter (common.js): the same bar on every data page, kept between pages -->
+        <div class="card card-pad flex flex-wrap items-end gap-3">
+          <div><label class="label">App</label>
+            <select class="input w-56" @change="filterApp($event.target.value)">
+              <template x-for="a in ctx.apps || []" :key="a"><option :value="a" :selected="a === currentApp()" x-text="a"></option></template>
+            </select></div>
+          <div x-show="page !== 'sprints'"><label class="label">Sprint</label>
+            <select class="input w-40" x-model="filters.sprint" @change="onFilterChange('sprint')">
+              <option value="">All sprints</option>
+              <template x-for="s in filterOptions().sprints" :key="s"><option :value="s" :selected="s === filters.sprint" x-text="`Sprint ${s}`"></option></template>
+              <option value="none" :selected="filters.sprint === 'none'">Not in a sprint</option>
+            </select></div>
+          <div><label class="label">Platform</label>
+            <select class="input w-40" x-model="filters.platform" @change="onFilterChange('platform')">
+              <option value="">All platforms</option>
+              <template x-for="p in filterOptions().platforms" :key="p"><option :value="p" :selected="p === filters.platform" x-text="p"></option></template>
+            </select></div>
+          <div><label class="label">Module</label>
+            <select class="input w-52" x-model="filters.module" @change="onFilterChange('module')">
+              <option value="">All modules</option>
+              <template x-for="m in filterOptions().modules" :key="m"><option :value="m" :selected="m === filters.module" x-text="m"></option></template>
+            </select></div>
+          <button class="btn-secondary btn-sm mb-1" x-show="filtersActive()" @click="clearFilters()">Clear filters</button>
+          <span class="muted mb-2 ml-auto" x-show="filtersActive()" x-text="filterSummary()"></span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="p in reports.pages.filter(p => p.exists)">
+            <a class="btn-secondary btn-sm" :href="p.url" target="_blank" x-text="`${p.name} ↗`"></a>
+          </template>
+        </div>
+        <div class="grid gap-2 md:grid-cols-3">
+          <template x-for="h in [['Build and open the Allure report of the last run', 'npm run report'], ['Every saved run', 'npm run reports'], ['Flaky tests: run one 10 times', 'npm run flaky:check -- <spec> -g <ID>']]">
+            <div><div class="mb-1 text-xs text-slate-500" x-text="h[0]"></div><div class="cmd"><code class="flex-1 break-all py-1" x-text="h[1]"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(h[1])" x-text="copied === h[1] ? 'Copied' : 'Copy'"></button></div></div>
+          </template>
+        </div>
+        <div class="card">
+          <div class="p-4"><input class="input max-w-sm" placeholder="Filter by date, status, tester, build…" x-model="reportFilter"></div>
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead><tr><th>When</th><th>Status</th><th>Passed</th><th>Failed</th><th>Known</th><th>PO pending</th><th>vs previous</th><th>Build</th><th>Tested by</th><th>Duration</th><th></th></tr></thead>
+              <tbody>
+                <template x-for="r in filteredRuns()" :key="r.run">
+                  <tr class="cursor-pointer hover:bg-slate-50" :class="selectedRun?.run === r.run && 'bg-brand-50'" @click="go('reports', r.run)">
+                    <td x-text="fmtDate(r.started)"></td>
+                    <td><span :class="runStatus(r).cls" x-text="runStatus(r).text"></span></td>
+                    <td class="font-semibold text-emerald-600" x-text="r.passed"></td>
+                    <td class="font-semibold" :class="r.failed ? 'text-rose-600' : 'text-slate-400'" x-text="r.failed"></td>
+                    <td x-text="r.knownBugs ?? '—'"></td>
+                    <td x-text="r.pendingDecisions ?? '—'"></td>
+                    <td class="text-xs" x-text="r.diff ? [r.diff.newFailures.length ? `+${r.diff.newFailures.length} new` : '', r.diff.fixed.length ? `${r.diff.fixed.length} fixed` : ''].filter(Boolean).join(', ') || 'same' : '—'"></td>
+                    <td x-text="r.build || '—'"></td>
+                    <td x-text="r.testedBy || '—'"></td>
+                    <td x-text="fmtDuration(r.durationSec)"></td>
+                    <td><a class="font-semibold text-brand-600 hover:underline" :href="r.reportUrl" target="_blank" x-show="r.reportUrl" @click.stop>Open report ↗</a></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <p class="muted p-5" x-show="!filteredRuns().length">No saved runs.</p>
+          </div>
+        </div>
+        <div id="run-detail" class="card card-pad scroll-mt-28 space-y-4" x-show="selectedRun">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="h-card mr-auto" x-text="`Run of ${fmtDate(selectedRun?.started)} · ${selectedRun?.testedBy || '—'}`"></div>
+            <button class="btn-secondary btn-sm" x-show="selectedRun?.reportUrl" @click="document.getElementById('run-report')?.requestFullscreen()">Full screen</button>
+            <a class="btn-secondary btn-sm" :href="selectedRun?.reportUrl" target="_blank" x-show="selectedRun?.reportUrl">Open in new tab ↗</a>
+            <button class="btn-secondary btn-sm" @click="selectedRun = null">Close</button>
+          </div>
+          <!-- the company's custom Allure report of this run (reports/<app>/<run>/report.html), inside the Viewer -->
+          <template x-if="selectedRun?.reportUrl">
+            <div id="run-report" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <iframe class="block h-[80vh] w-full" :src="selectedRun.reportUrl" :title="`Report of the run of ${fmtDate(selectedRun.started)}`"></iframe>
+            </div>
+          </template>
+          <p class="muted" x-show="selectedRun && !selectedRun.reportUrl">This run has no HTML report (Allure could not build it); its raw results are in <code x-text="`reports/${app}/${selectedRun?.run}/allure-results`"></code>.</p>
+          <div class="h-card pt-2">Quick summary</div>
+          <div class="cmd"><code class="flex-1 break-all py-1" x-text="`npx playwright ${selectedRun?.command || 'test'}`"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(`npx playwright ${selectedRun?.command || 'test'}`)" x-text="copied === `npx playwright ${selectedRun?.command || 'test'}` ? 'Copied' : 'Copy'"></button></div>
+          <div>
+            <div class="mb-2 text-sm font-semibold">Tests that need a look</div>
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead><tr><th>Result</th><th>Test</th><th>Project</th><th>Note</th><th>Investigate</th></tr></thead>
+                <tbody>
+                  <template x-for="(t, i) in problemTests(selectedRun)" :key="i">
+                    <tr>
+                      <td><span class="badge" :class="resultBadge(outcomeText(t))" x-text="outcomeText(t)"></span></td>
+                      <td class="text-sm" x-text="t.title"></td>
+                      <td class="text-xs" x-text="t.project"></td>
+                      <td class="text-xs text-slate-600" x-text="t.note || ''"></td>
+                      <td><button class="whitespace-nowrap font-mono text-xs text-brand-600 hover:underline" x-show="outcomeText(t) === 'failed'" @click="copy(`/qa-fix ${t.file}`)" x-text="copied === `/qa-fix ${t.file}` ? 'Copied' : 'Copy /qa-fix'"></button></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <p class="muted" x-show="!problemTests(selectedRun).length">Every test passed.</p>
+            </div>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <div class="mb-2 text-sm font-semibold">Videos of failures</div>
+              <p class="muted" x-show="!selectedRun?.evidence?.length">None (no failures, or evidence is off).</p>
+              <template x-for="e in (selectedRun?.evidence || []).filter(e => e.name.endsWith('.webm'))">
+                <div class="mb-3"><div class="mb-1 text-xs text-slate-500" x-text="e.name"></div><video class="w-full rounded-lg border border-slate-200" controls preload="none" :src="e.url"></video></div>
+              </template>
+            </div>
+            <div>
+              <div class="mb-2 text-sm font-semibold">Changes since the previous run</div>
+              <template x-if="selectedRun?.diff">
+                <div class="space-y-1 text-sm">
+                  <div><b x-text="selectedRun.diff.newFailures.length"></b> new failure(s) · <b x-text="selectedRun.diff.fixed.length"></b> fixed · <b x-text="selectedRun.diff.stillFailing"></b> still failing</div>
+                  <ul class="list-disc pl-5 text-rose-600"><template x-for="f in selectedRun.diff.newFailures"><li x-text="f"></li></template></ul>
+                </div>
+              </template>
+              <p class="muted" x-show="!selectedRun?.diff">No earlier run to compare with.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═════════════ ACTIVITY ═════════════ -->
+      <section x-show="page === 'activity' && app" class="space-y-6">
+        <div><h1 class="h-page">Activity</h1><p class="muted">Who did what: test runs (terminal and Studio), requirement stages, developer handovers, Studio commands and commits.</p></div>
+        <!-- app / sprint / platform / module filter (common.js): the same bar on every data page, kept between pages -->
+        <div class="card card-pad flex flex-wrap items-end gap-3">
+          <div><label class="label">App</label>
+            <select class="input w-56" @change="filterApp($event.target.value)">
+              <template x-for="a in ctx.apps || []" :key="a"><option :value="a" :selected="a === currentApp()" x-text="a"></option></template>
+            </select></div>
+          <div x-show="page !== 'sprints'"><label class="label">Sprint</label>
+            <select class="input w-40" x-model="filters.sprint" @change="onFilterChange('sprint')">
+              <option value="">All sprints</option>
+              <template x-for="s in filterOptions().sprints" :key="s"><option :value="s" :selected="s === filters.sprint" x-text="`Sprint ${s}`"></option></template>
+              <option value="none" :selected="filters.sprint === 'none'">Not in a sprint</option>
+            </select></div>
+          <div><label class="label">Platform</label>
+            <select class="input w-40" x-model="filters.platform" @change="onFilterChange('platform')">
+              <option value="">All platforms</option>
+              <template x-for="p in filterOptions().platforms" :key="p"><option :value="p" :selected="p === filters.platform" x-text="p"></option></template>
+            </select></div>
+          <div><label class="label">Module</label>
+            <select class="input w-52" x-model="filters.module" @change="onFilterChange('module')">
+              <option value="">All modules</option>
+              <template x-for="m in filterOptions().modules" :key="m"><option :value="m" :selected="m === filters.module" x-text="m"></option></template>
+            </select></div>
+          <button class="btn-secondary btn-sm mb-1" x-show="filtersActive()" @click="clearFilters()">Clear filters</button>
+          <span class="muted mb-2 ml-auto" x-show="filtersActive()" x-text="filterSummary()"></span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <select class="input max-w-48" x-model="activityKind">
+            <option value="">Everything</option><option value="run">Test runs</option><option value="requirement">Requirements</option>
+            <option value="handover">From developers</option><option value="studio">QA Studio</option><option value="commit">Commits</option>
+          </select>
+          <select class="input max-w-48" x-model="activityWho">
+            <option value="">Everyone</option>
+            <template x-for="p in activityPeople()" :key="p"><option :value="p" x-text="p"></option></template>
+          </select>
+          <select class="input max-w-40" x-model.number="activityDays" @change="loadActivity()">
+            <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option><option :value="365">Last year</option>
+          </select>
+        </div>
+        <div class="card">
+          <ul class="divide-y divide-slate-100">
+            <template x-for="(a, i) in filteredActivity()" :key="i">
+              <li class="flex items-start gap-3 px-5 py-3" :class="a.link && 'cursor-pointer hover:bg-slate-50'" @click="openItem(a)">
+                <span class="badge shrink-0" :class="kindBadge(a.kind)" x-text="kindLabel(a.kind)"></span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium"><span x-text="a.title"></span> <span class="badge ml-1" :class="a.kind === 'run' || a.kind === 'studio' ? jobBadge(a.status) : 'badge-muted'" x-show="a.status && a.kind !== 'requirement'" x-text="a.status"></span></div>
+                  <div class="break-all text-xs text-slate-500" x-text="a.detail"></div>
+                </div>
+                <div class="shrink-0 text-right text-xs text-slate-500"><div x-text="fmtDate(a.at)"></div><div class="font-medium" x-text="a.who"></div></div>
+              </li>
+            </template>
+            <li class="muted p-5" x-show="!filteredActivity().length">Nothing in this period.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ═════════════ LOGS ═════════════ -->
+      <section x-show="page === 'logs' && app" class="space-y-6">
+        <div><h1 class="h-page">Logs</h1><p class="muted">Output of commands started from QA Studio, and every test of a saved run. Secrets are masked.</p></div>
+        <!-- app / sprint / platform / module filter (common.js): the same bar on every data page, kept between pages -->
+        <div class="card card-pad flex flex-wrap items-end gap-3">
+          <div><label class="label">App</label>
+            <select class="input w-56" @change="filterApp($event.target.value)">
+              <template x-for="a in ctx.apps || []" :key="a"><option :value="a" :selected="a === currentApp()" x-text="a"></option></template>
+            </select></div>
+          <div x-show="page !== 'sprints'"><label class="label">Sprint</label>
+            <select class="input w-40" x-model="filters.sprint" @change="onFilterChange('sprint')">
+              <option value="">All sprints</option>
+              <template x-for="s in filterOptions().sprints" :key="s"><option :value="s" :selected="s === filters.sprint" x-text="`Sprint ${s}`"></option></template>
+              <option value="none" :selected="filters.sprint === 'none'">Not in a sprint</option>
+            </select></div>
+          <div><label class="label">Platform</label>
+            <select class="input w-40" x-model="filters.platform" @change="onFilterChange('platform')">
+              <option value="">All platforms</option>
+              <template x-for="p in filterOptions().platforms" :key="p"><option :value="p" :selected="p === filters.platform" x-text="p"></option></template>
+            </select></div>
+          <div><label class="label">Module</label>
+            <select class="input w-52" x-model="filters.module" @change="onFilterChange('module')">
+              <option value="">All modules</option>
+              <template x-for="m in filterOptions().modules" :key="m"><option :value="m" :selected="m === filters.module" x-text="m"></option></template>
+            </select></div>
+          <button class="btn-secondary btn-sm mb-1" x-show="filtersActive()" @click="clearFilters()">Clear filters</button>
+          <span class="muted mb-2 ml-auto" x-show="filtersActive()" x-text="filterSummary()"></span>
+        </div>
+        <div class="flex flex-wrap gap-1 border-b border-slate-200">
+          <template x-for="t in [['commands','Command output'],['tests','Test results of a run']]">
+            <button class="-mb-px border-b-2 px-4 py-2 text-sm font-semibold" :class="logTab === t[0] ? 'border-brand-500 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'" @click="logTab = t[0]" x-text="t[1]"></button>
+          </template>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-5" x-show="logTab === 'commands'">
+          <div class="card min-w-0 lg:col-span-2">
+            <ul class="max-h-144 divide-y divide-slate-100 overflow-auto">
+              <template x-for="j in filteredJobs()" :key="j.id">
+                <li class="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50" @click="go('logs', j.id)" :class="selectedJob?.id === j.id && 'bg-brand-50'">
+                  <span class="badge" :class="jobBadge(j.status)" x-text="j.status"></span>
+                  <div class="min-w-0 flex-1"><div class="truncate text-sm font-medium" x-text="j.title"></div><div class="text-xs text-slate-500" x-text="`${fmtDate(j.startedAt)} · ${j.by || '—'}`"></div></div>
+                </li>
+              </template>
+              <li class="muted p-4" x-show="!filteredJobs().length">No commands from QA Studio yet. Terminal output stays in the terminal; test results of every run are in the next tab.</li>
+            </ul>
+          </div>
+          <div class="card card-pad min-w-0 lg:col-span-3" x-show="selectedJob">
+            <div class="mb-3 flex items-center gap-2">
+              <div class="h-card mr-auto" x-text="selectedJob?.title"></div>
+              <span class="badge" :class="jobBadge(selectedJob?.status)" x-text="selectedJob?.status"></span>
+            </div>
+            <div class="mb-2 cmd"><code class="flex-1 break-all py-1" x-text="selectedJob?.command"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(selectedJob?.command)" x-text="copied && copied === selectedJob?.command ? 'Copied' : 'Copy'"></button></div>
+            <pre class="log"><template x-for="(line, i) in selectedJob?.lines || []" :key="i"><div :class="/✘|\bfailed\b|Error/.test(line) ? 'text-rose-300' : /^\s+ok\b|passed/.test(line) ? 'text-emerald-300' : ''" x-text="line || ' '"></div></template></pre>
+          </div>
+        </div>
+
+        <div class="space-y-4" x-show="logTab === 'tests'">
+          <div class="flex flex-wrap gap-2">
+            <select class="input max-w-md" x-model="logRun" @change="openLogRun()">
+              <option value="">Choose a run…</option>
+              <template x-for="r in filteredRuns()" :key="r.run"><option :value="r.run" x-text="`${fmtDate(r.started)} · ${r.status} · ${r.passed}/${r.total} · ${r.testedBy || '—'}`"></option></template>
+            </select>
+            <select class="input max-w-48" x-model="logOutcome">
+              <option value="problems">Needs a look</option><option value="all">All tests</option>
+            </select>
+          </div>
+          <div class="card overflow-x-auto" x-show="logRunDetail">
+            <table class="data-table">
+              <thead><tr><th>Result</th><th>ID</th><th>Test</th><th>Project</th><th>Spec</th><th>Note</th></tr></thead>
+              <tbody>
+                <template x-for="(t, i) in logTests()" :key="i">
+                  <tr>
+                    <td><span class="badge" :class="resultBadge(outcomeText(t))" x-text="outcomeText(t)"></span></td>
+                    <td class="whitespace-nowrap font-semibold" x-text="testId(t)"></td>
+                    <td class="text-sm" x-text="t.title"></td>
+                    <td class="text-xs" x-text="t.project"></td>
+                    <td class="text-xs" x-text="t.file.replace(`apps/${app}/tests/`, '')"></td>
+                    <td class="text-xs text-slate-600" x-text="t.note || ''"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <p class="muted p-5" x-show="!logTests().length">Every test passed.</p>
+            <p class="help px-5 pb-4">Error messages, screenshots and steps are in the run's report (Reports → Open), or open a trace: <code>npx playwright show-trace test-results/…/trace.zip</code></p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- test-case drawer (common.js openCase): the whole test case, from the right; Esc closes, ↑ / ↓ previous / next -->
+<div class="fixed inset-0 z-40" x-show="drawer" x-cloak
+     @keydown.escape.window="closeCase()" @keydown.arrow-down.window.prevent="drawer && moveCase(1)" @keydown.arrow-up.window.prevent="drawer && moveCase(-1)">
+  <div class="absolute inset-0 bg-brand-900/30" x-show="drawer" x-transition.opacity @click="closeCase()"></div>
+  <aside class="absolute top-0 right-0 flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl" role="dialog" aria-modal="true" :aria-label="drawer?.c.id"
+         x-show="drawer" x-transition:enter="transition duration-200 ease-out" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition duration-150 ease-in" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full">
+    <template x-if="drawer">
+      <div class="flex h-full min-h-0 flex-col">
+        <!-- header -->
+        <div class="border-b border-slate-200 bg-linear-to-r from-brand-500 to-brand-700 px-6 py-4 text-white">
+          <div class="flex items-center gap-2">
+            <span class="rounded-md bg-white/15 px-2 py-0.5 font-mono text-sm font-semibold" x-text="drawer.c.id"></span>
+            <span class="text-xs text-white/75" x-text="`${drawerPosition().index + 1} of ${drawerPosition().total}`"></span>
+            <div class="ml-auto flex items-center gap-1">
+              <button class="rounded-lg p-1.5 hover:bg-white/15 disabled:opacity-40" title="Previous test case (↑)" :disabled="drawerPosition().index <= 0" @click="moveCase(-1)">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg></button>
+              <button class="rounded-lg p-1.5 hover:bg-white/15 disabled:opacity-40" title="Next test case (↓)" :disabled="drawerPosition().index >= drawerPosition().total - 1" @click="moveCase(1)">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+              <button class="rounded-lg p-1.5 hover:bg-white/15" title="Close (Esc)" @click="closeCase()">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+          </div>
+          <h2 class="mt-2 text-xl leading-snug font-semibold" x-text="drawer.c.title"></h2>
+          <div class="mt-1 text-xs text-white/80" x-text="[drawer.file.header.jira, drawer.file.header.epic, drawer.file.header.feature].filter(Boolean).join(' · ')"></div>
+        </div>
+
+        <div id="case-drawer-body" class="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <!-- facts -->
+          <div class="flex flex-wrap gap-1.5">
+            <span class="badge" :class="typeBadge(drawer.c.type)" x-text="`type: ${drawer.c.type || '—'}`"></span>
+            <span class="badge" :class="['critical','blocker'].includes(drawer.c.priority) ? 'badge-bad' : 'badge-muted'" x-text="`priority: ${drawer.c.priority || '—'}`"></span>
+            <span class="badge" :class="{ yes: 'badge-ok', later: 'badge-warn' }[drawer.c.automate] ?? 'badge-muted'" x-text="`automate: ${drawer.c.automate === 'no' ? 'no (manual only)' : drawer.c.automate}`"></span>
+            <template x-for="t in drawer.c.tags || []" :key="t"><span class="badge-muted font-mono" x-text="t"></span></template>
+          </div>
+
+          <!-- status -->
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 p-3">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Automated test</div>
+              <div class="mt-1 text-sm font-semibold" :class="drawer.c.hasTest ? 'text-emerald-700' : 'text-slate-500'" x-text="drawer.c.hasTest ? 'Yes, in the spec' : 'Not automated'"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-3">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Latest result</div>
+              <span class="badge mt-1" :class="resultBadge(drawer.c.result)" x-text="drawer.c.result || 'not run yet'"></span>
+              <div class="mt-1 text-xs text-slate-500" x-show="drawer.c.resultDate" x-text="[fmtDate(drawer.c.resultDate), drawer.c.resultBuild && `build ${drawer.c.resultBuild}`, drawer.c.resultEnv].filter(Boolean).join(' · ')"></div>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-3">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Manual result</div>
+              <span class="badge mt-1" :class="resultBadge(drawer.c.manualDetail?.result)" x-text="drawer.c.manualDetail?.result || 'none'"></span>
+              <div class="mt-1 text-xs text-slate-500" x-show="drawer.c.manualDetail" x-text="[drawer.c.manualDetail?.date, drawer.c.manualDetail?.by, drawer.c.manualDetail?.build && `build ${drawer.c.manualDetail.build}`, drawer.c.manualDetail?.bug].filter(Boolean).join(' · ')"></div>
+            </div>
+          </div>
+          <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" x-show="drawer.c.note" x-text="drawer.c.note"></div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700" x-show="drawer.c.manualDetail?.notes" x-text="`Manual test notes: ${drawer.c.manualDetail?.notes}`"></div>
+
+          <!-- preconditions -->
+          <section x-show="drawer.file.preconditions?.length">
+            <h3 class="mb-2 text-sm font-semibold text-brand-900">Preconditions <span class="font-normal text-slate-500">(all test cases of this file)</span></h3>
+            <ul class="space-y-1.5 text-sm text-slate-700">
+              <template x-for="(p, i) in drawer.file.preconditions" :key="i">
+                <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500"></span><span x-html="caseHtml(p)"></span></li>
+              </template>
+            </ul>
+          </section>
+
+          <!-- steps -->
+          <section>
+            <h3 class="mb-2 text-sm font-semibold text-brand-900">Steps</h3>
+            <ol class="space-y-2">
+              <template x-for="(s, i) in drawer.c.steps || []" :key="i">
+                <li class="flex gap-3 text-sm text-slate-800">
+                  <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500 text-xs font-bold text-white" x-text="i + 1"></span>
+                  <span class="pt-0.5" x-html="caseHtml(s)"></span>
+                </li>
+              </template>
+            </ol>
+            <p class="muted" x-show="!drawer.c.steps?.length">No steps written.</p>
+          </section>
+
+          <!-- expected result -->
+          <section>
+            <h3 class="mb-2 text-sm font-semibold text-brand-900">Expected result</h3>
+            <ul class="space-y-1.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-slate-800">
+              <template x-for="(e, i) in expectedLines(drawer.c.expected)" :key="i">
+                <li class="flex gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span x-html="caseHtml(e)"></span></li>
+              </template>
+            </ul>
+          </section>
+
+          <!-- where it lives -->
+          <section>
+            <h3 class="mb-2 text-sm font-semibold text-brand-900">Where it lives</h3>
+            <dl class="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1.5 text-sm">
+              <dt class="text-slate-500">Test-cases file</dt><dd class="break-all font-mono text-xs" x-text="drawer.file.file"></dd>
+              <dt class="text-slate-500">Requirement</dt><dd class="break-all font-mono text-xs" x-text="drawer.file.header.source || '—'"></dd>
+              <dt class="text-slate-500">Spec</dt><dd class="break-all font-mono text-xs" x-text="drawer.file.header.spec || '—'"></dd>
+              <dt class="text-slate-500">Platform · module</dt><dd x-text="`${drawer.file.platform || '—'} · ${drawer.file.module}`"></dd>
+              <dt class="text-slate-500">Sprints</dt><dd x-text="drawer.file.sprints?.length ? drawer.file.sprints.map(s => `Sprint ${s}`).join(', ') : 'not in a sprint'"></dd>
+            </dl>
+          </section>
+
+          <!-- QA Viewer: what to type -->
+          <template x-if="viewerMode">
+          <section>
+            <h3 class="mb-2 text-sm font-semibold text-brand-900">Commands</h3>
+            <div class="space-y-1.5">
+              <template x-for="c in [
+                drawer.c.hasTest && `npx playwright test -g &quot;${drawer.c.id} &quot;`,
+                drawer.c.automate === 'yes' && !drawer.c.hasTest && `/qa-automate ${drawer.file.file}`,
+                drawer.c.result === 'failed' && drawer.file.header.spec && `/qa-fix apps/${app}/${drawer.file.header.spec}`,
+                `code ${drawer.file.file}`,
+              ].filter(Boolean)" :key="c">
+                <div class="cmd"><code class="flex-1 break-all py-1" x-text="c"></code><button class="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold hover:bg-white/20" @click="copy(c)" x-text="copied === c ? 'Copied' : 'Copy'"></button></div>
+              </template>
+            </div>
+          </section>
+          </template>
+        </div>
+      </div>
+    </template>
+  </aside>
+</div>
+
+<!-- toasts -->
+<div class="fixed right-4 bottom-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
+  <template x-for="t in toasts" :key="t.id">
+    <div class="rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg" :class="t.kind === 'bad' ? 'bg-rose-600' : 'bg-brand-900'" x-text="t.message"></div>
+  </template>
+</div>
+</body>
+</html>

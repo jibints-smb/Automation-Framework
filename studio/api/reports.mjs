@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { savedRuns } from '../../scripts/lib.mjs';
+import { areas } from '../areas.mjs';
 import { currentContext, listApps, requireApp } from '../context.mjs';
 import { startJob } from '../jobs.mjs';
 
@@ -20,17 +21,23 @@ export const routes = [
     path: /^\/api\/reports$/,
     handler: ({ query }) => {
       const apps = query.app ? [requireApp(query.app)] : listApps();
-      const runs = apps.flatMap((app) =>
-        savedRuns(app).map(({ tests, dir, ...r }) => {
+      const runs = apps.flatMap((app) => {
+        const { areaOf } = areas(app);
+        return savedRuns(app).map(({ tests, dir, ...r }) => {
           const run = path.basename(dir);
+          // what the run covered, for the sprint / platform / module filter (the sprint is the one recorded with the run)
+          const tested = (tests ?? []).map((t) => areaOf(t.file));
           return {
             ...r,
             run,
+            sprints: r.sprint ? [r.sprint] : [],
+            platforms: [...new Set(tested.map((a) => a.platform).filter(Boolean))],
+            modules: [...new Set(tested.map((a) => a.module).filter(Boolean))],
             reportUrl: r.report ? `/reports/${app}/${run}/${r.report}` : '',
             evidence: fs.existsSync(path.join(dir, 'evidence')) ? fs.readdirSync(path.join(dir, 'evidence')).filter((f) => !f.endsWith('.txt')).length : 0,
           };
-        }),
-      );
+        });
+      });
       runs.sort((a, b) => b.started.localeCompare(a.started));
       const app = query.app || currentContext().app;
       const pages = [
@@ -54,7 +61,9 @@ export const routes = [
       const evidence = fs.existsSync(path.join(dir, 'evidence'))
         ? fs.readdirSync(path.join(dir, 'evidence')).map((f) => ({ name: f, url: `/reports/${params.app}/${params.run}/evidence/${f}` }))
         : [];
-      return { ...summary, run: params.run, reportUrl: summary.report ? `/reports/${params.app}/${params.run}/${summary.report}` : '', evidence };
+      const { areaOf } = areas(params.app);
+      const tests = (summary.tests ?? []).map((t) => (({ platform, module }) => ({ ...t, platform, module }))(areaOf(t.file)));
+      return { ...summary, tests, run: params.run, reportUrl: summary.report ? `/reports/${params.app}/${params.run}/${summary.report}` : '', evidence };
     },
   },
   {

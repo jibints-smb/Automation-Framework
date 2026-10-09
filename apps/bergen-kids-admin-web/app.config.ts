@@ -31,5 +31,6 @@ export default defineApp({
       await loginPage.login({ email: credentials.username, password: credentials.password });
       await new DashboardPage(page).expectLoaded();
     },
+    loginUrl: /\/auth\/login/, // a logged-in test that ends here is reported as "session lost"
   },
 });

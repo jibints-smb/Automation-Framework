@@ -11,6 +11,8 @@ const { loadSecrets, redactText } = require('../src/report/redact.cjs');
 
 const MAX_LINES = 5000;
 const HISTORY_FILE = path.join('reports', '.studio-jobs.json');
+/** Each finished job's (redacted) output, so QA Viewer and a restarted Studio can still show it. */
+const LOG_DIR = path.join('reports', '.studio-jobs');
 const RUN_LOCK = '.qa-run.lock';
 let secrets = loadSecrets();
 
@@ -120,8 +122,14 @@ export function stopJob(id) {
   return true;
 }
 
+/** A job of this session, or a finished one from the history with its saved output. */
 export function getJob(id) {
-  return jobs.get(id);
+  const live = jobs.get(id);
+  if (live) return live;
+  const saved = readHistory().find((j) => j.id === id);
+  if (!saved) return undefined;
+  const log = path.join(LOG_DIR, `${id}.log`);
+  return { ...saved, lines: fs.existsSync(log) ? fs.readFileSync(log, 'utf8').split('\n') : ['(the output of this job was not kept)'] };
 }
 
 /** Subscribe to a job's output: gets every line so far, then live lines and the end. Returns unsubscribe. */
@@ -162,8 +170,15 @@ function saveHistory() {
     const finished = [...jobs.values()].filter((j) => j.status !== 'running').map(summary);
     const ids = new Set(finished.map((j) => j.id));
     const all = [...finished, ...readHistory().filter((j) => !ids.has(j.id))].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 200);
-    fs.mkdirSync(path.dirname(HISTORY_FILE), { recursive: true });
+    fs.mkdirSync(LOG_DIR, { recursive: true });
     fs.writeFileSync(HISTORY_FILE, JSON.stringify(all, null, 2));
+    for (const job of jobs.values()) {
+      const log = path.join(LOG_DIR, `${job.id}.log`);
+      if (job.status !== 'running' && !fs.existsSync(log)) fs.writeFileSync(log, job.lines.join('\n'));
+    }
+    // the output of jobs that dropped out of the history goes too
+    const kept = new Set(all.map((j) => `${j.id}.log`));
+    for (const file of fs.readdirSync(LOG_DIR)) if (!kept.has(file)) fs.rmSync(path.join(LOG_DIR, file), { force: true });
   } catch {
     // history is a convenience; never fail a job over it
   }

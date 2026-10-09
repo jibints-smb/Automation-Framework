@@ -1,4 +1,6 @@
 // QA Studio: the framework's web UI on this computer.   npm run studio   (opens the browser)
+// QA Viewer: the same server with --viewer (npm run viewer): read-only screens, no actions. Every change is refused
+// here, so the QA team does the work in the terminal and Claude Code (the screens show the command to type).
 //
 // Security: listens on 127.0.0.1 only; the Host header must be this server (blocks DNS rebinding); the browser
 // gets a random session token from the link printed at start (kept in an HttpOnly, SameSite=Strict cookie);
@@ -33,9 +35,15 @@ function codeFingerprint() {
 }
 const STARTED_CODE = codeFingerprint();
 const TOKEN = crypto.randomBytes(24).toString('hex');
-const COOKIE = 'qa_studio';
 const args = process.argv.slice(2);
-const wantedPort = Number(args[args.indexOf('--port') + 1]) || Number(process.env.STUDIO_PORT) || 4400;
+const VIEWER = args.includes('--viewer');
+const NAME = VIEWER ? 'QA Viewer' : 'QA Studio';
+// own cookie: both can run at once on 127.0.0.1 (cookies are shared across ports)
+const COOKIE = VIEWER ? 'qa_viewer' : 'qa_studio';
+const wantedPort =
+  Number(args[args.indexOf('--port') + 1]) || Number(VIEWER ? process.env.VIEWER_PORT : process.env.STUDIO_PORT) || (VIEWER ? 4401 : 4400);
+/** The Viewer is read-only and doesn't show the Setup or .env settings either. */
+const VIEWER_BLOCKED = [/^\/api\/settings$/, /^\/api\/apps\/[\w-]+\/env\//];
 
 buildCss();
 
@@ -51,7 +59,7 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
     if (cookie(req, COOKIE) !== TOKEN) {
-      return send(res, 401, '<p style="font:16px system-ui;padding:40px">Open QA Studio with the link shown in the terminal where <b>npm run studio</b> runs.</p>', 'text/html');
+      return send(res, 401, `<p style="font:16px system-ui;padding:40px">Open ${NAME} with the link shown in the terminal where <b>npm run ${VIEWER ? 'viewer' : 'studio'}</b> runs.</p>`, 'text/html');
     }
 
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
@@ -60,13 +68,19 @@ const server = http.createServer(async (req, res) => {
     // shipped with the Studio (studio/public/vendor): works even where npm skipped the dev dependencies
     if (url.pathname === '/alpine.js') return serveFile(res, path.join(PUBLIC, 'vendor'), 'alpine.min.js');
     if (url.pathname === '/logo') return serveLogo(res);
-    return serveFile(res, PUBLIC, url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
+    if (url.pathname === '/') return serveFile(res, PUBLIC, VIEWER ? 'viewer.html' : 'index.html');
+    // each server serves only its own page
+    if (url.pathname === (VIEWER ? '/index.html' : '/viewer.html')) return send(res, 404, 'Not found');
+    return serveFile(res, PUBLIC, url.pathname.slice(1));
   } catch (error) {
     send(res, error.status ?? 500, JSON.stringify({ error: error.message }), 'application/json');
   }
 });
 
 async function api(req, res, url) {
+  if (VIEWER && (req.method !== 'GET' || VIEWER_BLOCKED.some((p) => p.test(url.pathname)))) {
+    return send(res, 403, JSON.stringify({ error: 'QA Viewer is read-only: do this in the terminal or Claude Code' }), 'application/json');
+  }
   // live job output (Server-Sent Events)
   const stream = url.pathname.match(/^\/api\/jobs\/([\w-]+)\/stream$/);
   if (stream && req.method === 'GET') {
@@ -181,6 +195,6 @@ server.on('error', (error) => {
 server.listen(wantedPort, '127.0.0.1', () => {});
 server.on('listening', () => {
   const url = `http://127.0.0.1:${server.address().port}/?token=${TOKEN}`;
-  console.log(`\nQA Studio is running: ${url}\n(only on this computer; keep this window open, Ctrl+C to stop)\n`);
+  console.log(`\n${NAME} is running: ${url}\n(only on this computer; keep this window open, Ctrl+C to stop)\n`);
   openBrowser(url);
 });
